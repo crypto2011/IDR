@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!-- C++Builder XML Project -->
+<PROJECT>
+  <MACROS>
+    <VERSION value="BCB.06.00"/>
+    <PROJECT value="C:\PAPA\IDR\Idr.exe"/>
+    <OBJFILES value="obj\Idr.obj obj\Main.obj obj\TypeInfo.obj obj\StringInfo.obj 
+      obj\Explorer.obj obj\KnowledgeBase.obj obj\Disasm.obj obj\Threads.obj 
+      obj\InputDlg.obj obj\FindDlg.obj obj\Infos.obj obj\EditFunctionDlg.obj 
+      obj\UFileDropper.obj obj\AboutDlg.obj obj\Resources.obj 
+      obj\EditFieldsDlg.obj obj\KBViewer.obj obj\UfrmFormTree.obj obj\Legend.obj 
+      obj\IDCGen.obj obj\Decompiler.obj obj\Hex2Double.obj obj\Misc.obj 
+      obj\Plugins.obj obj\ActiveProcesses.obj"/>
+    <RESFILES value="Idr.res"/>
+    <IDLFILES value=""/>
+    <IDLGENFILES value=""/>
+    <DEFFILE value=""/>
+    <RESDEPEN value="$(RESFILES) Main.dfm TypeInfo.dfm StringInfo.dfm Explorer.dfm InputDlg.dfm 
+      FindDlg.dfm EditFunctionDlg.dfm AboutDlg.dfm EditFieldsDlg.dfm 
+      KBViewer.dfm UfrmFormTree.dfm Legend.dfm Hex2Double.dfm Plugins.dfm 
+      ActiveProcesses.dfm"/>
+    <LIBFILES value=""/>
+    <LIBRARIES value="dsnapcon.lib dsnapcrba.lib dss.lib bcb2kaxserver.lib indy.lib dbxcds.lib 
+      dclocx.lib soaprtl.lib bcbie.lib nmfast.lib dbexpress.lib inetdbxpress.lib 
+      inetdb.lib inetdbbde.lib inet.lib xmlrtl.lib visualdbclx.lib ibxpress.lib 
+      teeqr.lib teeui.lib bdecds.lib cds.lib vcldbx.lib qrpt.lib adortl.lib 
+      bcbsmp.lib dsnap.lib teedb.lib vcldb.lib bdertl.lib dbrtl.lib tee.lib 
+      vclx.lib vcl.lib rtl.lib"/>
+    <SPARELIBS value="rtl.lib vcl.lib vclx.lib tee.lib dbrtl.lib bdertl.lib vcldb.lib teedb.lib 
+      dsnap.lib bcbsmp.lib adortl.lib qrpt.lib vcldbx.lib cds.lib bdecds.lib 
+      teeui.lib teeqr.lib ibxpress.lib visualdbclx.lib xmlrtl.lib inet.lib 
+      inetdbbde.lib inetdb.lib inetdbxpress.lib dbexpress.lib nmfast.lib 
+      bcbie.lib soaprtl.lib dclocx.lib dbxcds.lib indy.lib bcb2kaxserver.lib 
+      dss.lib dsnapcrba.lib dsnapcon.lib"/>
+    <PACKAGES value="rtl.bpi vcl.bpi vclx.bpi"/>
+    <PATHCPP value=".;"/>
+    <PATHPAS value=".;"/>
+    <PATHRC value=".;"/>
+    <PATHASM value=".;"/>
+    <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
+    <RELEASELIBPATH value="$(BCB)\lib\release"/>
+    <LINKER value="ilink32"/>
+    <USERDEFINES value="_DEBUG"/>
+    <SYSDEFINES value="NO_STRICT"/>
+    <MAINSOURCE value="Idr.cpp"/>
+    <INCLUDEPATH value="&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl"/>
+    <LIBPATH value="&quot;c:\program files (x86)\borland\cbuilder6\source\vcl&quot;;&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <WARNINGS value="-w-par -w-csu"/>
+    <OTHERFILES value=""/>
+  </MACROS>
+  <OPTIONS>
+    <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\Source\vcl -src_suffix cpp 
+      -D_DEBUG -boa"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -w- -Vx -Ve -X- -r- -a1 -5 -b- -k -y -v -vi- 
+      -c -tW -tWM"/>
+    <PFLAGS value="-N2obj -N0obj -$Y+ -$W -$O- -$A8 -v -JPHNE -M"/>
+    <RFLAGS value=""/>
+    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zi"/>
+    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -v"/>
+    <OTHERFILES value=""/>
+  </OPTIONS>
+  <LINKER>
+    <ALLOBJ value="c0w32.obj sysinit.obj $(OBJFILES)"/>
+    <ALLRES value="$(RESFILES)"/>
+    <ALLLIB value="$(LIBFILES) $(LIBRARIES) import32.lib cp32mt.lib"/>
+    <OTHERFILES value=""/>
+  </LINKER>
+  <FILELIST>
+      <FILE FILENAME="Idr.cpp" FORMNAME="" UNITNAME="Idr" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Idr.res" FORMNAME="" UNITNAME="Idr.res" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Main.cpp" FORMNAME="FMain_11011981" UNITNAME="Main" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="TypeInfo.cpp" FORMNAME="FTypeInfo_11011981" UNITNAME="TypeInfo" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="StringInfo.cpp" FORMNAME="FStringInfo_11011981" UNITNAME="StringInfo" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Explorer.cpp" FORMNAME="FExplorer_11011981" UNITNAME="Explorer" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="KnowledgeBase.cpp" FORMNAME="" UNITNAME="KnowledgeBase" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Disasm.cpp" FORMNAME="" UNITNAME="Disasm" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Threads.cpp" FORMNAME="" UNITNAME="Threads" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="InputDlg.cpp" FORMNAME="FInputDlg_11011981" UNITNAME="InputDlg" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="FindDlg.cpp" FORMNAME="FindDlg_11011981" UNITNAME="FindDlg" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Infos.cpp" FORMNAME="" UNITNAME="Infos" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="EditFunctionDlg.cpp" FORMNAME="FEditFunctionDlg_11011981" UNITNAME="EditFunctionDlg" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="UFileDropper.cpp" FORMNAME="" UNITNAME="UFileDropper" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="AboutDlg.cpp" FORMNAME="FAboutDlg_11011981" UNITNAME="AboutDlg" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Resources.cpp" FORMNAME="" UNITNAME="Resources" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="EditFieldsDlg.cpp" FORMNAME="FEditFieldsDlg_11011981" UNITNAME="EditFieldsDlg" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="KBViewer.cpp" FORMNAME="FKBViewer_11011981" UNITNAME="KBViewer" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="UfrmFormTree.cpp" FORMNAME="IdrDfmFormTree_11011981" UNITNAME="UfrmFormTree" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Legend.cpp" FORMNAME="FLegend_11011981" UNITNAME="Legend" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="IDCGen.cpp" FORMNAME="" UNITNAME="IDCGen" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Decompiler.cpp" FORMNAME="" UNITNAME="Decompiler" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Hex2Double.cpp" FORMNAME="FHex2DoubleDlg_11011981" UNITNAME="Hex2Double" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Misc.cpp" FORMNAME="" UNITNAME="Misc" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Plugins.cpp" FORMNAME="FPlugins" UNITNAME="Plugins" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ActiveProcesses.cpp" FORMNAME="FActiveProcesses" UNITNAME="ActiveProcesses" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+  </FILELIST>
+  <BUILDTOOLS>
+  </BUILDTOOLS>
+
+  <IDEOPTIONS>
+[Version Info]
+IncludeVerInfo=1
+AutoIncBuild=0
+MajorVer=2
+MinorVer=6
+Release=0
+Build=0
+Debug=0
+PreRelease=0
+Special=0
+Private=0
+DLL=0
+Locale=1049
+CodePage=1251
+
+[Version Info Keys]
+CompanyName=
+FileDescription=Interactive Delphi Reconstructor
+FileVersion=2.6.0.0
+InternalName=IDR
+LegalCopyright=
+LegalTrademarks=
+OriginalFilename=
+ProductName=
+ProductVersion=2.5.0.121
+Comments=
+
+[Excluded Packages]
+c:\program files (x86)\borland\cbuilder6\Bin\dclqrt60.bpl=QuickReport Components
+C:\Windows\SysWOW64\ibevnt60.bpl=Borland Interbase Event Alerter Component
+c:\program files (x86)\borland\cbuilder6\Bin\dcltee60.bpl=TeeChart Components
+c:\program files (x86)\borland\cbuilder6\Bin\dcltqr60.bpl=TeeChart for QuickReport Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclib60.bpl=InterBase Data Access Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclclxdb60.bpl=Borland CLX Database Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclclxstd60.bpl=Borland CLX Standard Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclact60.bpl=Borland ActionBar Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclnet60.bpl=Borland Internet Components
+c:\program files (x86)\borland\cbuilder6\Bin\DBWEBXPRT.BPL=Borland Web Wizard Package
+c:\program files (x86)\borland\cbuilder6\Bin\DCLNMF60.bpl=NetMasters Fastnet Tools
+c:\program files (x86)\borland\cbuilder6\Bin\dclsoap60.bpl=Borland SOAP Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
+c:\program files (x86)\borland\cbuilder6\Bin\dcldbx60.bpl=Borland dbExpress Components
+c:\program files (x86)\borland\cbuilder6\Bin\dcldbxcds60.bpl=Borland Local DBX ClientDataset Components
+
+[HistoryLists\hlIncludePath]
+Count=18
+Item0=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item1=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item2=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item3=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item4=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item5=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item6=$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item7=C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item8=..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item9=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item10=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item11=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item12=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item13=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item14=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item15=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\include;$(BCB)\include\vcl
+Item16=$(BCB)\include;$(BCB)\include\vcl
+Item17=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\include;$(BCB)\include\vcl
+
+[HistoryLists\hlLibraryPath]
+Count=19
+Item0=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item1=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item2=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item3=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item4=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item5=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item6=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item7=$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item8=$(BCB)\Projects\Lib;C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
+Item9=..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
+Item10=$(BCB)\lib\obj;$(BCB)\lib
+Item11=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item12=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item13=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item14=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item15=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item16=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item17=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\lib\obj;$(BCB)\lib
+Item18=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+
+[HistoryLists\hlDebugSourcePath]
+Count=1
+Item0=$(BCB)\source\vcl
+
+[HistoryLists\hlConditionals]
+Count=1
+Item0=_DEBUG
+
+[HistoryLists\hlIntOutputDir]
+Count=4
+Item0=obj
+Item1=C:\Program Files\Borland\CBuilder6\Projects\IDR
+Item2=D:\_D_\PROJECTS\IDD
+Item3=C:\_D_\PROJECTS\IDD
+
+[HistoryLists\hlFinalOutputDir]
+Count=11
+Item0=C:\PAPA\IDR\
+Item1=C:\PAPA\IDR
+Item2=D:\PAPA\IDR\
+Item3=D:\PAPA\IDR
+Item4=exe\
+Item5=exe
+Item6=C:\Program Files\Borland\CBuilder6\Projects\IDR\
+Item7=C:\Program Files\Borland\CBuilder6\Projects\IDR
+Item8=D:\_D_\PROJECTS\IDD\
+Item9=C:\_D_\PROJECTS\IDD\
+Item10=C:\_D_\PROJECTS\IDD
+
+[Debugging]
+DebugSourceDirs=$(BCB)\source\vcl
+
+[Parameters]
+RunParams=
+Launcher=
+UseLauncher=0
+DebugCWD=
+HostApplication=
+RemoteHost=
+RemotePath=
+RemoteLauncher=
+RemoteCWD=
+RemoteDebug=0
+
+[Compiler]
+ShowInfoMsgs=0
+LinkDebugVcl=1
+LinkCGLIB=0
+  </IDEOPTIONS>
+</PROJECT>

@@ -1,0 +1,494 @@
+{ Procedures and functions that need compiler magic }
+Примеры использования в ассемблерном коде:
+
+procedure _COS;
+-> FST(0) Extended argument
+<- FST(0) Extended argument
+
+procedure _EXP;
+-> FST(0) Extended argument
+<- FST(0) Extended argument
+
+procedure _INT;
+-> FST(0) Extended argument
+<- FST(0) Extended argument
+
+procedure _SIN;
+-> FST(0) Extended argument
+<- FST(0) Extended argument
+
+procedure _FRAC;
+-> FST(0) Extended argument
+<- FST(0) Extended argument
+
+procedure _ROUND;
+-> FST(0) Extended argument
+<- EDX:EAX Result
+
+procedure _TRUNC;
+-> FST(0) Extended argument
+<- EDX:EAX Result
+
+procedure _AbstractError;
+procedure _Assert(const Message, Filename: AnsiString; LineNumber: Integer);
+function _Append(var t: TTextRec): Integer;
+function _Assign(var t: TTextRec; const s: String): Integer;
+function _BlockRead(var f: TFileRec; buffer: Pointer; recCnt: Longint; var recsRead: Longint): Longint;
+function  _BlockWrite(var f: TFileRec; buffer: Pointer; recCnt: Longint; var recsWritten: Longint): Longint;
+function _Close(var t: TTextRec): Integer;
+procedure _PStrCat;
+->EAX = Pointer to destination string
+  EDX = Pointer to source string
+
+procedure _PStrNCat;
+->EAX = Pointer to destination string
+  EDX = Pointer to source string
+  CL  = max length of result (allocated size of dest - 1)
+
+procedure _PStrCpy(Dest: PShortString; Source: PShortString);
+procedure _PStrNCpy(Dest: PShortString; Source: PShortString; MaxLen: Byte);
+function _EofFile(var f: TFileRec): Boolean;
+function _EofText(var t: TTextRec): Boolean;
+function _Eoln(var t: TTextRec): Boolean;
+procedure _Erase(var f: TFileRec);
+function _FilePos(var f: TFileRec): Longint;
+function _FileSize(var f: TFileRec): Longint;
+procedure _FillChar(var Dest; count: Integer; Value: Char);
+function _FreeMem(P: Pointer): Integer;
+function _GetMem(Size: Integer): Pointer;
+function _ReallocMem(var P: Pointer; NewSize: Integer): Pointer;
+procedure _Halt;
+procedure _Halt0;
+
+procedure _Mark;
+
+procedure _PStrCmp;
+->EAX = Pointer to left string
+  EDX = Pointer to right string
+
+procedure _AStrCmp;
+->EAX = Pointer to left string
+  EDX = Pointer to right string
+  ECX = Number of chars to compare
+
+procedure _RandInt;
+->EAX     Range
+<-EAX     Result
+
+procedure _RandExt;
+function _ReadRec(var f: TFileRec; Buffer: Pointer): Integer;
+function _ReadChar(var t: TTextRec): Char;
+function _ReadLong(var t: TTextRec): Longint;
+procedure _ReadString(var t: TTextRec; s: PShortString; maxLen: Longint);
+procedure _ReadCString(var t: TTextRec; s: PChar; maxLen: Longint);
+procedure _ReadLString(var t: TTextRec; var s: AnsiString);
+function _ReadExt(var t: TTextRec): Extended;
+-> EAX Pointer to text record
+<- FST(0)  Result
+
+procedure _ReadLn(var t: TTextRec);
+-> EAX Pointer to text record
+
+procedure _Rename(var f: TFileRec; newName: PChar);
+procedure _Release;
+procedure _ResetText(var T: Text);
+function _ResetFile(var f: TFileRec; recSize: Longint): Integer;
+procedure _RewritText(var T: Text);
+function _RewritFile(var f: TFileRec; recSize: Longint): Integer;
+procedure _RunError;
+procedure _Run0Error;
+procedure _Seek(var f: TFileRec; recNum: Cardinal);
+function _SeekEof(var t: TTextRec): Boolean;
+-> EAX Pointer to text record
+<- AL  Boolean result
+
+function _SeekEoln(var t: TTextRec): Boolean;
+-> EAX Pointer to text record
+<- AL  Boolean result
+
+procedure _SetTextBuf(var t: TTextRec; p: Pointer; size: Longint);
+procedure _StrLong(val, width: Longint; s: PShortString);
+->EAX     Value
+  EDX     Width
+  ECX     Pointer to string
+
+procedure  _Str0Long(val: Longint; s: PShortString);
+procedure _Truncate(var f: TFileRec);
+function _ValLong(const s: String; var code: Integer): Longint;
+->EAX     Pointer to string
+  EDX     Pointer to code result
+<-EAX     Result
+
+function _WriteRec(var f: TFileRec; buffer: Pointer): Pointer;
+-> EAX Pointer to file variable
+   EDX Pointer to buffer
+<- EAX Pointer to file variable
+
+function _WriteChar(var t: TTextRec; c: Char; width: Integer): Pointer;
+function _Write0Char(var t: TTextRec; c: Char): Pointer;
+-> EAX Pointer to text record
+   DL  Character
+
+function _WriteBool(var t: TTextRec; val: Boolean; width: Longint): Pointer;
+function _Write0Bool(var t: TTextRec; val: Boolean): Pointer;
+function _WriteLong(var t: TTextRec; val, width: Longint): Pointer;
+function _Write0Long(var t: TTextRec; val: Longint): Pointer;
+function _WriteString(var t: TTextRec; const s: ShortString; width: Longint): Pointer;
+function _Write0String(var t: TTextRec; const s: ShortString): Pointer;
+function _WriteCString(var t: TTextRec; s: PChar; width: Longint): Pointer;
+function _Write0CString(var t: TTextRec; s: PChar): Pointer;
+procedure _WriteLString(var t: TTextRec; const s: AnsiString; width: Longint): Pointer;
+procedure _Write0LString(var t: TTextRec; const s: AnsiString): Pointer;
+function _WriteVariant(var T: Text; const V: Variant; Width: Integer): Pointer;
+function _Write0Variant(var T: Text; const V: Variant): Pointer;
+procedure _Write2Ext(VAR t: Text; val: Extended; width, prec: Longint);
+->EAX     Pointer to file record
+  [ESP+4] Extended value
+  EDX     Field width
+  ECX     precision (<0: scientific, >= 0: fixed point)
+
+procedure _Write1Ext(VAR t: Text; val: Extended; width: Longint);
+->    EAX     Pointer to file record
+      [ESP+4] Extended value
+      EDX     Field width
+
+procedure _Write0Ext(VAR t: Text; val: Extended);
+->EAX     Pointer to file record
+  [ESP+4] Extended value
+
+function _WriteLn(var t: TTextRec): Pointer;
+
+procedure __CToPasStr(Dest: PShortString; const Source: PChar);
+procedure __CLenToPasStr(Dest: PShortString; const Source: PChar; MaxLen: Integer);
+->EAX     Pointer to destination
+  EDX     Pointer to source
+  ECX     cnt
+
+procedure __ArrayToPasStr(Dest: PShortString; const Source: PChar; Len: Integer);
+procedure __PasToCStr(const Source: PShortString; const Dest: PChar);
+
+procedure __IOTest;
+procedure _Flush(var F: Text);
+
+procedure _SetElem(VAR d: SET; elem, size: Byte);
+-> EAX     =       dest address
+   DL      =       element number
+   CL      =       size of set
+
+procedure _SetRange(lo, hi, size: Byte; VAR d: SET );
+->AL  low limit of range
+  DL      high limit of range
+  ECX     Pointer to set
+  AH      size of set
+
+procedure _SetEq(CONST l, r: Set; size: Byte): ConditionCode;
+-> EAX     =       left operand
+   EDX     =       right operand
+   CL      =       size of set
+
+procedure _SetLe(CONST l, r: Set; size: Byte): ConditionCode;
+-> EAX     =       left operand
+   EDX     =       right operand
+   CL      =       size of set (>0 && <= 32)
+
+procedure _SetIntersect(VAR dest: Set; CONST src: Set; size: Byte);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   CL      =       size of set (0 < size <= 32)
+
+procedure _SetIntersect3(VAR dest: Set; CONST src: Set; size: Longint; src2: Set);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   ECX     =       size of set (0 < size <= 32)
+  [ESP+4] = 2nd source operand
+
+procedure _SetUnion(VAR dest: Set; CONST src: Set; size: Byte);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   CL      =       size of set (0 < size <= 32)
+
+procedure _SetUnion3(VAR dest: Set; CONST src: Set; size: Longint; src2: Set);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   ECX     =       size of set (0 < size <= 32)
+  [ESP+4] = 2nd source operand
+
+procedure _SetSub(VAR dest: Set; CONST src: Set; size: Byte);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   CL      =       size of set (0 < size <= 32)
+
+procedure _SetSub3(VAR dest: Set; CONST src: Set; size: Longint; src2: Set);
+-> EAX     =       destination operand
+   EDX     =       source operand
+   ECX     =       size of set (0 < size <= 32)
+  [ESP+4] = 2nd source operand
+
+procedure _SetExpand(CONST src: Set; VAR dest: Set; lo, hi: Byte);
+-> EAX     Pointer to source (packed set)
+   EDX     Pointer to destination (expanded set)
+   CH      high byte of source
+   CL      low byte of source
+
+procedure _Str2Ext(val: Extended; width, precision: Longint; var s: String );
+-> [ESP+4] Extended value
+   EAX Width
+   EDX Precision
+   ECX Pointer to string
+
+procedure _Str0Extl;
+-> [ESP+4] Extended value
+   EAX Pointer to string
+
+procedure _Str1Ext(val: Extended; width: Longint; var s: String );
+-> [ESP+4] Extended value
+   EAX Field width
+   EDX Pointer to string
+
+function _ValExt( s: AnsiString; VAR code: Integer ) : Extended;
+ -> EAX Pointer to string
+    EDX Pointer to code result
+<- FST(0)  Result
+
+function _Pow10(val: Extended; Power: Integer): Extended;
+-> FST(0)  val
+   EAX Power
+<- FST(0) Result
+
+procedure _Real2Ext( val : Real ) : Extended;
+-> EAX Pointer to value
+<- FST(0)  Result
+
+procedure _Ext2Real( val : Extended ) : Real;
+-> FST(0)  Value
+   EAX Pointer to result
+
+procedure _ObjSetup;
+procedure _ObjCopy;
+procedure _Fail;
+procedure _BoundErr;
+procedure _IntOver;
+procedure _StartExe;
+procedure _StartLib;
+procedure _PackageLoad  (const Table : PackageInfo);
+procedure _PackageUnload(const Table : PackageInfo);
+procedure _InitResStrings;
+procedure _InitResStringImports;
+procedure _InitImports;
+procedure _InitWideStrings;
+
+procedure _ClassCreate;
+procedure _ClassDestroy;
+procedure _AfterConstruction;
+procedure _BeforeDestruction;
+procedure _IsClass;
+procedure _AsClass;
+
+procedure _RaiseExcept;
+procedure _RaiseAgain;
+procedure _DoneExcept;
+procedure _TryFinallyExit;
+
+procedure _CallDynaInst;
+procedure _CallDynaClass;
+procedure _FindDynaInst;
+procedure _FindDynaClass;
+
+procedure _LStrClr(var S: AnsiString);
+procedure _LStrArrayClr{var str: AnsiString; cnt: longint};
+procedure _LStrAsg{var dest: AnsiString; source: AnsiString};
+procedure _LStrLAsg{var dest: AnsiString; source: AnsiString};
+procedure _LStrFromPCharLen(var Dest: AnsiString; Source: PAnsiChar; Length: Integer);
+procedure _LStrFromPWCharLen(var Dest: AnsiString; Source: PWideChar; Length: Integer);
+procedure _LStrFromChar(var Dest: AnsiString; Source: AnsiChar);
+procedure _LStrFromWChar(var Dest: AnsiString; Source: WideChar);
+procedure _LStrFromPChar(var Dest: AnsiString; Source: PAnsiChar);
+procedure _LStrFromPWChar(var Dest: AnsiString; Source: PWideChar);
+procedure _LStrFromString(var Dest: AnsiString; const Source: ShortString);
+procedure _LStrFromArray(var Dest: AnsiString; Source: PAnsiChar; Length: Integer);
+procedure _LStrFromWArray(var Dest: AnsiString; Source: PWideChar; Length: Integer);
+procedure _LStrFromWStr(var Dest: AnsiString; const Source: WideString);
+procedure _LStrToString{(var Dest: ShortString; const Source: AnsiString; MaxLen: Integer)};
+function _LStrLen{str: AnsiString}: Longint;
+procedure _LStrCat{var dest: AnsiString; source: AnsiString};
+procedure _LStrCat3{var dest:AnsiString; source1: AnsiString; source2: AnsiString};
+procedure _LStrCatN{var dest:AnsiString; argCnt: Integer; ...};
+procedure _LStrCmp{left: AnsiString; right: AnsiString};
+procedure _LStrAddRef{str: AnsiString};
+procedure _LStrToPChar{str: AnsiString): PChar};
+procedure _Copy{ s : ShortString; index, count : Integer ) : ShortString};
+procedure _Delete{ var s : openstring; index, count : Integer };
+procedure _Insert{ source : ShortString; var s : openstring; index : Integer };
+procedure _Pos{ substr : ShortString; s : ShortString ) : Integer};
+procedure _SetLength{var s: ShortString; newLength: Integer};
+procedure _SetString{var s: ShortString: buffer: PChar; len: Integer};
+
+procedure UniqueString(var str: string);
+procedure _NewAnsiString{length: Longint};      { for debugger purposes only }
+
+procedure _LStrCopy  { const s : AnsiString; index, count : Integer) : AnsiString};
+procedure _LStrDelete{ var s : AnsiString; index, count : Integer };
+procedure _LStrInsert{ const source : AnsiString; var s : AnsiString; index : Integer };
+procedure _LStrPos{ const substr : AnsiString; const s : AnsiString ) : Integer};
+procedure _LStrSetLength{ var str: AnsiString; newLength: Integer};
+procedure _LStrOfChar{ c: Char; count: Integer): AnsiString };
+
+procedure _WStrClr(var S: WideString);
+procedure _WStrArrayClr(var StrArray; Count: Integer);
+procedure _WStrAsg(var Dest: WideString; const Source: WideString);
+procedure _WStrFromPCharLen(var Dest: WideString; Source: PAnsiChar; Length: Integer);
+procedure _WStrFromPWCharLen(var Dest: WideString; Source: PWideChar; Length: Integer);
+procedure _WStrFromChar(var Dest: WideString; Source: AnsiChar);
+procedure _WStrFromWChar(var Dest: WideString; Source: WideChar);
+procedure _WStrFromPChar(var Dest: WideString; Source: PAnsiChar);
+procedure _WStrFromPWChar(var Dest: WideString; Source: PWideChar);
+procedure _WStrFromString(var Dest: WideString; const Source: ShortString);
+procedure _WStrFromArray(var Dest: WideString; Source: PAnsiChar; Length: Integer);
+procedure _WStrFromWArray(var Dest: WideString; Source: PWideChar; Length: Integer);
+procedure _WStrFromLStr(var Dest: WideString; const Source: AnsiString);
+procedure _WStrToString(Dest: PShortString; const Source: WideString; MaxLen: Integer);
+function _WStrToPWChar(const S: WideString): PWideChar;
+function _WStrLen(const S: WideString): Integer;
+procedure _WStrCat(var Dest: WideString; const Source: WideString);
+procedure _WStrCat3(var Dest: WideString; const Source1, Source2: WideString);
+procedure _WStrCatN{var dest:WideString; argCnt: Integer; ...};
+procedure _WStrCmp{left: WideString; right: WideString};
+function _NewWideString(Length: Integer): PWideChar;
+function _WStrCopy(const S: WideString; Index, Count: Integer): WideString;
+procedure _WStrDelete(var S: WideString; Index, Count: Integer);
+procedure _WStrInsert(const Source: WideString; var Dest: WideString; Index: Integer);
+procedure _WStrPos{ const substr : WideString; const s : WideString ) : Integer};
+procedure _WStrSetLength(var S: WideString; NewLength: Integer);
+function _WStrOfWChar(Ch: WideChar; Count: Integer): WideString;
+procedure _WStrAddRef{var str: WideString};
+
+procedure _Initialize;
+procedure _InitializeArray;
+procedure _InitializeRecord;
+procedure _Finalize;
+procedure _FinalizeArray;
+procedure _FinalizeRecord;
+procedure _AddRef;
+procedure _AddRefArray;
+procedure _AddRefRecord;
+procedure _CopyArray;
+procedure _CopyRecord;
+procedure _CopyObject;
+
+procedure _New;
+procedure _Dispose;
+
+procedure _DispInvoke; cdecl;
+procedure _IntfDispCall; cdecl;
+procedure _IntfVarCall; cdecl;
+
+procedure _VarToInt;
+procedure _VarToBool;
+procedure _VarToReal;
+procedure _VarToCurr;
+procedure _VarToPStr(var S; const V: Variant);
+procedure _VarToLStr(var S: string; const V: Variant);
+procedure _VarToWStr(var S: WideString; const V: Variant);
+procedure _VarToIntf(var Unknown: IUnknown; const V: Variant);
+procedure _VarToDisp(var Dispatch: IDispatch; const V: Variant);
+procedure _VarToDynArray(var DynArray: Pointer; const V: Variant; TypeInfo: Pointer);
+
+procedure _VarFromInt;
+procedure _VarFromBool;
+procedure _VarFromReal;
+procedure _VarFromTDateTime;
+procedure _VarFromCurr;
+procedure _VarFromPStr(var V: Variant; const Value: ShortString);
+procedure _VarFromLStr(var V: Variant; const Value: string);
+procedure _VarFromWStr(var V: Variant; const Value: WideString);
+procedure _VarFromIntf(var V: Variant; const Value: IUnknown);
+procedure _VarFromDisp(var V: Variant; const Value: IDispatch);
+procedure _VarFromDynArray(var V: Variant; const DynArray: Pointer; TypeInfo: Pointer);
+procedure _OleVarFromPStr(var V: OleVariant; const Value: ShortString);
+procedure _OleVarFromLStr(var V: OleVariant; const Value: string);
+procedure _OleVarFromVar(var V: OleVariant; const Value: Variant);
+
+procedure _VarAdd;
+procedure _VarSub;
+procedure _VarMul;
+procedure _VarDiv;
+procedure _VarMod;
+procedure _VarAnd;
+procedure _VarOr;
+procedure _VarXor;
+procedure _VarShl;
+procedure _VarShr;
+procedure _VarRDiv;
+procedure _VarCmp;
+
+procedure _VarNeg;
+procedure _VarNot;
+
+procedure _VarCopyNoInd;
+procedure _VarClr;
+procedure _VarAddRef;
+
+{ 64-bit Integer helper routines }
+
+procedure __llmul;
+procedure __lldiv;
+procedure __lludiv;
+procedure __llmod;
+procedure __llmulo;
+procedure __lldivo;
+procedure __llmodo;
+procedure __llumod;
+procedure __llshl;
+procedure __llushr;
+procedure _WriteInt64;
+procedure _Write0Int64;
+procedure _ReadInt64;
+function _StrInt64(val: Int64; width: Integer): ShortString;
+function _Str0Int64(val: Int64): ShortString;
+function _ValInt64(const s: AnsiString; var code: Integer): Int64;
+
+{ Dynamic array helper functions }
+
+procedure _DynArrayHigh;
+procedure _DynArrayClear(var a: Pointer; typeInfo: Pointer);
+procedure _DynArrayLength;
+procedure _DynArraySetLength;
+procedure _DynArrayCopy(a: Pointer; typeInfo: Pointer; var Result: Pointer);
+procedure _DynArrayCopyRange(a: Pointer; typeInfo: Pointer; index, count : Integer; var Result: Pointer);
+procedure _DynArrayAsg;
+procedure _DynArrayAddRef;
+procedure  DynArrayToVariant(var V: Variant; const DynArray: Pointer; TypeInfo: Pointer);
+procedure  DynArrayFromVariant(var DynArray: Pointer; const V: Variant; TypeInfo: Pointer);
+
+procedure _IntfClear(var Dest: IUnknown);
+procedure _IntfCopy(var Dest: IUnknown; const Source: IUnknown);
+procedure _IntfCast(var Dest: IUnknown; const Source: IUnknown; const IID: TGUID);
+procedure _IntfAddRef(const Dest: IUnknown);
+
+function _VarArrayGet(var A: Variant; IndexCount: Integer;
+  Indices: Integer): Variant; cdecl;
+procedure _VarArrayPut(var A: Variant; const Value: Variant;
+  IndexCount: Integer; Indices: Integer); cdecl;
+
+procedure _HandleAnyException;
+procedure _HandleOnException;
+procedure _HandleFinally;
+procedure _HandleAutoException;
+
+procedure _FSafeDivide;
+procedure _FSafeDivideR;
+
+procedure _CheckAutoResult;
+
+procedure FPower10;
+
+procedure TextStart;
+
+function  CompToDouble(acomp: Comp): Double; cdecl;
+procedure DoubleToComp(adouble: Double; var result: Comp); cdecl;
+function  CompToCurrency(acomp: Comp): Currency; cdecl;
+procedure CurrencyToComp(acurrency: Currency; var result: Comp); cdecl;
+
+function GetMemory(Size: Integer): Pointer; cdecl;
+function FreeMemory(P: Pointer): Integer; cdecl;
+function ReallocMemory(P: Pointer; Size: Integer): Pointer; cdecl;

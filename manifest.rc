@@ -1,0 +1,3 @@
+#define MANIFEST 24
+#define IDR_MANIFEST 1
+IDR_MANIFEST MANIFEST "idr.manifest"
