@@ -1,8 +1,8 @@
 object FMain_11011981: TFMain_11011981
-  Left = 204
-  Top = 223
-  Width = 899
-  Height = 579
+  Left = 227
+  Top = 36
+  Width = 959
+  Height = 724
   Caption = 'Interactive Delphi Reconstructor'
   Color = clBtnFace
   DefaultMonitor = dmDesktop
@@ -26,12 +26,13 @@ object FMain_11011981: TFMain_11011981
   TextHeight = 13
   object SplitterH1: TSplitter
     Left = 0
-    Top = 391
-    Width = 883
-    Height = 2
+    Top = 516
+    Width = 943
+    Height = 4
     Cursor = crVSplit
     Align = alBottom
     AutoSnap = False
+    Beveled = True
     Color = clGray
     MinSize = 100
     ParentColor = False
@@ -40,9 +41,10 @@ object FMain_11011981: TFMain_11011981
     Left = 215
     Top = 0
     Width = 3
-    Height = 391
+    Height = 516
     Cursor = crHSplit
     AutoSnap = False
+    Beveled = True
     Color = clGray
     MinSize = 3
     ParentColor = False
@@ -50,11 +52,11 @@ object FMain_11011981: TFMain_11011981
   object pcWorkArea: TPageControl
     Left = 218
     Top = 0
-    Width = 665
-    Height = 391
-    ActivePage = tsClassView
+    Width = 725
+    Height = 516
+    ActivePage = tsNames
     Align = alClient
-    TabIndex = 1
+    TabIndex = 3
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -62,12 +64,13 @@ object FMain_11011981: TFMain_11011981
       object lbCode: TListBox
         Left = 0
         Top = 25
-        Width = 547
-        Height = 338
+        Width = 607
+        Height = 463
         Cursor = crIBeam
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
+        Anchors = []
         Color = clWhite
         ExtendedSelect = False
         Font.Charset = DEFAULT_CHARSET
@@ -90,7 +93,7 @@ object FMain_11011981: TFMain_11011981
       object CodePanel: TPanel
         Left = 0
         Top = 0
-        Width = 657
+        Width = 717
         Height = 25
         Align = alTop
         PopupMenu = pmCodePanel
@@ -135,7 +138,7 @@ object FMain_11011981: TFMain_11011981
           OnClick = bCodePrevClick
         end
         object ShowCXrefs: TPanel
-          Left = 545
+          Left = 605
           Top = 1
           Width = 111
           Height = 23
@@ -183,12 +186,13 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbCXrefs: TListBox
-        Left = 547
+        Left = 607
         Top = 25
         Width = 110
-        Height = 338
+        Height = 463
         Style = lbOwnerDrawFixed
         Align = alRight
+        Anchors = []
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -210,8 +214,8 @@ object FMain_11011981: TFMain_11011981
       object tvClassesFull: TTreeView
         Left = 0
         Top = 40
-        Width = 657
-        Height = 323
+        Width = 717
+        Height = 448
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -233,7 +237,7 @@ object FMain_11011981: TFMain_11011981
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 657
+        Width = 717
         Height = 40
         Align = alTop
         TabOrder = 1
@@ -255,8 +259,8 @@ object FMain_11011981: TFMain_11011981
       object tvClassesShort: TTreeView
         Left = 0
         Top = 40
-        Width = 657
-        Height = 323
+        Width = 717
+        Height = 448
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -283,11 +287,12 @@ object FMain_11011981: TFMain_11011981
       object lbStrings: TListBox
         Left = 0
         Top = 25
-        Width = 547
-        Height = 338
+        Width = 607
+        Height = 463
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
+        Anchors = []
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
@@ -306,12 +311,12 @@ object FMain_11011981: TFMain_11011981
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 657
+        Width = 717
         Height = 25
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 545
+          Left = 600
           Top = 1
           Width = 111
           Height = 23
@@ -323,12 +328,13 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbSXrefs: TListBox
-        Left = 547
+        Left = 607
         Top = 25
         Width = 110
-        Height = 338
+        Height = 463
         Style = lbOwnerDrawFixed
         Align = alRight
+        Anchors = []
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -12
@@ -372,10 +378,11 @@ object FMain_11011981: TFMain_11011981
       object lbNames: TListBox
         Left = 0
         Top = 25
-        Width = 547
-        Height = 338
+        Width = 607
+        Height = 463
         AutoComplete = False
         Align = alClient
+        Anchors = []
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
         Font.Height = -12
@@ -389,12 +396,12 @@ object FMain_11011981: TFMain_11011981
       object Panel5: TPanel
         Left = 0
         Top = 0
-        Width = 657
+        Width = 717
         Height = 25
         Align = alTop
         TabOrder = 1
         object ShowNXrefs: TPanel
-          Left = 545
+          Left = 605
           Top = 1
           Width = 111
           Height = 23
@@ -406,12 +413,13 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbNXrefs: TListBox
-        Left = 547
+        Left = 607
         Top = 25
         Width = 110
-        Height = 338
+        Height = 463
         Style = lbOwnerDrawFixed
         Align = alRight
+        Anchors = []
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -12
@@ -438,8 +446,8 @@ object FMain_11011981: TFMain_11011981
       object lbSourceCode: TListBox
         Left = 0
         Top = 0
-        Width = 657
-        Height = 349
+        Width = 717
+        Height = 484
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -460,7 +468,7 @@ object FMain_11011981: TFMain_11011981
     Left = 0
     Top = 0
     Width = 215
-    Height = 391
+    Height = 516
     ActivePage = tsForms
     Align = alLeft
     TabIndex = 2
@@ -472,7 +480,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 207
-        Height = 363
+        Height = 488
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -503,7 +511,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 207
-        Height = 363
+        Height = 488
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -527,7 +535,7 @@ object FMain_11011981: TFMain_11011981
       ImageIndex = 3
       object Splitter1: TSplitter
         Left = 0
-        Top = 189
+        Top = 314
         Width = 207
         Height = 4
         Cursor = crVSplit
@@ -563,7 +571,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 207
-        Height = 149
+        Height = 274
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -584,7 +592,7 @@ object FMain_11011981: TFMain_11011981
       end
       object Panel4: TPanel
         Left = 0
-        Top = 193
+        Top = 318
         Width = 207
         Height = 170
         Align = alBottom
@@ -670,9 +678,12 @@ object FMain_11011981: TFMain_11011981
   end
   object sb: TStatusBar
     Left = 0
-    Top = 504
-    Width = 883
-    Height = 17
+    Top = 398
+    Width = 943
+    Height = 20
+    Align = alNone
+    BorderWidth = 1
+    Color = clGradientInactiveCaption
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBtnText
     Font.Height = -15
@@ -692,10 +703,9 @@ object FMain_11011981: TFMain_11011981
   end
   object pb: TProgressBar
     Left = 0
-    Top = 393
-    Width = 883
-    Height = 10
-    Align = alBottom
+    Top = 374
+    Width = 938
+    Height = 16
     Min = 0
     Max = 100
     Smooth = True
@@ -704,14 +714,13 @@ object FMain_11011981: TFMain_11011981
   end
   object lbUnitItems: TListBox
     Left = 0
-    Top = 403
-    Width = 883
-    Height = 101
+    Top = 520
+    Width = 943
+    Height = 146
     TabStop = False
     Style = lbOwnerDrawFixed
     AutoComplete = False
     Align = alBottom
-    Anchors = [akLeft, akTop, akRight, akBottom]
     Color = clWhite
     ExtendedSelect = False
     Font.Charset = DEFAULT_CHARSET
@@ -731,7 +740,8 @@ object FMain_11011981: TFMain_11011981
   end
   object MainMenu: TMainMenu
     AutoHotkeys = maManual
-    Left = 992
+    Left = 640
+    Top = 72
     object miFile: TMenuItem
       Caption = '&File'
       object miLoadFile: TMenuItem
@@ -1023,7 +1033,8 @@ object FMain_11011981: TFMain_11011981
     end
   end
   object OpenDlg: TOpenDialog
-    Left = 1024
+    Left = 688
+    Top = 72
   end
   object pmCode: TPopupMenu
     AutoHotkeys = maManual
@@ -1090,7 +1101,8 @@ object FMain_11011981: TFMain_11011981
     end
   end
   object SaveDlg: TSaveDialog
-    Left = 1056
+    Left = 632
+    Top = 120
   end
   object pmUnits: TPopupMenu
     AutoHotkeys = maManual
@@ -1217,8 +1229,8 @@ object FMain_11011981: TFMain_11011981
   object pmUnitItems: TPopupMenu
     AutoHotkeys = maManual
     OnPopup = pmUnitItemsPopup
-    Left = 16
-    Top = 648
+    Left = 560
+    Top = 104
     object miSearchItem: TMenuItem
       Caption = 'Search Item'
       Enabled = False
@@ -1257,16 +1269,16 @@ object FMain_11011981: TFMain_11011981
   object pmCodePanel: TPopupMenu
     AutoHotkeys = maManual
     OnPopup = pmCodePanelPopup
-    Left = 1056
-    Top = 72
+    Left = 672
+    Top = 120
     object miEmptyHistory: TMenuItem
       Caption = 'Empty History'
       OnClick = miEmptyHistoryClick
     end
   end
   object alMain: TActionList
-    Left = 1032
-    Top = 544
+    Left = 736
+    Top = 72
     object acOnTop: TAction
       Category = 'Appearance'
       Caption = 'Always on top'
@@ -1305,8 +1317,8 @@ object FMain_11011981: TFMain_11011981
     Font.Style = []
     MinFontSize = 0
     MaxFontSize = 0
-    Left = 1072
-    Top = 544
+    Left = 712
+    Top = 112
   end
   object pmSourceCode: TPopupMenu
     Left = 464
