@@ -6582,6 +6582,7 @@ String __fastcall TDecompiler::GetSysCallAlias(String AName)
     if (SameText(AName, "@LStrInsert")) return "Insert";
     if (SameText(AName, "@PCharLen") ||
         SameText(AName, "@LStrLen") ||
+        SameText(AName, "@WStrLen") ||
         SameText(AName, "@UStrLen")) return "Length";
     if (SameText(AName, "@LStrOfChar")) return "StringOfChar";
     if (SameText(AName, "@LStrPos")) return "Pos";
@@ -7212,6 +7213,21 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         Env->AddToBody(_line);
         return false;
     }
+    if (SameText(name, "@WStrToPWChar"))
+    {
+        //eax - src
+        GetRegItem(16, &_item1);
+        if (_item1.Flags & IF_STACK_PTR)
+        {
+            Env->Stack[_item1.IntValue].Type = "WideString";
+        }
+        _item1.Value = "PWideChar(" + _item1.Value + ")";
+        _item1.Type = "PWideChar";
+        SetRegItem(16, &_item1);
+        _line = "EAX := " + _item1.Value + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
     if (SameText(name, "@UStrToPWChar"))
     {
         //eax - src
@@ -7238,6 +7254,15 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item2.Flags & IF_STACK_PTR)
             Env->Stack[_item2.IntValue].Type = "String";
         _line = _item1.Value + " := " + _item2.Value + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
+    if (SameText(name, "@VarClear"))
+    {
+        GetRegItem(16, &_item1);
+        if (_item1.Flags & IF_STACK_PTR)
+            Env->Stack[_item1.IntValue].Type = "Variant";
+        _line = _item1.Value + " := 0;";
         Env->AddToBody(_line);
         return false;
     }
