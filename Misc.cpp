@@ -44,7 +44,7 @@ void __fastcall ScaleForm(TForm* AForm)
     HDC _hdc = GetDC(0);
     if (_hdc)
     {
-        AForm->ScaleBy(GetDeviceCaps(_hdc, 0x58), 120);
+        AForm->ScaleBy(GetDeviceCaps(_hdc, 0x58), 100);
         ReleaseDC(0, _hdc);
     }
 }
