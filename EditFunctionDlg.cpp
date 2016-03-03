@@ -216,7 +216,7 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyTypeClick(TObject *Sender)
         break;
     }
 
-    recN->procInfo->flags & 0xFFFFFFF8;
+    recN->procInfo->flags &= 0xFFFFFFF8;
     recN->procInfo->flags |= rgCallKind->ItemIndex;
 
     if (cbEmbedded->Checked)
