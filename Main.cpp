@@ -493,11 +493,15 @@ void __fastcall TFMain_11011981::Init()
     ClearTreeNodeMap();
     ClearClassAdrMap();
 
-    pb->Position = 0;
-    pb->Visible = false;
+    sb->Parent = lbUnitItems;
+    sb->Align = alBottom;
     sb->Panels->Items[0]->Width = Width / 2;
     sb->Panels->Items[0]->Text = "";
     sb->Panels->Items[1]->Text = "";
+    pb->Parent = lbUnitItems;
+    pb->Align = alTop;
+    pb->Position = 0;
+    pb->Visible = false;
 
     Update();
     Sleep(0);
@@ -13165,4 +13169,8 @@ void __fastcall TFMain_11011981::miProcessDumperClick(TObject *Sender)
     FActiveProcesses->ShowModal();
 }
 //---------------------------------------------------------------------------
+
+
+
+
 
