@@ -178,22 +178,13 @@ __fastcall TLoopInfo::~TLoopInfo()
 {
 }
 //---------------------------------------------------------------------------
-__fastcall TDecompileEnv::TDecompileEnv(DWORD AStartAdr, int ASize, int AStackSize)
+__fastcall TDecompileEnv::TDecompileEnv(DWORD AStartAdr, int ASize, PInfoRec recN)
 {
     StartAdr = AStartAdr;
     Size = ASize;
-#ifdef PRIVATE_VERSION
-    if (AStackSize)
-        StackSize = AStackSize;
-    else
-        StackSize = 0x8000;
-#endif
-#ifdef RESTRICTED_PRIVATE_VERSION
-    if (AStackSize)
-        StackSize = AStackSize;
-    else
-        StackSize = 0x200;
-#endif
+
+    StackSize = recN->procInfo->stackSize;
+    if (!StackSize) StackSize = 0x8000;
     Stack = new ITEM[StackSize];
 
     ErrAdr = 0;
@@ -203,7 +194,8 @@ __fastcall TDecompileEnv::TDecompileEnv(DWORD AStartAdr, int ASize, int AStackSi
     BJLseq = new TList;
     bjllist = new TList;
     CmpStack = new TList;
-    EmbeddedList = new TStringList;
+    Embedded = (recN->procInfo->flags & PF_EMBED);
+    //EmbeddedList = new TStringList;
 }
 //---------------------------------------------------------------------------
 __fastcall TDecompileEnv::~TDecompileEnv()
@@ -215,7 +207,7 @@ __fastcall TDecompileEnv::~TDecompileEnv()
     if (BJLseq) delete BJLseq;
     if (bjllist) delete bjllist;
     if (CmpStack) delete CmpStack;
-    if (EmbeddedList) delete EmbeddedList;
+    //if (EmbeddedList) delete EmbeddedList;
 }
 //---------------------------------------------------------------------------
 String __fastcall TDecompileEnv::GetLvarName(int Ofs)
@@ -667,7 +659,7 @@ void __fastcall TDecompileEnv::OutputSourceCode()
 //Embedded???
 void __fastcall TDecompileEnv::DecompileProc()
 {
-    EmbeddedList->Clear();
+    //EmbeddedList->Clear();
     TDecompiler* De = new TDecompiler(this);
     if (!De->Init(StartAdr))
     {
@@ -1328,12 +1320,12 @@ String __fastcall TDecompileEnv::PrintBJL()
 //---------------------------------------------------------------------------
 DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo loopInfo)
 {
-    bool            _cmp, _immInt64Val;
+    bool            _cmp, _immInt64Val, _fullSim;
     BYTE            _op;
     DWORD           _dd, _curAdr, _branchAdr, _sAdr, _jmpAdr, _endAdr, _adr;
     DWORD           _begAdr;
     int             n, _kind, _skip1, _skip2, _size, _elSize, _procSize;
-    int             _fromPos, _curPos, _instrLen, _instrLen1, _num, _regIdx, _pos, _sPos;
+    int             _fromPos, _curPos, _endPos, _instrLen, _instrLen1, _num, _regIdx, _pos, _sPos;
     int             _decPos, _cmpRes, _varidx, _brType, _mod, _div;
     int             _bytesToSkip, _bytesToSkip1, _bytesToSkip2, _bytesToSkip3;
     __int64         _int64Val;
@@ -1361,7 +1353,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0091F8AB)
+if (_curAdr == 0x004B8C07)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -1403,49 +1395,69 @@ _curAdr = _curAdr;
                 if (_recN && _recN->xrefs->Count == 1)
                 {
                     _recX = (PXrefRec)_recN->xrefs->Items[0];
-                    _pos = GetNearestUpInstruction(Adr2Pos(_recX->adr + _recX->offset)); _adr = Pos2Adr(_pos);
-                    _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &_disInfo, 0);
-                    _op = Disasm.GetOp(_disInfo.Mnem);
-                    //dec reg in frame - full simulate
-                    if (_op == OP_DEC && _disInfo.OpType[0] == otREG)
+                    _endPos = GetNearestUpInstruction(Adr2Pos(_recX->adr + _recX->offset)); _endAdr = Pos2Adr(_endPos);
+                    //Check instructions between _curAdr and _endAdr (must be push, add or sub to full simulation)
+                    _fullSim = true; _pos = _curPos; _adr = _curAdr;
+                    while (1)
                     {
-                        _regIdx = _disInfo.OpRegIdx[0];
-                        GetRegItem(_regIdx, &_item);
-                        //Save dec position
-                        _decPos = _pos;
-
-                        _num = _item.IntValue;
-                        //next instruction is jne
-                        _pos += _instrLen;
-                        _adr += _instrLen;
                         _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &_disInfo, 0);
-                        _branchAdr = _disInfo.Immediate;
-                        //Save position
-                        _sPos = _pos + _instrLen;
-                        _sAdr = _adr + _instrLen;
-
-                        for (n = 0; n < _num; n++)
+                        _op = Disasm.GetOp(_disInfo.Mnem);
+                        if (_op != OP_PUSH && _op != OP_ADD && _op != OP_SUB)
                         {
-                            _adr = _branchAdr;
-                            _pos = Adr2Pos(_adr);
-                            while (1)
-                            {
-                                if (_pos == _decPos) break;
-                                _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &DisInfo, 0);
-                                _op = Disasm.GetOp(DisInfo.Mnem);
-                                if (_op == OP_PUSH) SimulatePush(_adr);
-                                if (_op == OP_ADD || _op == OP_SUB) SimulateInstr2(_adr, _op);
-                                _pos += _instrLen;
-                                _adr += _instrLen;
-                            }
+                            _fullSim = false;
+                            break;
                         }
-                        //reg = 0 after cycle
-                        InitItem(&_item);
-                        _item.Flags |= IF_INTVAL;
-                        SetRegItem(_regIdx, &_item);
-                        _curPos = _sPos;
-                        _curAdr = _sAdr;
-                        continue;
+                        _pos += _instrLen; _adr += _instrLen;
+                        if (_pos >= _endPos) break;
+                    }
+                    //Full simulation
+                    if (_fullSim)
+                    {
+                        //Get instruction at _endAdr
+                        _pos = _endPos; _adr = _endAdr;
+                        _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &_disInfo, 0);
+                        _op = Disasm.GetOp(_disInfo.Mnem);
+                        //dec reg in frame - full simulate
+                        if (_op == OP_DEC && _disInfo.OpType[0] == otREG)
+                        {
+                            _regIdx = _disInfo.OpRegIdx[0];
+                            GetRegItem(_regIdx, &_item);
+                            //Save dec position
+                            _decPos = _pos;
+
+                            _num = _item.IntValue;
+                            //next instruction is jne
+                            _pos += _instrLen;
+                            _adr += _instrLen;
+                            _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &_disInfo, 0);
+                            _branchAdr = _disInfo.Immediate;
+                            //Save position
+                            _sPos = _pos + _instrLen;
+                            _sAdr = _adr + _instrLen;
+
+                            for (n = 0; n < _num; n++)
+                            {
+                                _adr = _branchAdr;
+                                _pos = Adr2Pos(_adr);
+                                while (1)
+                                {
+                                    if (_pos == _decPos) break;
+                                    _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &DisInfo, 0);
+                                    _op = Disasm.GetOp(DisInfo.Mnem);
+                                    if (_op == OP_PUSH) SimulatePush(_adr);
+                                    if (_op == OP_ADD || _op == OP_SUB) SimulateInstr2(_adr, _op);
+                                    _pos += _instrLen;
+                                    _adr += _instrLen;
+                                }
+                            }
+                            //reg = 0 after cycle
+                            InitItem(&_item);
+                            _item.Flags |= IF_INTVAL;
+                            SetRegItem(_regIdx, &_item);
+                            _curPos = _sPos;
+                            _curAdr = _sAdr;
+                            continue;
+                        }
                     }
                 }
             }
@@ -2806,6 +2818,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             //stdcall, pascal, cdecl - return bytes = 4 * ArgsNum
             if ((_callKind == 3 || _callKind == 2 || _callKind == 1) && !_retBytes)
                 _retBytes = _argsNum * 4;
+            /*
             if (_recN->procInfo->flags & PF_EMBED)
             {
                 _embAdr = Val2Str8(callAdr);
@@ -2851,6 +2864,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                     FMain_11011981->lbCode->ItemIndex = _savedIdx;
                 }
             }
+            */
         }
         else
         {
@@ -3096,11 +3110,6 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         continue;
                     }
                     if (_sep) _line += ", "; _sep = true;
-                    #ifdef RESTRICTED_PRIVATE_VERSION
-                    _line += ":-)";
-                    continue;
-                    #endif
-
                     if (_item.Flags & IF_STACK_PTR)
                     {
                         _item1 = Env->Stack[_item.IntValue];
@@ -5256,7 +5265,7 @@ void __fastcall TDecompiler::SimulateInstr2RegMem(DWORD curAdr, BYTE Op)
     GetRegItem(_reg1Idx, &_itemDst);
     
     GetMemItem(curAdr, &_itemSrc, Op);
-    if (_itemSrc.Flags & IF_VMT_ADR)
+    if ((_itemSrc.Flags & IF_VMT_ADR) || (_itemSrc.Flags & IF_EXTERN_VAR))
     {
         SetRegItem(_reg1Idx, &_itemSrc);
         return;
@@ -8859,6 +8868,21 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             if (_item.Value != "") _value += "{" + _item.Value + "}";
             Dst->Value = _value;
             return;
+        }
+        //Embedded procedures
+        if (Env->Embedded)
+        {
+            //[ebp+8] - set flag IF_EXTERN_VAR and exit
+            if (DisInfo.BaseReg == 21 && _offset == 8)
+            {
+                Dst->Flags = IF_EXTERN_VAR;
+                return;
+            }
+            if (_itemBase.Flags & IF_EXTERN_VAR)
+            {
+                Dst->Value = "extlvar_" + String(-_offset);
+                return;
+            }
         }
         //[reg-N]
         if (_itemBase.Flags & IF_STACK_PTR)

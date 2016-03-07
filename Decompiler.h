@@ -24,6 +24,7 @@
 #define     IF_ARRAY_PTR        128
 #define     IF_INTVAL           256
 #define     IF_INTERFACE        512
+#define     IF_EXTERN_VAR       1024    //User for embedded procedures
 
 #define     CF_CONSTRUCTOR      1
 #define     CF_DESTRUCTOR       2
@@ -208,9 +209,10 @@ public:
     TList       *BJLseq;//TBJLInfo
     TList       *bjllist;//TBJL
     TList       *CmpStack;
-    TStringList *EmbeddedList;//List of embedded procedures addresses
+    bool        Embedded;       //Is proc embedded
+    //TStringList *EmbeddedList;  //List of embedded procedures addresses
 
-    __fastcall TDecompileEnv(DWORD AStartAdr, int ASize, int AStackSize);
+    __fastcall TDecompileEnv(DWORD AStartAdr, int ASize, PInfoRec recN);
     __fastcall ~TDecompileEnv();
     String __fastcall GetFieldName(PFIELDINFO fInfo);
     String __fastcall GetArgName(PARGINFO argInfo);
