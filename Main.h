@@ -2,10 +2,6 @@
 #ifndef MainH
 #define MainH
 //---------------------------------------------------------------------------
-#define PRIVATE_VERSION
-//#define RESTRICTED_PRIVATE_VERSION
-//#define PUBLIC_VERSION
-
 #include <stdio.h>
 #include <Classes.hpp>
 #include <Controls.hpp>

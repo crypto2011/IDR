@@ -50,15 +50,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-#ifdef PRIVATE_VERSION
-String  IDRVersion = "18.12.2015 test private version";
-#endif
-#ifdef RESTRICTED_PRIVATE_VERSION
-String  IDRVersion = "18.12.2015 restricted private version";
-#endif
-#ifdef PUBLIC_VERSION
-String  IDRVersion = "18.12.2015 public version";
-#endif
+String  IDRVersion = "05.03.2016 version";
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -8371,9 +8363,7 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
     else
     {
         //May be BCB file?
-        #ifdef PRIVATE_VERSION
         UnitsNum = GetBCBUnits(dprName);
-        #endif
         if (!UnitsNum)
         {
             Screen->Cursor = crDefault;
@@ -12724,12 +12714,10 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::bDecompileClick(TObject *Sender)
 {
-#ifdef PRIVATE_VERSION
     int procSize = GetProcSize(CurProcAdr);
     if (procSize > 0)
     {
-        PInfoRec recN = GetInfoRec(CurProcAdr);
-        TDecompileEnv *DeEnv = new TDecompileEnv(CurProcAdr, procSize, recN->procInfo->stackSize);
+        TDecompileEnv *DeEnv = new TDecompileEnv(CurProcAdr, procSize, GetInfoRec(CurProcAdr));
         try
         {
             DeEnv->DecompileProc();
@@ -12748,31 +12736,6 @@ void __fastcall TFMain_11011981::bDecompileClick(TObject *Sender)
             pcWorkArea->ActivePage = tsSourceCode;
         delete DeEnv;
     }
-#endif
-#ifdef RESTRICTED_PRIVATE_VERSION
-    int procSize = GetProcSize(CurProcAdr);
-    if (procSize > 0)
-    {
-        PInfoRec recN = GetInfoRec(CurProcAdr);
-        TDecompileEnv *DeEnv = new TDecompileEnv(CurProcAdr, procSize, 0x200);
-        try
-        {
-            DeEnv->DecompileProc();
-        }
-        catch(Exception &exception)
-        {
-            ShowCode(DeEnv->StartAdr, DeEnv->ErrAdr, lbCXrefs->ItemIndex, -1);
-            Application->ShowException(&exception);
-        }
-        DeEnv->OutputSourceCode();
-        if (!DeEnv->ErrAdr)
-            pcWorkArea->ActivePage = tsSourceCode;
-        delete DeEnv;
-    }
-#endif
-#ifdef PUBLIC_VERSION
-    ShowMessage("Not in public version!");
-#endif
 }
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miHex2DoubleClick(TObject *Sender)
