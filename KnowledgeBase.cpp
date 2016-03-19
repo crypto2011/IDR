@@ -691,7 +691,7 @@ int __fastcall MKnowledgeBase::GetConstIdx(WORD* ModuleIDs, char* ConstName)
                 if (res) break;
             }
             //Find right boundary
-            for (RN = M + 1; RN < ProcCount; RN++)
+            for (RN = M + 1; RN < ConstCount; RN++)
             {
                 ID = ConstOffsets[RN].NamId;
                 p = GetKBCachePtr(ConstOffsets[ID].Offset, ConstOffsets[ID].Size);
