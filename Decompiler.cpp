@@ -6867,6 +6867,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     if (SameText(name, "@LStrAsg")  ||
         SameText(name, "@LStrLAsg") ||
         SameText(name, "@WStrAsg")  ||
+        SameText(name, "@WStrLAsg")  ||
         SameText(name, "@UStrAsg")  ||
         SameText(name, "@UStrLAsg"))
     {
@@ -7275,10 +7276,27 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         Env->AddToBody(_line);
         return false;
     }
+    if (SameText(name, "@VarAdd"))
+    {
+        //eax=eax+edx
+        GetRegItem(16, &_item1);
+        GetRegItem(18, &_item2);
+        if (_item1.Flags & IF_STACK_PTR)
+            Env->Stack[_item1.IntValue].Type = "Variant";
+        if (_item2.Flags & IF_STACK_PTR)
+            Env->Stack[_item2.IntValue].Type = "Variant";
+        _line = _item1.Value + " := " + _item1.Value + " + " + _item2.Value + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
     //Cast to Variant
-    if (SameText(name, "@VarFromInt")   ||
+    if (SameText(name, "@VarFromBool")  ||
+        SameText(name, "@VarFromInt")   ||
+        SameText(name, "@VarFromPStr")  ||
         SameText(name, "@VarFromLStr")  ||
-        SameText(name, "@VarFromUStr"))
+        SameText(name, "@VarFromWStr")  ||
+        SameText(name, "@VarFromUStr")  ||
+        SameText(name, "@VarFromDisp"))
     {
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
@@ -7298,13 +7316,29 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     }
     if (SameText(name, "@VarToInteger"))
     {
-        GetRegItem(16, &_item1);
+        //edx=Variant, eax=Integer
+        GetRegItem(18, &_item1);
+        GetRegItem(16, &_item2);
         if (_item1.Flags & IF_STACK_PTR)
             Env->Stack[_item1.IntValue].Type = "Variant";
         InitItem(&_item);
         _item.Value = "Integer(" + _item1.Value + ")";
         SetRegItem(16, &_item);
-        _line = _item.Value + ";";
+        _line = Env->GetLvarName(_item2.IntValue) + " := " + _item.Value + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
+    if (SameText(name, "@VarToLStr"))
+    {
+        //edx=Variant, eax=String
+        GetRegItem(18, &_item1);
+        GetRegItem(16, &_item2);
+        if (_item1.Flags & IF_STACK_PTR)
+            Env->Stack[_item1.IntValue].Type = "Variant";
+        InitItem(&_item);
+        _item.Value = "String(" + _item1.Value + ")";
+        SetRegItem(16, &_item);
+        _line = Env->GetLvarName(_item2.IntValue) + " := " + _item.Value + ";";
         Env->AddToBody(_line);
         return false;
     }
@@ -8880,7 +8914,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             }
             if (_itemBase.Flags & IF_EXTERN_VAR)
             {
-                Dst->Value = "extlvar_" + String(-_offset);
+                Dst->Value = "extlvar_" + Val2Str0(-_offset);
                 return;
             }
         }
