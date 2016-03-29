@@ -5634,7 +5634,7 @@ void __fastcall TFMain_11011981::AnalyzeMethodTable(int Pass, DWORD Adr, const b
                     paramName = String((char*)(Code + pos + 1), sLen); pos += sLen + 1;
                     //AttrData
                     dw = *((WORD*)(Code + pos));
-                    if (dw == 2) pos += dw;//ATR!!
+                    pos += dw;//ATR!!
                     if (paramFlags & 0x40) continue;//Result
                     if (Pass == 1)
                     {

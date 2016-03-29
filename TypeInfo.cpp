@@ -537,7 +537,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                 propType = *((DWORD*)(Code + pos)); pos += 4;
                 //AttrData
                 dw = *((WORD*)(Code + pos));
-                if (dw == 2) pos += dw;//ATR!!
+                pos += dw;//ATR!!
                 spos = pos;
                 //PropInfo
                 pos = Adr2Pos(propType);
@@ -646,7 +646,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
             }
             //AttrData
             dw = *((WORD*)(Code + pos));
-            if (dw == 2) pos += dw;//ATR!!
+            pos += dw;//ATR!!
             if (DelphiVersion >= 2012)
             {
                 //ArrayPropCount
@@ -665,7 +665,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                     result += "\n" + name;
                     //AttrData
                     dw = *((WORD*)(Code + pos));
-                    if (dw == 2) pos += dw;//ATR!!
+                    pos += dw;//ATR!!
                 }
             }
         }
@@ -751,7 +751,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                 procSig = *((DWORD*)(Code + pos)); pos += 4;
                 //AttrData
                 dw = *((WORD*)(Code + pos));
-                if (dw == 2) pos += dw;//ATR!!
+                pos += dw;//ATR!!
                 //Procedure Signature
                 if (procSig)
                 {
@@ -786,7 +786,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                             if (i != paramCount - 1) proto += "; ";
                             //AttrData
                             dw = *((WORD*)(Code + posn));
-                            if (dw == 2) posn += dw;//ATR!!
+                            posn += dw;//ATR!!
                         }
                         if (paramCount > 0) proto += ")";
                         if (resultTypeAdr) proto += ":" + GetTypeName(resultTypeAdr);
@@ -879,13 +879,13 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                     result += "\n" + name + ":" + GetTypeName(typeAdr) + ";//f" + Val2Str0(elOff);
                     //AttrData
                     dw = *((WORD*)(Code + pos));
-                    if (dw == 2) pos += dw;//ATR!!
+                    pos += dw;//ATR!!
                 }
                 result += "\nend;";
             }
             //AttrData
             dw = *((WORD*)(Code + pos));
-            if (dw == 2) pos += dw;//ATR!!
+            pos += dw;//ATR!!
             if (DelphiVersion >= 2012)
             {
                 methCnt = *((WORD*)(Code + pos)); pos += 2;
@@ -926,7 +926,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                             if (n != paramCount - 1) result += ";";
                             //AttrData
                             dw = *((WORD*)(Code + pos));
-                            if (dw == 2) pos += dw;//ATR!!
+                            pos += dw;//ATR!!
                         }
                         if (paramCount > 0) result += ")";
                         if (resultTypeAdr) result += ":" + GetTypeName(resultTypeAdr);
@@ -934,7 +934,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                     }
                     //AttrData
                     dw = *((WORD*)(Code + pos));
-                    if (dw == 2) pos += dw;//ATR!!
+                    pos += dw;//ATR!!
                 }
             }
         }
@@ -1082,7 +1082,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
         procSig = *((DWORD*)(Code + pos)); pos += 4;
         //AttrData
         dw = *((WORD*)(Code + pos));
-        if (dw == 2) pos += dw;//ATR!!
+        pos += dw;//ATR!!
         //Procedure Signature
         if (procSig)
         {
@@ -1124,7 +1124,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                     if (i != paramCount - 1) result += "; ";
                     //AttrData
                     dw = *((WORD*)(Code + pos));
-                    if (dw == 2) pos += dw;//ATR!!
+                    pos += dw;//ATR!!
                 }
                 if (paramCount) result += ")";
 

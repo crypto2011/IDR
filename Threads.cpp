@@ -399,6 +399,9 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             if (!IsValidName(len, i + 6)) continue;
 
             String TypeName = GetTypeName(adr);
+//!!!
+if (SameText(TypeName, "TFieldDef"))
+i = i;
             UpdateStatusBar(TypeName);
             /*
             //Names that begins with '.'
@@ -438,7 +441,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -450,7 +453,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -499,7 +502,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -509,7 +512,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -519,7 +522,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -559,11 +562,11 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                         SetFlags(cfData, pos, 27 + len);
                         //AttrData
                         dw = *((WORD*)(Code + n));
-                        if (dw == 2) n += dw;//ATR!!
+                        n += dw;//ATR!!
                     }
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                     if (DelphiVersion >= 2012)
                     {
                         //ArrayPropCount
@@ -581,7 +584,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                             len = Code[n]; n += len + 1;
                             //AttrData
                             dw = *((WORD*)(Code + n));
-                            if (dw == 2) n += dw;//ATR!!
+                            n += dw;//ATR!!
                         }
                     }
                 }
@@ -619,7 +622,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                         procSig = *((DWORD*)(Code + n)); n += 4;
                         //AttrData
                         dw = *((WORD*)(Code + n));
-                        if (dw == 2) n += dw;//ATR!!
+                        n += dw;//ATR!!
                         //Procedure Signature
                         if (procSig)
                         {
@@ -648,7 +651,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                                     len = Code[pos + m]; m += len + 1;
                                     //AttrData
                                     dw = *((WORD*)(Code + pos + m));
-                                    if (dw == 2) m += dw;//ATR!!
+                                    m += dw;//ATR!!
                                 }
                             }
                             SetFlags(cfData, pos, m);
@@ -665,7 +668,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -676,7 +679,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -685,7 +688,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -694,7 +697,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -713,7 +716,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                     }
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -741,10 +744,14 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                         n++;    //Flags
                         len = Code[n]; n += len + 1;    //Name
                         dw = *((WORD*)(Code + n));
-                        if (dw == 2) n += dw;//ATR!!
+                        if (dw != 2)
+                            dummy = 1;
+                        n += dw;//ATR!!
                     }
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    if (dw != 2)
+                        dummy = 1;
+                    n += dw;//ATR!!
                     if (DelphiVersion >= 2012)
                     {
                         methCnt = *((WORD*)(Code + n)); n += 2;
@@ -771,11 +778,15 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                                     n += 4; //ParamType
                                     len = Code[n]; n += len + 1;    //Name
                                     dw = *((WORD*)(Code + n));
-                                    if (dw == 2) n += dw;//ATR!!
+                                    if (dw != 2)
+                                        dummy = 1;
+                                    n += dw;//ATR!!
                                 }
                             }
                             dw = *((WORD*)(Code + n));
-                            if (dw == 2) n += dw;//ATR!!
+                            if (dw != 2)
+                                dummy = 1;
+                            n += dw;//ATR!!
                         }
                     }
                 }
@@ -825,7 +836,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                                     n += 4;
                                     //AttrData
                                     dw = *((WORD*)(Code + n));
-                                    if (dw == 2) n += dw;//ATR!!
+                                    n += dw;//ATR!!
                                 }
                                 if (methodKind)
                                 {
@@ -866,7 +877,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                     {
                         //AttrData
                         dw = *((WORD*)(Code + n));
-                        if (dw == 2) n += dw;//ATR!!
+                        n += dw;//ATR!!
                     }
                 }
                 SetFlags(cfData, i, n - i);
@@ -878,7 +889,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -904,7 +915,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                     n += 4;
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -913,7 +924,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 {
                     //AttrData
                     dw = *((WORD*)(Code + n));
-                    if (dw == 2) n += dw;//ATR!!
+                    n += dw;//ATR!!
                 }
                 SetFlags(cfData, i, n - i);
                 break;
@@ -922,7 +933,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 n += 4;
                 //AttrData
                 dw = *((WORD*)(Code + n));
-                if (dw == 2) n += dw;//ATR!!
+                n += dw;//ATR!!
                 SetFlags(cfData, i, n - i);
             	break;
             case ikPointer:         //0x14
@@ -930,7 +941,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 n += 4;
                 //AttrData
                 dw = *((WORD*)(Code + n));
-                if (dw == 2) n += dw;//ATR!!
+                n += dw;//ATR!!
                 SetFlags(cfData, i, n - i);
             	break;
             case ikProcedure:       //0x15
@@ -938,7 +949,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                 procSig = *((DWORD*)(Code + n)); n += 4;
                 //AttrData
                 dw = *((WORD*)(Code + n));
-                if (dw == 2) n += dw;//ATR!!
+                n += dw;//ATR!!
                 SetFlags(cfData, i, n - i);
                 //Procedure Signature
                 if (procSig)
@@ -966,7 +977,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
                             len = Code[pos + m]; m += len + 1;
                             //AttrData
                             dw = *((WORD*)(Code + pos + m));
-                            if (dw == 2) m += dw;//ATR!!
+                            m += dw;//ATR!!
                         }
                     }
                     SetFlags(cfData, pos, m);
@@ -1481,10 +1492,7 @@ void __fastcall TAnalyzeThread::FindVMTs()
                         pos += len; bytes += len;
                         //AttrData
                         WORD dw = *((WORD*)(Code + pos));
-                        if (dw == 2)
-                        {
-                            pos += dw; bytes += dw;//ATR!!
-                        }
+                        pos += dw; bytes += dw;//ATR!!
                     }
                 }
                 //Use FieldTable
@@ -3162,6 +3170,9 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         {
                             fieldOfs = getProc & 0x00FFFFFF;
                             recN1 = GetInfoRec(classVMT + VmtSelfPtr);
+//!!!
+if (!recN1)
+dummy = 1;
                             recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
                         else if ((getProc & 0xFF000000) == 0xFE000000)

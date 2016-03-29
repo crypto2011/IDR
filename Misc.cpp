@@ -530,6 +530,9 @@ return;
     assert(pos >= 0 && pos + num < TotalSize);
     for (int i = pos; i < pos + num; i++)
     {
+        //!!!
+        if (i == 3032172)
+        i = i;
         Flags[i] |= flag;
     }
 }
@@ -811,7 +814,7 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
                 }
                 //AttrData
                 _dw = *((WORD*)(Code + _pos));
-                if (_dw == 2) _pos += _dw;//ATR!!
+                _pos += _dw;//ATR!!
             }
         }
     }
