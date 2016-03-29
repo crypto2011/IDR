@@ -6,7 +6,7 @@ object FTypeInfo_11011981: TFTypeInfo_11011981
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -14
+  Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   KeyPreview = True
@@ -14,17 +14,17 @@ object FTypeInfo_11011981: TFTypeInfo_11011981
   Position = poScreenCenter
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
-  PixelsPerInch = 120
-  TextHeight = 16
+  PixelsPerInch = 96
+  TextHeight = 13
   object memDescription: TMemo
     Left = 0
     Top = 0
-    Width = 692
-    Height = 353
+    Width = 684
+    Height = 363
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -15
+    Font.Height = -12
     Font.Name = 'Fixedsys'
     Font.Style = []
     ParentFont = False
@@ -34,17 +34,17 @@ object FTypeInfo_11011981: TFTypeInfo_11011981
   end
   object Panel1: TPanel
     Left = 0
-    Top = 353
-    Width = 692
-    Height = 41
+    Top = 363
+    Width = 684
+    Height = 33
     Align = alBottom
     TabOrder = 1
     Visible = False
     object bSave: TButton
-      Left = 309
-      Top = 8
-      Width = 75
-      Height = 25
+      Left = 251
+      Top = 7
+      Width = 61
+      Height = 20
       Caption = 'Save'
       TabOrder = 0
       OnClick = bSaveClick
