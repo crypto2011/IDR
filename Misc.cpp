@@ -530,9 +530,6 @@ return;
     assert(pos >= 0 && pos + num < TotalSize);
     for (int i = pos; i < pos + num; i++)
     {
-        //!!!
-        if (i == 3032172)
-        i = i;
         Flags[i] |= flag;
     }
 }

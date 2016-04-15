@@ -399,9 +399,6 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             if (!IsValidName(len, i + 6)) continue;
 
             String TypeName = GetTypeName(adr);
-//!!!
-if (SameText(TypeName, "TFieldDef"))
-i = i;
             UpdateStatusBar(TypeName);
             /*
             //Names that begins with '.'
@@ -846,6 +843,11 @@ i = i;
                                     {
                                         //ResultType
                                         n += 4;
+                                        //////////////////////////// Insert by Pigrecos
+                                        //AttrData
+                                        dw = *((WORD*)(Code + n));
+                                        n += dw;//ATR!!
+                                        ////////////////////////////
                                     }
                                 }
                             }
@@ -3170,9 +3172,6 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         {
                             fieldOfs = getProc & 0x00FFFFFF;
                             recN1 = GetInfoRec(classVMT + VmtSelfPtr);
-//!!!
-if (!recN1)
-dummy = 1;
                             recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
                         else if ((getProc & 0xFF000000) == 0xFE000000)
