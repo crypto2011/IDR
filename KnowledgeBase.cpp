@@ -2117,4 +2117,48 @@ bool __fastcall MKnowledgeBase::GetKBPropertyInfo(String className, String propN
     return false;
 }
 //---------------------------------------------------------------------------
+String __fastcall MKnowledgeBase::IsPropFunction(String className, String procName)
+{
+    int         n, idx;
+    BYTE        *p;
+    WORD        *uses, Len;
+    MTypeInfo   tInfo;
+    String      pname, type, fname;
+
+    uses = GetTypeUses(className.c_str());
+    idx = GetTypeIdxByModuleIds(uses, className.c_str());
+    if (uses) delete[] uses;
+    if (idx != -1)
+    {
+        idx = TypeOffsets[idx].NamId;
+        if (GetTypeInfo(idx, INFO_PROPS, &tInfo))
+        {
+            p = tInfo.Props;
+            for (n = 0; n < tInfo.PropsNum; n++)
+            {
+                p++;//Scope
+                p += 4;//Index
+                p += 4;//DispID
+                Len = *((WORD*)p); p += 2;
+                pname = String((char*)p, Len); p += Len + 1;//Name
+                Len = *((WORD*)p); p += 2;
+                type = TrimTypeName(String((char*)p, Len)); p += Len + 1;//TypeDef
+                Len = *((WORD*)p); p += 2;
+                fname = TrimTypeName(String((char*)p, Len)); p += Len + 1;//ReadName
+                if (SameText(procName, fname))
+                    return pname;
+                Len = *((WORD*)p); p += 2;
+                fname = TrimTypeName(String((char*)p, Len)); p += Len + 1;//WriteName
+                if (SameText(procName, fname))
+                    return pname;
+                Len = *((WORD*)p); p += 2;
+                fname = TrimTypeName(String((char*)p, Len)); p += Len + 1;//StoredName
+                if (SameText(procName, fname))
+                    return pname;
+            }
+        }
+    }
+    return "";
+}
+//---------------------------------------------------------------------------
 

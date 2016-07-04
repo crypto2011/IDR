@@ -342,6 +342,7 @@ public:
     bool __fastcall GetKBProcInfo(String typeName, MProcInfo* procInfo, int* procIdx);
     bool __fastcall GetKBTypeInfo(String typeName, MTypeInfo* typeInfo);
     bool __fastcall GetKBPropertyInfo(String className, String propName, MTypeInfo* typeInfo);
+    String __fastcall IsPropFunction(String className, String procName);
     DWORD       Version;
     int         ModuleCount;
     OFFSETSINFO *ModuleOffsets;
