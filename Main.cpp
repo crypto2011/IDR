@@ -50,7 +50,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "29.03.2016 version";
+String  IDRVersion = "07.05.2016";
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -3158,7 +3158,7 @@ int __fastcall TFMain_11011981::IsValidCode(DWORD fromAdr)
         }
         if (!memcmp(DisInfo.Mnem, "arpl", 4) ||
             !memcmp(DisInfo.Mnem, "out", 3)  ||
-            !memcmp(DisInfo.Mnem, "in", 2))
+            (DisInfo.Mnem[0] == 'i' && DisInfo.Mnem[1] == 'n' && DisInfo.Mnem[2] != 'c'))
         {
             return -1;
         }
