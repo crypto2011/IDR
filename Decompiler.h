@@ -269,7 +269,7 @@ public:
     DWORD __fastcall DecompileGeneralCase(DWORD fromAdr, DWORD markAdr, PLoopInfo loopInfo, int N);
     DWORD __fastcall DecompileTry(DWORD fromAdr, DWORD flags, PLoopInfo loopInfo);
     PITEM __fastcall FGet(int idx);
-    void __fastcall FPop();
+    PITEM __fastcall FPop();
     void __fastcall FPush(PITEM val);
     void __fastcall FSet(int idx, PITEM val);
     PFIELDINFO __fastcall GetArrayFieldOffset(String ATypeName, int AFromOfs, int AScale);
