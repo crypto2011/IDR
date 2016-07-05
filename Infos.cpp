@@ -197,6 +197,7 @@ PARGINFO __fastcall InfoProcInfo::AddArg(BYTE Tag, int Ofs, int Size, String Nam
     {
         argInfo = new ARGINFO;
         argInfo->Tag = Tag;
+        argInfo->Register = false;
         argInfo->Ndx = Ofs;
         argInfo->Size = Size;
         argInfo->Name = Name;
@@ -211,6 +212,7 @@ PARGINFO __fastcall InfoProcInfo::AddArg(BYTE Tag, int Ofs, int Size, String Nam
     {
         argInfo = new ARGINFO;
         argInfo->Tag = Tag;
+        argInfo->Register = false;
         argInfo->Ndx = Ofs;
         argInfo->Size = Size;
         argInfo->Name = Name;
@@ -224,6 +226,7 @@ PARGINFO __fastcall InfoProcInfo::AddArg(BYTE Tag, int Ofs, int Size, String Nam
     {
         argInfo = new ARGINFO;
         argInfo->Tag = Tag;
+        argInfo->Register = false;
         argInfo->Ndx = Ofs;
         argInfo->Size = Size;
         argInfo->Name = Name;
@@ -245,6 +248,7 @@ PARGINFO __fastcall InfoProcInfo::AddArg(BYTE Tag, int Ofs, int Size, String Nam
     {
         argInfo = new ARGINFO;
         argInfo->Tag = Tag;
+        argInfo->Register = false;
         argInfo->Ndx = Ofs;
         argInfo->Size = Size;
         argInfo->Name = Name;
