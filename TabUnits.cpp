@@ -418,7 +418,8 @@ void __fastcall TFMain_11011981::ShowUnitItems(PUnitRec recU, int topIdx, int it
 
         BYTE kind = recN->kind;
         //Skip calls, that are in the body of some asm-procs (for example, FloatToText from SysUtils)
-        if (kind >= ikRefine && kind <= ikFunc && recN->procInfo && (recN->procInfo->flags & cfEmbedded)) continue;
+        //if (kind >= ikRefine && kind <= ikFunc && recN->procInfo && (recN->procInfo->flags & cfEmbedded)) continue;
+        if (kind >= ikRefine && kind <= ikFunc && recN->procInfo && IsFlagSet(cfImport, pos)) continue;
 
         imp = IsFlagSet(cfImport, pos);
         exp = IsFlagSet(cfExport, pos);

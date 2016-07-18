@@ -7825,8 +7825,6 @@ void __fastcall TFMain_11011981::FindText(String Text)
         for (n = NamesSearchFrom; n < lbNames->Items->Count; n++)
         {
         	line = lbNames->Items->Strings[n];
-        	pos = line.Pos("'");
-        	line = line.SubString(pos + 1, line.Length() - pos);
             if (AnsiContainsText(line, Text))
             {
                 idx = n;
@@ -7838,8 +7836,6 @@ void __fastcall TFMain_11011981::FindText(String Text)
             for (n = 0; n < NamesSearchFrom; n++)
             {
                 line = lbNames->Items->Strings[n];
-                pos = line.Pos("'");
-                line = line.SubString(pos + 1, line.Length() - pos);
                 if (AnsiContainsText(line, Text))
                 {
                     idx = n;
@@ -12879,7 +12875,7 @@ void __fastcall TFMain_11011981::GoToXRef(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::lbFormsClick(TObject *Sender)
 {
-    RTTIsSearchFrom = lbRTTIs->ItemIndex;
+    FormsSearchFrom = lbForms->ItemIndex;
     WhereSearch = SEARCH_FORMS;
 }
 //---------------------------------------------------------------------------

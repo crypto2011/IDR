@@ -161,7 +161,7 @@ void __fastcall TFMain_11011981::miSearchStringClick(TObject *Sender)
 
     if (FindDlg_11011981->ShowModal() == mrOk && FindDlg_11011981->cbText->Text != "")
     {
-        if (lbRTTIs->ItemIndex < 0)
+        if (lbStrings->ItemIndex < 0)
             StringsSearchFrom = 0;
         else
             StringsSearchFrom = lbStrings->ItemIndex;

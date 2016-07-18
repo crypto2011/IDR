@@ -1355,8 +1355,8 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-//if (_curAdr == 0x00546EAE)
-//_curAdr = _curAdr;
+if (_curAdr == 0x004CBE50)
+_curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
         {
@@ -1632,7 +1632,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
             }
             if (DisInfo.Call)
             {
-                if (flags & cfExcept)
+                if (flags & CF_EXCEPT)
                 {
                     _recN = GetInfoRec(DisInfo.Immediate);
                     if (_recN->SameName("@DoneExcept"))
@@ -1702,6 +1702,9 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
                 if (DeFlags[DisInfo.Immediate - Env->StartAdr] == 1)
                 {
                     //SetFlag(cfPass, _fromPos);
+                    //check Exit
+                    if (IsExit(DisInfo.Immediate))
+                        Env->AddToBody("Exit;");
                     _curPos += _instrLen; _curAdr += _instrLen;
                     break;
                 }
@@ -2080,6 +2083,14 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
             if (_cmpRes == CMP_BRANCH)
             {
                 _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+                //Exit
+                if (IsExit(_disInfo.Immediate))
+                {
+                    _line = "if (" + CmpInfo.L + " " + GetDirectCondition(CmpInfo.O) + " " + CmpInfo.R + ") then Exit;";
+                    Env->AddToBody(_line);
+                    _curPos += _instrLen; _curAdr += _instrLen;
+                    continue;
+                }
                 //jcc up
                 if (_disInfo.Immediate < _curAdr)
                 {
@@ -5690,6 +5701,13 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
             Env->AddToBody(_line);
             return;
         }
+        if (Op == OP_OR)
+        {
+            Env->Stack[_itemDst.IntValue].Value = _name;
+            _line = _name + " := " + _name + " Or " + _imm + ";";
+            Env->AddToBody(_line);
+            return;
+        }
         if (Op == OP_XOR)
         {
             Env->Stack[_itemDst.IntValue].Value = _name;
@@ -6637,7 +6655,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     DWORD       _adr;
     ITEM        _item, _item1, _item2, _item3, _item4;
     PInfoRec    _recN;
-    String      _line, _value, _value1, _value2, _typeName;
+    String      _line, _value, _value1, _value2, _typeName, _op;
     __int64     _int64Val;
 
     if (SameText(name, "@AsClass"))
@@ -7292,18 +7310,89 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         Env->AddToBody(_line);
         return false;
     }
-    if (SameText(name, "@VarAdd"))
+    if (SameText(name, "@VarAdd") ||
+        SameText(name, "@VarSub") ||
+        SameText(name, "@VarMul") ||
+        SameText(name, "@VarDiv") ||
+        SameText(name, "@VarMod") ||
+        SameText(name, "@VarAnd") ||
+        SameText(name, "@VarOr")  ||
+        SameText(name, "@VarXor") ||
+        SameText(name, "@VarShl") ||
+        SameText(name, "@VarShr") ||
+        SameText(name, "@VarRDiv"))
     {
-        //eax=eax+edx
+        _op = name.SubString(5, name.Length());
+
         GetRegItem(16, &_item1);
         GetRegItem(18, &_item2);
         if (_item1.Flags & IF_STACK_PTR)
+        {
             Env->Stack[_item1.IntValue].Type = "Variant";
+            _item1 = Env->Stack[_item1.IntValue];
+        }
         if (_item2.Flags & IF_STACK_PTR)
+        {
             Env->Stack[_item2.IntValue].Type = "Variant";
-        _line = _item1.Value + " := " + _item1.Value + " + " + _item2.Value + ";";
+            _item2 = Env->Stack[_item1.IntValue];
+        }
+        _line = _item1.Name + " := " + _item1.Name + " " + _op + " " + _item2.Name + ";";
         Env->AddToBody(_line);
         return false;
+    }
+    if (SameText(name, "@VarNeg") ||
+        SameText(name, "@VarNot"))
+    {
+        _op = name.SubString(5, name.Length());
+        GetRegItem(16, &_item1);
+        if (_item1.Flags & IF_STACK_PTR)
+        {
+            Env->Stack[_item1.IntValue].Type = "Variant";
+            _item1 = Env->Stack[_item1.IntValue];
+        }
+        _line = _item1.Name + " := " + _op + " " + _item1.Name + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
+
+    if (SameText(name.SubString(1, 7), "@VarCmp"))
+    {
+        GetCmpInfo(procAdr + instrLen);
+        if (name[8] == 'E' && name[9] == 'Q')
+            CmpInfo.O = 'E';//JZ
+        else if (name[8] == 'N' && name[9] == 'E')
+            CmpInfo.O = 'F';//JNZ
+        else if (name[8] == 'L')
+        {
+            if (name[9] == 'E')
+                CmpInfo.O = 'O';//JLE
+            else if (name[9] == 'T')
+                CmpInfo.O = 'M';//JL
+        }
+        else if (name[8] == 'G')
+        {
+            if (name[9] == 'E')
+                CmpInfo.O = 'N';//JGE
+            else if (name[9] == 'T')
+                CmpInfo.O = 'P';//JG
+        }
+
+        GetRegItem(16, &_item1);//eax - Left argument
+        if (_item1.Flags & IF_STACK_PTR)
+        {
+            Env->Stack[_item1.IntValue].Type = "Variant";
+            _item1 = Env->Stack[_item1.IntValue];
+        }
+        CmpInfo.L = _item1.Name;
+
+        GetRegItem(18, &_item2);//edx - Right argument
+        if (_item2.Flags & IF_STACK_PTR)
+        {
+            Env->Stack[_item2.IntValue].Type = "Variant";
+            _item2 = Env->Stack[_item2.IntValue];
+            CmpInfo.R = _item2.Name;
+        }
+        return true;
     }
     //Cast to Variant
     if (SameText(name, "@VarFromBool")  ||
@@ -7318,22 +7407,23 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item1.Flags & IF_STACK_PTR)
         {
             Env->Stack[_item1.IntValue].Type = "Variant";
-            _line = Env->GetLvarName(_item1.IntValue);
+            _item1 = Env->Stack[_item1.IntValue];
         }
         GetRegItem(18, &_item2);
-        _line += " := Variant(" + _item2.Value + ");";
+        _line = _item1.Name + " := Variant(" + _item2.Name + ");";
         Env->AddToBody(_line);
         return false;
     }
-    if (SameText(name, "@VarFromTDateTime"))
+    if (SameText(name, "@VarFromTDateTime") ||
+        SameText(name, "@VarFromCurr"))
     {
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
         {
             Env->Stack[_item1.IntValue].Type = "Variant";
-            _line = Env->GetLvarName(_item1.IntValue);
+            _item1 = Env->Stack[_item1.IntValue];
         }
-        _line += " := Variant(" + FPop()->Value + ")";//FGet(0)
+        _line = _item1.Name + " := Variant(" + FPop()->Value + ")";//FGet(0)
         Env->AddToBody(_line);
         FPop();
         return false;
@@ -9805,6 +9895,10 @@ int __fastcall TDecompiler::AnalyzeConditions(int brType, DWORD curAdr, DWORD sA
             {
                 Env->AddToBody("begin");
                 _curAdr = de->Decompile(_bodyBegAdr, 0, loopInfo);
+                if (_jmpAdr && IsExit(_jmpAdr))
+                {
+                    Env->AddToBody("Exit;");
+                }
                 Env->AddToBody("end");
             }
             catch(Exception &exception)
@@ -9817,26 +9911,29 @@ int __fastcall TDecompiler::AnalyzeConditions(int brType, DWORD curAdr, DWORD sA
 
             if (_jmpAdr)
             {
-                Env->AddToBody("else");
-                _begAdr = _curAdr;
-                Env->SaveContext(_begAdr);
-                de = new TDecompiler(Env);
-                de->SetStackPointers(this);
-                de->SetDeFlags(DeFlags);
-                de->SetStop(_jmpAdr);
-                try
+                if (!IsExit(_jmpAdr))
                 {
-                    Env->AddToBody("begin");
-                    _curAdr = de->Decompile(_begAdr, CF_ELSE, loopInfo);
-                    Env->AddToBody("end");
-                }
-                catch(Exception &exception)
-                {
+                    Env->AddToBody("else");
+                    _begAdr = _curAdr;
+                    Env->SaveContext(_begAdr);
+                    de = new TDecompiler(Env);
+                    de->SetStackPointers(this);
+                    de->SetDeFlags(DeFlags);
+                    de->SetStop(_jmpAdr);
+                    try
+                    {
+                        Env->AddToBody("begin");
+                        _curAdr = de->Decompile(_begAdr, CF_ELSE, loopInfo);
+                        Env->AddToBody("end");
+                    }
+                    catch(Exception &exception)
+                    {
+                        delete de;
+                        throw Exception("IfElse->" + exception.Message);
+                    }
+                    Env->RestoreContext(_begAdr);//if (de->WasRet)
                     delete de;
-                    throw Exception("IfElse->" + exception.Message);
                 }
-                Env->RestoreContext(_begAdr);//if (de->WasRet)
-                delete de;
             }
         }
         else
