@@ -7334,7 +7334,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item2.Flags & IF_STACK_PTR)
         {
             Env->Stack[_item2.IntValue].Type = "Variant";
-            _item2 = Env->Stack[_item1.IntValue];
+            _item2 = Env->Stack[_item2.IntValue];
         }
         _line = _item1.Name + " := " + _item1.Name + " " + _op + " " + _item2.Name + ";";
         Env->AddToBody(_line);
@@ -7390,8 +7390,8 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         {
             Env->Stack[_item2.IntValue].Type = "Variant";
             _item2 = Env->Stack[_item2.IntValue];
-            CmpInfo.R = _item2.Name;
         }
+        CmpInfo.R = _item2.Name;
         return true;
     }
     //Cast to Variant
@@ -7425,7 +7425,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         }
         _line = _item1.Name + " := Variant(" + FPop()->Value + ")";//FGet(0)
         Env->AddToBody(_line);
-        FPop();
+        //FPop();
         return false;
     }
     if (SameText(name, "@VarFromReal"))
