@@ -303,6 +303,7 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyTypeClick(TObject *Sender)
     recN->procInfo->stackSize = StackSize;
 
     FillType();
+    FillArgs();
 
     cbMethod->Enabled = false;
     mType->Enabled = false;
