@@ -1355,7 +1355,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x004CBE50)
+if (_curAdr == 0x04CBE82)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -6020,6 +6020,29 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
     if (_itemDst.Flags & IF_INTVAL)
     {
         _offset = _itemDst.IntValue;
+        _ap = Adr2Pos(_offset);
+        _recN = GetInfoRec(_offset);
+        if (_recN) MakeGvar(_recN, _offset, curAdr);
+        if (_ap >= 0)
+        {
+            _adr = *(DWORD*)(Code + _ap);
+            //May be pointer to var
+            if (IsValidImageAdr(_adr))
+            {
+                _recN = GetInfoRec(_adr);
+                if (_recN)
+                {
+                    MakeGvar(_recN, _offset, _adr);
+                    _line = "^";
+                }
+            }
+        }
+        if (_recN)
+        {
+            if (_itemSrc.Type != "") _recN->type = _itemSrc.Type;
+            _name = _recN->GetName();
+        }
+/*
         if (Op == OP_MOV)
         {
             _ap = Adr2Pos(_offset); _recN = GetInfoRec(_offset);
@@ -6051,6 +6074,7 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
             Env->ErrAdr = curAdr;
             throw Exception("Under construction");
         }
+*/
     }
     if (Op == OP_MOV)
     {
@@ -6089,6 +6113,12 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
         Env->AddToBody(_line);
         return;
     }
+    if (Op == OP_XOR)
+    {
+        _line = _name + " := " + _name + " Xor " + _value + ";";
+        Env->AddToBody(_line);
+        return;
+    }
     if (Op == OP_TEST)
     {
         CmpInfo.L = _name + " And " + _value;
@@ -6100,11 +6130,9 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
     }
     if (Op == OP_BT)
     {
-        CmpInfo.L = _name + "[" + _value + "]";
-        CmpInfo.O = CmpOp;
-        CmpInfo.R = "True";
-        _line = _name + " := " + _name + "[" + _value + "];";
-        Env->AddToBody(_line);
+        CmpInfo.L = _value;
+        CmpInfo.O = 'Q';
+        CmpInfo.R = _name;
         return;
     }
     Env->ErrAdr = curAdr;
@@ -6616,7 +6644,8 @@ String __fastcall TDecompiler::GetSysCallAlias(String AName)
     if (SameText(AName, "@EofText")) return "Eof";
     if (SameText(AName, "@FillChar")) return "FillChar";
     if (SameText(AName, "@Flush")) return "Flush";
-    if (SameText(AName, "@LStrCopy") ||
+    if (SameText(AName, "@Copy")     ||
+        SameText(AName, "@LStrCopy") ||
         SameText(AName, "@WStrCopy") ||
         SameText(AName, "@UStrCopy")) return "Copy";
     if (SameText(AName, "@LStrDelete") ||
@@ -6628,7 +6657,8 @@ String __fastcall TDecompiler::GetSysCallAlias(String AName)
         SameText(AName, "@WStrLen") ||
         SameText(AName, "@UStrLen")) return "Length";
     if (SameText(AName, "@LStrOfChar")) return "StringOfChar";
-    if (SameText(AName, "@LStrPos")) return "Pos";
+    if (SameText(AName, "@Pos") ||
+        SameText(AName, "@LStrPos")) return "Pos";
     if (SameText(AName, "@LStrSetLength") ||
         SameText(AName, "@UStrSetLength")) return "SetLength";
     if (SameText(AName, "@MkDir")) return "MkDir";
