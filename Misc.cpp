@@ -465,9 +465,9 @@ int __fastcall BranchGetPrevInstructionType(DWORD fromAdr, DWORD* jmpAdr, PLoopI
     Disasm.Disassemble(Pos2Adr(_pos), &_disInfo, 0);
     if (_disInfo.Branch)
     {
+        if (IsExit(_disInfo.Immediate)) return 0;
         if (_disInfo.Conditional)
         {
-            if (IsExit(_disInfo.Immediate)) return 0;
             if (_disInfo.Immediate > CodeBase + _pos)
             {
                 if (loopInfo && loopInfo->BreakAdr == _disInfo.Immediate) return 0;
@@ -475,8 +475,6 @@ int __fastcall BranchGetPrevInstructionType(DWORD fromAdr, DWORD* jmpAdr, PLoopI
             }
             return 2;
         }
-        if (IsExit(_disInfo.Immediate))
-            return 0;
         if (_disInfo.Immediate > CodeBase + _pos)
         {
             *jmpAdr = _disInfo.Immediate;
