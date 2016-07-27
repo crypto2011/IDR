@@ -1355,7 +1355,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x04CBE82)
+if (_curAdr == 0x0052B1BC)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -7105,13 +7105,20 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     {
         //eax - dst
         GetRegItem(16, &_item1);
-        if (_item1.Flags & IF_STACK_PTR)
+        if (_item1.Flags & IF_INTVAL)
+        {
+            _line = MakeGvarName(_item1.IntValue);
+        }
+        else if (_item1.Flags & IF_STACK_PTR)
+        {
+            _line = _item1.Value;
             Env->Stack[_item1.IntValue].Type = "ShortString";
+        }
         //edx - src
         GetRegItem(18, &_item2);
         if (_item2.Flags & IF_STACK_PTR)
             Env->Stack[_item2.IntValue].Type = "String";
-        _line = _item1.Value + " := " + _item2.Value + ";";
+        _line += " := " + _item2.Value + ";";
         Env->AddToBody(_line);
         return false;
     }
