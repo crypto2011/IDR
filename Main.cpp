@@ -2149,8 +2149,19 @@ String __fastcall TFMain_11011981::GetUnitName(PUnitRec recU)
 //---------------------------------------------------------------------------
 String __fastcall TFMain_11011981::GetUnitName(DWORD Adr)
 {
+    int     n;
+    String  Result = "";
+
     PUnitRec recU = GetUnit(Adr);
-    return GetUnitName(recU);
+    if (recU)
+    {
+        for (n = 0; n < recU->names->Count; n++)
+        {
+            if (n) Result += ", ";
+            Result += recU->names->Strings[n];
+        }
+    }
+    return Result;
 }
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::SetUnitName(PUnitRec recU, String name)
@@ -12271,7 +12282,7 @@ TTreeNode* __fastcall TFMain_11011981::AddClassTreeNode(TTreeNode* node, String 
         newNode = tvClassesFull->Items->AddChild(node, nodeText);
 
     AddTreeNodeWithName(newNode, nodeText);
-    
+
     return newNode;
 }
 //---------------------------------------------------------------------------
@@ -12279,7 +12290,7 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
 {
     bool            typePresent, _isForm, comment;
     BYTE            kind;
-    int             n, m, num, dotpos, len, minValue, maxValue;
+    int             n, m, k, num, dotpos, len, minValue, maxValue;
     DWORD           adr, adr1, parentAdr;
     FILE            *f;
     TList           *tmpList;
@@ -12296,10 +12307,12 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
     PInfoRec        recN;
     PFIELDINFO      fInfo;
     PMethodRec      recM;
+    PVmtListRec     recV;
     TDfm            *dfm;
     PComponentInfo  cInfo;
     String          curDir, DelphiProjectPath;
-    String          unitName, className, parentName, fieldName, typeName, procName, formName, dfmName, line;
+    String          unitName, className, parentName, fieldName, typeName;
+    String          procName, formName, dfmName, line, uName;
 
     curDir = GetCurrentDir();
     DelphiProjectPath = AppDir + "Projects";
@@ -12411,6 +12424,19 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
                         comment = true;
                         typeName = "?";
                     }
+                    //Add UnitName to UsesList if necessary
+                    for (k = 0; k < VmtList->Count; k++)
+                    {
+                        recV = (PVmtListRec)VmtList->Items[k];
+                        if (recV && SameText(typeName, recV->vmtName))
+                        {
+                            uName = GetUnitName(recV->vmtAdr);
+                            if (intUsesLines->IndexOf(uName) == -1)
+                                intUsesLines->Add(uName);
+                            break;
+                        }
+                    }
+                    
                     if (!comment)
                         len = sprintf(StringBuf, "    %s:%s;//f%X", fieldName.c_str(), typeName.c_str(), fInfo->Offset);
                     else
@@ -12419,6 +12445,7 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
                         publishedList->Add(String(StringBuf, len));
                     else
                         publicList->Add(String(StringBuf, len));
+
                 }
 
                 num = LoadMethodTable(adr, tmpList);
