@@ -7470,7 +7470,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
             _line = Env->GetLvarName(_item1.IntValue);
-        _line += " := Variant(" + FPop()->Value + ")";
+        _line += " := Variant(" + FPop()->Value + ")";//???
         Env->AddToBody(_line);
         return false;
     }
@@ -7526,6 +7526,28 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         Env->AddToBody(_line);
         return false;
     }
+    if (SameText(name, "@Str0Ext"))
+    {
+        //Value (Extended)
+        GetFloatItemFromStack(_ESP_, &_item1, FT_EXTENDED); _ESP_ += 12;
+        //Destination - eax
+        GetRegItem(16, &_item2);
+        _line = "Str(" + _item1.Value + ", " + _item2.Value + ");";
+        Env->AddToBody(_line);
+        return false;
+    }
+    if (SameText(name, "@Str1Ext"))
+    {
+        //Value (Extended)
+        GetFloatItemFromStack(_ESP_, &_item1, FT_EXTENDED); _ESP_ += 12;
+        //Width - eax
+        GetRegItem(16, &_item2);
+        //Destination - edx
+        GetRegItem(18, &_item3);
+        _line = "Str(" + _item1.Value + ":" + String(_item2.IntValue) + ", " + _item3.Value + ");";
+        Env->AddToBody(_line);
+        return false;
+    }
     if (SameText(name, "@Str2Ext"))
     {
         //Value (Extended)
@@ -7536,7 +7558,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(18, &_item3);
         //Destination - ecx
         GetRegItem(17, &_item4);
-        _line += "Str(" + _item1.Value + ":" + String(_item2.IntValue) + ":" + String(_item3.IntValue) + ", " + _item4.Value + ");";
+        _line = "Str(" + _item1.Value + ":" + String(_item2.IntValue) + ":" + String(_item3.IntValue) + ", " + _item4.Value + ");";
         Env->AddToBody(_line);
         return false;
     }
@@ -7551,7 +7573,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(18, &_item3);
         //ecx
         GetRegItem(17, &_item4);
-        _line += "Write(" + ExtractClassName(_item1.Value) + ", " + _item2.Value + ":" + String(_item3.IntValue) + ":" + String(_item4.IntValue) + ");";
+        _line = "Write(" + ExtractClassName(_item1.Value) + ", " + _item2.Value + ":" + String(_item3.IntValue) + ":" + String(_item4.IntValue) + ");";
         Env->AddToBody(_line);
         return false;
     }
