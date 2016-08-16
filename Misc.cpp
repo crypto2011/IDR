@@ -2953,7 +2953,7 @@ bool __fastcall IsDefaultName(String AName)
 {
     for (int Idx = 0; Idx < 8; Idx++)
     {
-        if (SameText(AName, "_" + String(Reg32Tab[Idx]) + "_")) return true;
+        if (SameText(AName, String(Reg32Tab[Idx]))) return true;
     }
     if (SameText(AName.SubString(1, 5), "lvar_")) return true;
     if (SameText(AName.SubString(1, 5), "gvar_")) return true;
