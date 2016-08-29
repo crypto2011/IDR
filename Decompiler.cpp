@@ -1355,7 +1355,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0052B1BC)
+if (_curAdr == 0x0053C1AC)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -2048,7 +2048,7 @@ _curAdr = _curAdr;
                         //skip jcc
                         _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, 0, 0);
                         _curPos += _instrLen; _curAdr += _instrLen;
-                        continue;//???
+                        continue;
                     }
                 }
             }
@@ -2064,11 +2064,11 @@ _curAdr = _curAdr;
                 }
 
                 _cmpRes = GetCmpInfo(_curAdr);
-                //SimulateFloatInstruction(_sAdr, _instrLen);
+                SimulateFloatInstruction(_sAdr, _instrLen);
 
                 if (flags & CF_BJL)
                 {
-                    SimulateFloatInstruction(_sAdr, _instrLen);
+                    //SimulateFloatInstruction(_sAdr, _instrLen);
                     CMPITEM* _cmpItem = new CMPITEM;
                     _cmpItem->L = CmpInfo.L;
                     _cmpItem->O = CmpInfo.O;
@@ -8291,9 +8291,9 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_MULT;
                     if (_r)
-                        _item.Value = _val + " / " + GetString(FGet(0), PRECEDENCE_ADD);
+                        _item.Value = _val + " / " + GetString(FGet(0), PRECEDENCE_MULT);
                     else
-                        _item.Value = GetString(FGet(0), PRECEDENCE_ADD) + " / " + _val;
+                        _item.Value = GetString(FGet(0), PRECEDENCE_MULT) + " / " + _val;
                     _item.Type = "Extended";
                     FSet(0, &_item);
                     return;
@@ -8308,9 +8308,9 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_MULT;
                     if (_r)
-                        _item.Value = _val + " / " + GetString(FGet(0), PRECEDENCE_ADD);
+                        _item.Value = _val + " / " + GetString(FGet(0), PRECEDENCE_MULT);
                     else
-                        _item.Value = GetString(FGet(0), PRECEDENCE_ADD) + " / " + _val;
+                        _item.Value = GetString(FGet(0), PRECEDENCE_MULT) + " / " + _val;
                     _item.Type = "Extended";
                     FSet(0, &_item);
                     return;
