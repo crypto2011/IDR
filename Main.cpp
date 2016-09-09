@@ -4545,7 +4545,7 @@ PMethodRec __fastcall TFMain_11011981::GetMethodInfo(DWORD adr, char kind, int m
     if (!IsValidCodeAdr(adr)) return 0;
 
     PInfoRec recN = GetInfoRec(adr);
-    if (recN && recN->vmtInfo->methods)
+    if (recN && recN->vmtInfo && recN->vmtInfo->methods)
     {
         for (int n = 0; n < recN->vmtInfo->methods->Count; n++)
         {
@@ -5733,7 +5733,7 @@ void __fastcall TFMain_11011981::AnalyzeVirtualTable(int Pass, DWORD Adr, const 
             {
                 PInfoRec recN1 = GetInfoRec(pAdr);
                 //Look at parent class methods
-                if (recN1 && recN1->vmtInfo->methods)
+                if (recN1 && recN1->vmtInfo && recN1->vmtInfo->methods)
                 {
                     for (int m = 0; m < recN1->vmtInfo->methods->Count; m++)
                     {
@@ -11532,7 +11532,7 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
         if (classAdr)
         {
             PInfoRec recN = GetInfoRec(classAdr);
-            if (recN && recN->vmtInfo->fields)
+            if (recN && recN->vmtInfo && recN->vmtInfo->fields)
             {
                 if (recN->vmtInfo->fields->Count == 1)
                 {
@@ -11648,6 +11648,7 @@ PFIELDINFO __fastcall TFMain_11011981::AddField(DWORD ProcAdr, int ProcOfs, Stri
         {
             PInfoRec recN = GetInfoRec(classAdr);
             if (!recN) return 0;
+            if (!recN->vmtInfo) return 0;
             return recN->vmtInfo->AddField(ProcAdr, ProcOfs, Scope, Offset, Case, Name, Type);
         }
     }

@@ -1166,7 +1166,7 @@ String __fastcall GetDynaInfo(DWORD adr, WORD id, DWORD* dynAdr)
     while (classAdr)
     {
     	recN = GetInfoRec(classAdr);
-        if (recN && recN->vmtInfo->methods)
+        if (recN && recN->vmtInfo && recN->vmtInfo->methods)
         {
         	for (m = 0; m < recN->vmtInfo->methods->Count; m++)
             {

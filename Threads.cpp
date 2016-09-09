@@ -3172,7 +3172,8 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         {
                             fieldOfs = getProc & 0x00FFFFFF;
                             recN1 = GetInfoRec(classVMT + VmtSelfPtr);
-                            recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
+                            if (recN1 && recN1->vmtInfo)
+                                recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
                         else if ((getProc & 0xFF000000) == 0xFE000000)
                         {
@@ -3217,7 +3218,8 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         {
                             fieldOfs = setProc & 0x00FFFFFF;
                             recN1 = GetInfoRec(classVMT + VmtSelfPtr);
-                            recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
+                            if (recN1 && recN1->vmtInfo)
+                                recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
                         else if ((setProc & 0xFF000000) == 0xFE000000)
                         {
@@ -3262,7 +3264,8 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         {
                             fieldOfs = storedProc & 0x00FFFFFF;
                             recN1 = GetInfoRec(classVMT + VmtSelfPtr);
-                            recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
+                            if (recN1 && recN1->vmtInfo)
+                                recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
                         else if ((storedProc & 0xFF000000) == 0xFE000000)
                         {
