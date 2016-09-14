@@ -1027,6 +1027,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
+        pDisInfo->ImmSize = 1;
         OutputHex(Op, dval);
         break;
     //Immediate byte
@@ -1041,6 +1042,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
+        pDisInfo->ImmSize = 1;
         OutputHex(Op, dval);
         break;
     //Immediate dword
@@ -1069,6 +1071,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
+        pDisInfo->ImmSize = 4;
         OutputHex(Op, dval);
         break;
     //Immediate word (ret)
@@ -1083,6 +1086,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
+        pDisInfo->ImmSize = 2;
         OutputHex(Op, dval);
         break;
     //Address (jmp, jcond, call)

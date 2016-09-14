@@ -2970,6 +2970,7 @@ int __fastcall FloatNameToFloatType(String AName)
     if (SameText(AName, "Extended")) return FT_EXTENDED;
     if (SameText(AName, "Real")) return FT_REAL;
     if (SameText(AName, "Comp")) return FT_COMP;
+    if (SameText(AName, "Currency")) return FT_CURRENCY;
     return -1;
 }
 //---------------------------------------------------------------------------

@@ -10,6 +10,7 @@
 #define     FT_EXTENDED     3
 #define     FT_REAL         4
 #define     FT_COMP         5
+#define     FT_CURRENCY     6
 //---------------------------------------------------------------------------
 //global API
 void __fastcall ScaleForm(TForm* AForm);

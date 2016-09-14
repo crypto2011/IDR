@@ -1386,7 +1386,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0053C1AC)
+if (_curAdr == 0x005411E5)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -4325,7 +4325,8 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
 {
     bool        _vmt;
     int         _offset, _idx;
-    DWORD       _vmtAdr;
+    BYTE        *_pdi, _b;
+    DWORD       _vmtAdr, _imm;
     ITEM        _item, _item1;
     PInfoRec    _recN;
     PFIELDINFO  _fInfo;
@@ -4349,7 +4350,27 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
 
         InitItem(&_item);
         _item.Flags = IF_INTVAL;
-        _item.IntValue = DisInfo.Immediate;
+
+        _pdi = (BYTE*)&DisInfo.Immediate; _b = *_pdi;
+        if (DisInfo.ImmSize == 1)//byte
+        {
+            if (_b & 0x80)
+                _imm = 0xFFFFFF00 | _b;
+            else
+                _imm = _b;
+        }
+        else if (DisInfo.ImmSize == 2)//word
+        {
+            if (_b & 0x80)
+                _imm = 0xFFFF0000 | _b;
+            else
+                _imm = _b;
+        }
+        else
+        {
+            _imm = DisInfo.Immediate;
+        }
+        _item.IntValue = _imm;
         Push(&_item);
         return;
     }
@@ -9007,6 +9028,7 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
     long double _extendedVal;
     double      _realVal;
     Comp        _compVal;
+    Currency    _currVal;
     ITEM       _item;
 
     InitItem(Dst);
@@ -9047,6 +9069,13 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
         _compVal = 0; memmove((void*)&_compVal, _binData, 8);
         Dst->Value = FloatToStr(_compVal);
         Dst->Type = "Comp";
+        return;
+    }
+    if (FloatType == FT_CURRENCY)
+    {
+        _currVal = 0; memmove((void*)&_currVal.Val, _binData, 8);
+        Dst->Value = _currVal.operator AnsiString();
+        Dst->Type = "Currency";
         return;
     }
     _item = Env->Stack[Esp + 8];
