@@ -1042,6 +1042,9 @@ void __fastcall TFMain_11011981::StrapProc(int pos, int ProcIdx, MProcInfo* Proc
                 {
                     argInfo.Tag = *p; p++;
                     int locflags = *((int*)p); p += 4;
+
+                    if ((locflags & 7) == 1) argInfo.Tag = 0x23;  //Add by ZGL
+                    
                     argInfo.Register = (locflags & 8);
                     //Ndx
                     int ndx = *((int*)p); p += 4;

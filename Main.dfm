@@ -54,9 +54,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 725
     Height = 516
-    ActivePage = tsNames
+    ActivePage = tsStrings
     Align = alClient
-    TabIndex = 3
+    TabIndex = 2
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -316,7 +316,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 600
+          Left = 605
           Top = 1
           Width = 111
           Height = 23

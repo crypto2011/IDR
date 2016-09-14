@@ -169,6 +169,9 @@ void __fastcall FillArgInfo(int k, BYTE callkind, PARGINFO argInfo, BYTE** p, in
     BYTE* pp = *p; int ss = *s;
     argInfo->Tag = *pp; pp++;
     int locflags = *((int*)pp); pp += 4;
+
+    if ((locflags & 7) == 1) argInfo->Tag = 0x23; //Add by ZGL
+    
     argInfo->Register = (locflags & 8);
     int ndx = *((int*)pp); pp += 4;
 

@@ -212,6 +212,19 @@ __fastcall TDecompileEnv::~TDecompileEnv()
 //---------------------------------------------------------------------------
 String __fastcall TDecompileEnv::GetLvarName(int Ofs)
 {
+    //Insert by ZGL
+    PInfoRec _recN = GetInfoRec(StartAdr);
+    if (_recN->procInfo->locals)
+    {
+        for (int n = 0; n < _recN->procInfo->locals->Count; n++)
+        {
+            PLOCALINFO locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
+            if (locInfo->Ofs == Ofs - LocBase && locInfo->Name != "")
+                 return locInfo->Name;
+        }
+    }
+    ////////////////
+    
     return String("lvar_") + Val2Str0(LocBase - Ofs);
 }
 //---------------------------------------------------------------------------
@@ -675,6 +688,24 @@ void __fastcall TDecompileEnv::DecompileProc()
     PInfoRec _recN = GetInfoRec(StartAdr);
     ProcName = _recN->GetName();
     AddToBody(_recN->MakePrototype(StartAdr, true, false, false, true, false));
+
+    //add vars -- Insert by ZGL
+    if (_recN->procInfo->locals && _recN->procInfo->locals->Count > 0)
+    {
+        AddToBody("var");
+        for (int n = 0; n < _recN->procInfo->locals->Count; n++)
+        {
+            PLOCALINFO locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
+            String line = "  " + GetLvarName(locInfo->Ofs);
+            if (locInfo->TypeDef == "")
+                line += ": ?;";
+            else
+                line += ": " + locInfo->TypeDef + ";";
+            AddToBody(line);
+        }
+    }
+    ///////////////////////////
+    
     AddToBody("begin");
     if (StartAdr != EP)
     {

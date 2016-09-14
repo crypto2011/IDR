@@ -315,6 +315,18 @@ String __fastcall InfoProcInfo::AddArgsFromDeclaration(char* Decl, int from, int
                     //Name
                     sscanf(p, "%s", _Name);
                 }
+
+                //Insert by ZGL
+                else if (!stricmp(_Name, "const"))
+                {
+                    argInfo.Tag = 0x23;
+                    p += strlen(_Name);
+                    while (*p == ' ') p++;
+                    //Name
+                    sscanf(p, "%s", _Name);
+                }
+                ////////////////
+
                 else if (!stricmp(_Name, "val"))
                 {
                     p += strlen(_Name);
@@ -1267,6 +1279,9 @@ String __fastcall InfoRec::MakePrototype(int adr, bool showKind, bool showTail, 
 
             argInfo = (PARGINFO)procInfo->args->Items[n];
             if (argInfo->Tag == 0x22) result += "var ";
+
+            else if (argInfo->Tag == 0x23) result += "const ";  //Add by ZGL
+
             if (argInfo->Name != "")
                 result += argInfo->Name;
             else
@@ -1397,6 +1412,9 @@ String __fastcall InfoRec::MakeDelphiPrototype(int Adr, PMethodRec recM)
 
                 argInfo = (PARGINFO)procInfo->args->Items[n];
                 if (argInfo->Tag == 0x22) len += sprintf(StringBuf + len, "var ");
+
+                else if (argInfo->Tag == 0x23) len += sprintf(StringBuf + len, "const ");   //Add by ZGL
+
                 if (argInfo->Name != "")
                     len += sprintf(StringBuf + len, "%s", argInfo->Name.c_str());
                 else
@@ -1499,6 +1517,9 @@ String __fastcall InfoRec::MakeMultilinePrototype(int Adr, int* ArgsBytes, Strin
         argInfo = (PARGINFO)procInfo->args->Items[n];
         //var
         if (argInfo->Tag == 0x22) result += "var ";
+
+        else if (argInfo->Tag == 0x23) result += "const ";  //Add by ZGL
+
         //name
         if (argInfo->Name != "")
             result += argInfo->Name;
@@ -1555,7 +1576,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         procInfo->flags &= 0xFFFFFFF8;
         procInfo->flags |= 3;//stdcall
         procInfo->AddArg(0x21, 8, 4, "Self", "");
-        procInfo->AddArg(0x21, 12, 4, "IID", "TGUID");
+        procInfo->AddArg(0x23, 12, 4, "IID", "TGUID");  //Midify by ZGL
         procInfo->AddArg(0x22, 16, 4, "Obj", "Pointer");
         return true;
     }
@@ -1631,7 +1652,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikProc;
             procInfo->AddArg(0x22, 0, 4, "Dest", _sname);
-            procInfo->AddArg(0x21, 1, 4, "Source", _sname);
+            procInfo->AddArg(0x23, 1, 4, "Source", _sname); //Modify by ZGL
             return true;
         }
         //@LStrFromPCharLen, @WStrFromPCharLen, @UStrFromPCharLen
@@ -1689,7 +1710,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikProc;
             procInfo->AddArg(0x22, 0, 4, "Dest", _sname);
-            procInfo->AddArg(0x21, 1, 4, "Source", "ShortString");
+            procInfo->AddArg(0x23, 1, 4, "Source", "ShortString");  //Modify by ZGL
             return true;
         }
         //@LStrFromArray, @WStrFromArray, @UStrFromArray
@@ -1715,7 +1736,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikProc;
             procInfo->AddArg(0x22, 0, 4, "Dest", _sname);
-            procInfo->AddArg(0x21, 1, 4, "Source", "WideString");
+            procInfo->AddArg(0x23, 1, 4, "Source", "WideString");   //Modify by ZGL
             return true;
         }
         //@LStrToString, @WStrToString, @UStrToString
@@ -1723,7 +1744,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikProc;
             procInfo->AddArg(0x22, 0, 4, "Dest", "ShortString");
-            procInfo->AddArg(0x21, 1, 4, "Source", _sname);
+            procInfo->AddArg(0x23, 1, 4, "Source", _sname); //Modify by ZGL
             procInfo->AddArg(0x21, 2, 4, "MaxLen", "Integer");
             return true;
         }
@@ -1789,7 +1810,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikFunc;
             type = _sname;
-            procInfo->AddArg(0x21, 0, 4, "S", _sname);
+            procInfo->AddArg(0x23, 0, 4, "S", _sname);  //Modify by ZGL
             procInfo->AddArg(0x21, 1, 4, "Index", "Integer");
             procInfo->AddArg(0x21, 2, 4, "Count", "Integer");
             return true;
@@ -1807,7 +1828,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         if (SameText(&name[3], "StrInsert"))
         {
             kind = ikProc;
-            procInfo->AddArg(0x21, 0, 4, "Source", _sname);
+            procInfo->AddArg(0x23, 0, 4, "Source", _sname); //Modify by ZGL
             procInfo->AddArg(0x22, 1, 4, "S", _sname);
             procInfo->AddArg(0x21, 2, 4, "Index", "Integer");
             return true;
@@ -1817,8 +1838,8 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikFunc;
             type = "Integer";
-            procInfo->AddArg(0x21, 0, 4, "Substr", _sname);
-            procInfo->AddArg(0x21, 1, 4, "S", _sname);
+            procInfo->AddArg(0x23, 0, 4, "Substr", _sname); //Modify by ZGL
+            procInfo->AddArg(0x23, 1, 4, "S", _sname);  //Modify by ZGL
             return true;
         }
         //@LStrSetLength, @WStrSetLength, @UStrSetLength
@@ -1851,7 +1872,7 @@ bool __fastcall InfoRec::MakeArgsManually()
         {
             kind = ikProc;
             procInfo->AddArg(0x22, 0, 4, "Dest", _sname);
-            procInfo->AddArg(0x21, 1, 4, "Source", "AnsiString");
+            procInfo->AddArg(0x23, 1, 4, "Source", "AnsiString");   //Modify by ZGL
             return true;
         }
         //@WStrOfWChar
