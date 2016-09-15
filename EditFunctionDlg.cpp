@@ -383,12 +383,14 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
     ////////////
     
     item = edtVarName->Text;
+    locInfo->Name = item;  //ZGL add
     if (item != "")
         line += item;
     else
         line += "?";
     line += ":";
     item = edtVarType->Text;
+    locInfo->TypeDef = item;  //ZGL add
     if (item != "")
         line += item;
     else
