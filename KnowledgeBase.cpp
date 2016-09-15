@@ -442,6 +442,7 @@ int __fastcall MKnowledgeBase::GetItemSection(WORD* ModuleIDs, char* ItemName)
             M = (L + R)/2;
             ID = TypeOffsets[M].NamId;
             const BYTE* p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+            if (Version >= 2) p += 4; //Add by ZGL
             int res = stricmp(ItemName, p + 4);
             if (res < 0)
                 R = M - 1;
@@ -454,6 +455,7 @@ int __fastcall MKnowledgeBase::GetItemSection(WORD* ModuleIDs, char* ItemName)
                 {
                     ID = TypeOffsets[LN].NamId;
                     p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                    if (Version >= 2) p += 4; //Add by ZGL
                     res = stricmp(ItemName, p + 4);
                     if (res) break;
                 }
@@ -462,6 +464,7 @@ int __fastcall MKnowledgeBase::GetItemSection(WORD* ModuleIDs, char* ItemName)
                 {
                     ID = TypeOffsets[RN].NamId;
                     p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                    if (Version >= 2) p += 4; //Add by ZGL
                     res = stricmp(ItemName, p + 4);
                     if (res) break;
                 }
@@ -470,6 +473,7 @@ int __fastcall MKnowledgeBase::GetItemSection(WORD* ModuleIDs, char* ItemName)
                 {
                     ID = TypeOffsets[N].NamId;
                     p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                    if (Version >= 2) p += 4; //Add by ZGL
                     ModID = *((WORD*)p);
                     for (int n = 0;;n++)
                     {
@@ -777,6 +781,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxByModuleIds(WORD* ModuleIDs, char* Type
         int M = (L + R)/2;
         int ID = TypeOffsets[M].NamId;
         const BYTE* p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+        if (Version >= 2) p += 4; //Add by ZGL
         int res = stricmp(TypeName, p + 4);
         if (res < 0)
             R = M - 1;
@@ -790,6 +795,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxByModuleIds(WORD* ModuleIDs, char* Type
             {
                 ID = TypeOffsets[LN].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 res = stricmp(TypeName, p + 4);
                 if (res) break;
             }
@@ -798,6 +804,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxByModuleIds(WORD* ModuleIDs, char* Type
             {
                 ID = TypeOffsets[RN].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 res = stricmp(TypeName, p + 4);
                 if (res) break;
             }
@@ -805,6 +812,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxByModuleIds(WORD* ModuleIDs, char* Type
             {
                 ID = TypeOffsets[N].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 ModID = *((WORD*)p);
 
                 for (n = 0;;n++)
@@ -835,6 +843,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxsByName(char* TypeName, int* TypeIdx)
         int M = (L + R)/2;
         int ID = TypeOffsets[M].NamId;
         const BYTE* p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+        if (Version >= 2) p += 4; //Add by ZGL
         int res = stricmp(TypeName, p + 4);
         if (res < 0)
             R = M - 1;
@@ -850,6 +859,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxsByName(char* TypeName, int* TypeIdx)
             {
                 ID = TypeOffsets[LN].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 if (stricmp(TypeName, p + 4)) break;
                 Num++;
             }
@@ -858,6 +868,7 @@ int __fastcall MKnowledgeBase::GetTypeIdxsByName(char* TypeName, int* TypeIdx)
             {
                 ID = TypeOffsets[RN].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 if (stricmp(TypeName, p + 4)) break;
                 Num++;
             }
@@ -1830,6 +1841,7 @@ WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)
         int M = (L + R)/2;
         int ID = TypeOffsets[M].NamId;
         const BYTE* p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+        if (Version >= 2) p += 4; //Add by ZGL
 
         int res = stricmp(TypeName, p + 4);
         if (res < 0)
@@ -1850,6 +1862,7 @@ WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)
             {
                 ID = TypeOffsets[N].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 res = stricmp(TypeName, p + 4);
                 if (res) break;
                 ModID = *((WORD*)p);
@@ -1865,6 +1878,7 @@ WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)
             {
                 ID = TypeOffsets[N].NamId;
                 p = GetKBCachePtr(TypeOffsets[ID].Offset, TypeOffsets[ID].Size) + 4;
+                if (Version >= 2) p += 4; //Add by ZGL
                 res = stricmp(TypeName, p + 4);
                 if (res) break;
                 ModID = *((WORD*)p);
