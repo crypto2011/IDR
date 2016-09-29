@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-String __fastcall TFMain_11011981::AnalyzeArguments(DWORD fromAdr)
+String __fastcall TFMain_11011981::AnalyzeArguments(DWORD fromAdr) 
 {
 	BYTE		op;
     bool		kb;

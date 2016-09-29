@@ -10,7 +10,7 @@
 #include "TypeInfo.h"
 #include "InputDlg.h"
 //---------------------------------------------------------------------------
-extern  int         DelphiVersion;
+extern  int         DelphiVersion; 
 extern  MDisasm     Disasm;
 extern  DWORD       CodeBase;
 extern  DWORD       CurProcAdr;               

@@ -1,4 +1,4 @@
-void __fastcall AddFieldXref(PFIELDINFO fInfo, DWORD ProcAdr, int ProcOfs, char type);
+void __fastcall AddFieldXref(PFIELDINFO fInfo, DWORD ProcAdr, int ProcOfs, char type); 
 //---------------------------------------------------------------------------
 //structure for saving context of all registers (branch instruction)
 typedef struct
