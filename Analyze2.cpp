@@ -493,70 +493,72 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                 Code[NPos] == 0xC3)
             {
                 Adr = DisInfo.Immediate;      //Adr=@1
-                if (Adr > lastAdr) lastAdr = Adr;
-                Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                int delta = Pos - NPos;
-                if (delta >= 0 && delta < MAX_DISASSEMBLE)
+                if (IsValidCodeAdr(Adr))
                 {
-                    if (Code[Pos] == 0xE9) //jmp Handle...
+                    if (Adr > lastAdr) lastAdr = Adr;
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0 && Pos - NPos < MAX_DISASSEMBLE)
                     {
-                        //Disassemble jmp
-                        instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-
-                        recN = GetInfoRec(DisInfo.Immediate);
-                        if (recN)
+                        if (Code[Pos] == 0xE9) //jmp Handle...
                         {
-                            if (recN->SameName("@HandleFinally"))
-                            {
-                                //jmp HandleFinally
-                                Pos += instrLen1; Adr += instrLen1;
-                                //jmp @2
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                            }
-                            else if (recN->SameName("@HandleAnyException") || recN->SameName("@HandleAutoException"))
-                            {
-                                //jmp HandleAnyException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //call DoneExcept
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                            }
-                            else if (recN->SameName("@HandleOnException"))
-                            {
-                                //jmp HandleOnException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //dd num
-                                num = *((int*)(Code + Pos)); Pos += 4;
-                                if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+                            //Disassemble jmp
+                            instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
 
-                                for (int k = 0; k < num; k++)
+                            recN = GetInfoRec(DisInfo.Immediate);
+                            if (recN)
+                            {
+                                if (recN->SameName("@HandleFinally"))
                                 {
-                                    //dd offset ExceptionInfo
-                                    Adr = *((DWORD*)(Code + Pos)); Pos += 4;
-                                    if (IsValidImageAdr(Adr))
-                                    {
-                                        recN1 = GetInfoRec(Adr);
-                                        if (recN1 && recN1->kind == ikVMT) className = recN1->GetName();
-                                    }
-                                    //dd offset ExceptionProc
-                                    procAdr = *((DWORD*)(Code + Pos)); Pos += 4;
-                                    if (IsValidImageAdr(procAdr))
-                                    {
-                                        //Save context
-                                        if (!GetCtx(sctx, procAdr))
-                                        {
-                                            rinfo = new RCONTEXT;
-                                            rinfo->sp = sp;
-                                            rinfo->adr = procAdr;
-                                            for (n = 0; n < 32; n++) rinfo->registers[n] = registers[n];
-                                            //eax
-                                            rinfo->registers[16].value = GetClassAdr(className);
-                                            rinfo->registers[16].type = className;
+                                    //jmp HandleFinally
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //jmp @2
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                }
+                                else if (recN->SameName("@HandleAnyException") || recN->SameName("@HandleAutoException"))
+                                {
+                                    //jmp HandleAnyException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //call DoneExcept
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                }
+                                else if (recN->SameName("@HandleOnException"))
+                                {
+                                    //jmp HandleOnException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //dd num
+                                    num = *((int*)(Code + Pos)); Pos += 4;
+                                    if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
 
-                                            sctx->Add((void*)rinfo);
+                                    for (int k = 0; k < num; k++)
+                                    {
+                                        //dd offset ExceptionInfo
+                                        Adr = *((DWORD*)(Code + Pos)); Pos += 4;
+                                        if (IsValidImageAdr(Adr))
+                                        {
+                                            recN1 = GetInfoRec(Adr);
+                                            if (recN1 && recN1->kind == ikVMT) className = recN1->GetName();
+                                        }
+                                        //dd offset ExceptionProc
+                                        procAdr = *((DWORD*)(Code + Pos)); Pos += 4;
+                                        if (IsValidImageAdr(procAdr))
+                                        {
+                                            //Save context
+                                            if (!GetCtx(sctx, procAdr))
+                                            {
+                                                rinfo = new RCONTEXT;
+                                                rinfo->sp = sp;
+                                                rinfo->adr = procAdr;
+                                                for (n = 0; n < 32; n++) rinfo->registers[n] = registers[n];
+                                                //eax
+                                                rinfo->registers[16].value = GetClassAdr(className);
+                                                rinfo->registers[16].type = className;
+
+                                                sctx->Add((void*)rinfo);
+                                            }
                                         }
                                     }
                                 }

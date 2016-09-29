@@ -430,56 +430,53 @@ String __fastcall TFMain_11011981::AnalyzeArguments(DWORD fromAdr)
                 Code[NPos] == 0xC3)
             {
                 Adr = DisInfo.Immediate;      //Adr=@1
-                if (Adr > lastAdr) lastAdr = Adr;
-                Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                
-                //recN1 = GetInfoRec(Adr);
-                //if (!recN1) recN1 = new InfoRec(Pos, ikTry);
-                //recN1->AddXref('C', fromAdr, Adr - fromAdr);
-
-                int delta = Pos - NPos;
-                if (delta >= 0 && delta < MAX_DISASSEMBLE)
+                if (IsValidCodeAdr(Adr))
                 {
-                    if (Code[Pos] == 0xE9) //jmp Handle...
+                    if (Adr > lastAdr) lastAdr = Adr;
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0 && Pos - NPos < MAX_DISASSEMBLE)
                     {
-                        //Disassemble jmp
-                        instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-
-                        recN1 = GetInfoRec(DisInfo.Immediate);
-                        if (recN1)
+                        if (Code[Pos] == 0xE9) //jmp Handle...
                         {
-                            if (recN1->SameName("@HandleFinally"))
-                            {
-                                //ret + jmp HandleFinally
-                                Pos += instrLen1; Adr += instrLen1;
-                                //jmp @2
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                            }
-                            else if (recN1->SameName("@HandleAnyException") || recN1->SameName("@HandleAutoException"))
-                            {
-                                //jmp HandleAnyException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //call DoneExcept
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                            }
-                            else if (recN1->SameName("@HandleOnException"))
-                            {
-                                //jmp HandleOnException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //dd num
-                                num = *((int*)(Code + Pos)); Pos += 4;
-                                if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+                            //Disassemble jmp
+                            instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
 
-                                for (int k = 0; k < num; k++)
+                            recN1 = GetInfoRec(DisInfo.Immediate);
+                            if (recN1)
+                            {
+                                if (recN1->SameName("@HandleFinally"))
                                 {
-                                    //dd offset ExceptionInfo
-                                    Pos += 4;
-                                    //dd offset ExceptionProc
-                                    Pos += 4;
+                                    //ret + jmp HandleFinally
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //jmp @2
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                }
+                                else if (recN1->SameName("@HandleAnyException") || recN1->SameName("@HandleAutoException"))
+                                {
+                                    //jmp HandleAnyException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //call DoneExcept
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                }
+                                else if (recN1->SameName("@HandleOnException"))
+                                {
+                                    //jmp HandleOnException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //dd num
+                                    num = *((int*)(Code + Pos)); Pos += 4;
+                                    if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+
+                                    for (int k = 0; k < num; k++)
+                                    {
+                                        //dd offset ExceptionInfo
+                                        Pos += 4;
+                                        //dd offset ExceptionProc
+                                        Pos += 4;
+                                    }
                                 }
                             }
                         }

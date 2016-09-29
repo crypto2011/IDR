@@ -126,8 +126,8 @@ void __fastcall TFMain_11011981::AnalyzeProc1(DWORD fromAdr, char xrefType, DWOR
         if (skipNum > 0)
         {
             Adr = finallyAdr;      //Adr=@1
+            Pos = Adr2Pos(Adr); if (Pos < 0) break;
             if (Adr > lastAdr) lastAdr = Adr;
-            Pos = Adr2Pos(Adr); assert(Pos >= 0);
             SetFlag(cfTry, curPos);
             SetFlags(cfSkip, curPos, skipNum);
 
@@ -515,123 +515,124 @@ void __fastcall TFMain_11011981::AnalyzeProc1(DWORD fromAdr, char xrefType, DWOR
                 Code[NPos] == 0xC3)
             {
                 Adr = DisInfo.Immediate;      //Adr=@1
-                if (Adr > lastAdr) lastAdr = Adr;
-                Pos = Adr2Pos(Adr);
-                assert(Pos >= 0);
-                int delta = Pos - NPos;
-                if (delta >= 0 && delta < MAX_DISASSEMBLE)
+                if (IsValidCodeAdr(Adr))
                 {
-                    if (Code[Pos] == 0xE9) //jmp Handle...
+                    if (Adr > lastAdr) lastAdr = Adr;
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0 && Pos - NPos < MAX_DISASSEMBLE)
                     {
-                        if (Code[NPos + 2] == 0x35)
+                        if (Code[Pos] == 0xE9) //jmp Handle...
                         {
-                            SetFlag(cfTry, NPos - 6);
-                            SetFlags(cfSkip, NPos - 6, 20);
-                        }
-                        else
-                        {
-                            SetFlag(cfTry, NPos - 8);
-                            SetFlags(cfSkip, NPos - 8, 14);
-                        }
-                        //Disassemble jmp
-                        instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-
-                        recN1 = GetInfoRec(DisInfo.Immediate);
-                        if (recN1 && recN1->HasName())
-                        {
-                            //jmp @HandleFinally
-                            if (recN1->SameName("@HandleFinally"))
+                            if (Code[NPos + 2] == 0x35)
                             {
-                                SetFlag(cfFinally, Pos);
+                                SetFlag(cfTry, NPos - 6);
+                                SetFlags(cfSkip, NPos - 6, 20);
+                            }
+                            else
+                            {
+                                SetFlag(cfTry, NPos - 8);
+                                SetFlags(cfSkip, NPos - 8, 14);
+                            }
+                            //Disassemble jmp
+                            instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+
+                            recN1 = GetInfoRec(DisInfo.Immediate);
+                            if (recN1 && recN1->HasName())
+                            {
+                                //jmp @HandleFinally
+                                if (recN1->SameName("@HandleFinally"))
+                                {
+                                    SetFlag(cfFinally, Pos);
                                 
-                                SetFlags(cfSkip, Pos - 1, instrLen1 + 1);   //ret + jmp HandleFinally
-                                Pos += instrLen1; Adr += instrLen1;
-                                //jmp @2
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-                                SetFlag(cfFinally, Pos);
-                                SetFlags(cfSkip, Pos, instrLen2);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                                //int hfEndPos = Adr2Pos(Adr);
+                                    SetFlags(cfSkip, Pos - 1, instrLen1 + 1);   //ret + jmp HandleFinally
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //jmp @2
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+                                    SetFlag(cfFinally, Pos);
+                                    SetFlags(cfSkip, Pos, instrLen2);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                    //int hfEndPos = Adr2Pos(Adr);
 
-                                int hfStartPos = Adr2Pos(DisInfo.Immediate); assert(hfStartPos >= 0);
+                                    int hfStartPos = Adr2Pos(DisInfo.Immediate); assert(hfStartPos >= 0);
 
-                                Pos = hfStartPos - 5;
+                                    Pos = hfStartPos - 5;
 
-                                if (Code[Pos] == 0x68)  //push offset @3       //Flags[Pos] & cfInstruction must be != 0
-                                {
-                                    hfStartPos = Pos - 8;
-                                    SetFlags(cfSkip, hfStartPos, 13);
+                                    if (Code[Pos] == 0x68)  //push offset @3       //Flags[Pos] & cfInstruction must be != 0
+                                    {
+                                        hfStartPos = Pos - 8;
+                                        SetFlags(cfSkip, hfStartPos, 13);
+                                    }
+                                    SetFlag(cfFinally, hfStartPos);
                                 }
-                                SetFlag(cfFinally, hfStartPos);
-                            }
-                            else if (recN1->SameName("@HandleAnyException") || recN1->SameName("@HandleAutoException"))
-                            {
-                                SetFlag(cfExcept, Pos);
-
-                                int hoStartPos = Pos - 10;
-                                SetFlags(cfSkip, hoStartPos, instrLen1 + 10);
-                                Disasm.Disassemble(Code + Pos - 10, (__int64)(Adr - 10), &DisInfo, 0);
-                                if (Disasm.GetOp(DisInfo.Mnem) != OP_XOR || DisInfo.OpRegIdx[0] != DisInfo.OpRegIdx[1])
+                                else if (recN1->SameName("@HandleAnyException") || recN1->SameName("@HandleAutoException"))
                                 {
-                                    hoStartPos = Pos - 13;
-                                    SetFlags(cfSkip, hoStartPos, instrLen1 + 13);
+                                    SetFlag(cfExcept, Pos);
+
+                                    int hoStartPos = Pos - 10;
+                                    SetFlags(cfSkip, hoStartPos, instrLen1 + 10);
+                                    Disasm.Disassemble(Code + Pos - 10, (__int64)(Adr - 10), &DisInfo, 0);
+                                    if (Disasm.GetOp(DisInfo.Mnem) != OP_XOR || DisInfo.OpRegIdx[0] != DisInfo.OpRegIdx[1])
+                                    {
+                                        hoStartPos = Pos - 13;
+                                        SetFlags(cfSkip, hoStartPos, instrLen1 + 13);
+                                    }
+                                    //Find prev jmp
+                                    Pos1 = hoStartPos; Adr1 = Pos2Adr(Pos1);
+                                    for (int k = 0; k < 6; k++)
+                                    {
+                                        instrLen2 = Disasm.Disassemble(Code + Pos1, (__int64)Adr1, &DisInfo, 0);
+                                        Pos1 += instrLen2;
+                                        Adr1 += instrLen2;
+                                    }
+                                    if (DisInfo.Immediate > lastAdr) lastAdr = DisInfo.Immediate;
+                                    //int hoEndPos = Adr2Pos(DisInfo.Immediate);
+
+                                    SetFlag(cfExcept, hoStartPos);
                                 }
-                                //Find prev jmp
-                                Pos1 = hoStartPos; Adr1 = Pos2Adr(Pos1);
-                                for (int k = 0; k < 6; k++)
+                                else if (recN1->SameName("@HandleOnException"))
                                 {
-                                    instrLen2 = Disasm.Disassemble(Code + Pos1, (__int64)Adr1, &DisInfo, 0);
-                                    Pos1 += instrLen2;
-                                    Adr1 += instrLen2;
-                                }
-                                if (DisInfo.Immediate > lastAdr) lastAdr = DisInfo.Immediate;
-                                //int hoEndPos = Adr2Pos(DisInfo.Immediate);
+                                    SetFlag(cfExcept, Pos);
 
-                                SetFlag(cfExcept, hoStartPos);
-                            }
-                            else if (recN1->SameName("@HandleOnException"))
-                            {
-                                SetFlag(cfExcept, Pos);
+                                    int hoStartPos = Pos - 10;
+                                    SetFlags(cfSkip, hoStartPos, instrLen1 + 10);
+                                    Disasm.Disassemble(Code + Pos - 10, (__int64)(Adr - 10), &DisInfo, 0);
+                                    if (Disasm.GetOp(DisInfo.Mnem) != OP_XOR || DisInfo.OpRegIdx[0] != DisInfo.OpRegIdx[1])
+                                    {
+                                        hoStartPos = Pos - 13;
+                                        SetFlags(cfSkip, hoStartPos, instrLen1 + 13);
+                                    }
+                                    //Find prev jmp
+                                    Pos1 = hoStartPos; Adr1 = Pos2Adr(Pos1);
+                                    for (int k = 0; k < 6; k++)
+                                    {
+                                        instrLen2 = Disasm.Disassemble(Code + Pos1, (__int64)Adr1, &DisInfo, 0);
+                                        Pos1 += instrLen2;
+                                        Adr1 += instrLen2;
+                                    }
+                                    if (DisInfo.Immediate > lastAdr) lastAdr = DisInfo.Immediate;
+                                    //int hoEndPos = Adr2Pos(DisInfo.Immediate);
 
-                                int hoStartPos = Pos - 10;
-                                SetFlags(cfSkip, hoStartPos, instrLen1 + 10);
-                                Disasm.Disassemble(Code + Pos - 10, (__int64)(Adr - 10), &DisInfo, 0);
-                                if (Disasm.GetOp(DisInfo.Mnem) != OP_XOR || DisInfo.OpRegIdx[0] != DisInfo.OpRegIdx[1])
-                                {
-                                    hoStartPos = Pos - 13;
-                                    SetFlags(cfSkip, hoStartPos, instrLen1 + 13);
-                                }
-                                //Find prev jmp
-                                Pos1 = hoStartPos; Adr1 = Pos2Adr(Pos1);
-                                for (int k = 0; k < 6; k++)
-                                {
-                                    instrLen2 = Disasm.Disassemble(Code + Pos1, (__int64)Adr1, &DisInfo, 0);
-                                    Pos1 += instrLen2;
-                                    Adr1 += instrLen2;
-                                }
-                                if (DisInfo.Immediate > lastAdr) lastAdr = DisInfo.Immediate;
-                                //int hoEndPos = Adr2Pos(DisInfo.Immediate);
+                                    SetFlag(cfExcept, hoStartPos);
 
-                                SetFlag(cfExcept, hoStartPos);
-
-                                //Next instruction
-                                Pos += instrLen1; Adr += instrLen1;
-                                //Set flag cfETable
-                                SetFlag(cfETable, Pos);
-                                //dd num
-                                num = *((int*)(Code + Pos));
-                                SetFlags(cfSkip, Pos, 4); Pos += 4;
-                                if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
-
-                                for (int k = 0; k < num; k++)
-                                {
-                                    //dd offset ExceptionInfo
+                                    //Next instruction
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //Set flag cfETable
+                                    SetFlag(cfETable, Pos);
+                                    //dd num
+                                    num = *((int*)(Code + Pos));
                                     SetFlags(cfSkip, Pos, 4); Pos += 4;
-                                    //dd offset ExceptionProc
-                                    DWORD procAdr = *((DWORD*)(Code + Pos));
-                                    if (IsValidCodeAdr(procAdr)) SetFlag(cfLoc, Adr2Pos(procAdr));
-                                    SetFlags(cfSkip, Pos, 4); Pos += 4;
+                                    if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+
+                                    for (int k = 0; k < num; k++)
+                                    {
+                                        //dd offset ExceptionInfo
+                                        SetFlags(cfSkip, Pos, 4); Pos += 4;
+                                        //dd offset ExceptionProc
+                                        DWORD procAdr = *((DWORD*)(Code + Pos));
+                                        if (IsValidCodeAdr(procAdr)) SetFlag(cfLoc, Adr2Pos(procAdr));
+                                        SetFlags(cfSkip, Pos, 4); Pos += 4;
+                                    }
                                 }
                             }
                         }

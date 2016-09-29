@@ -50,7 +50,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "07.05.2016";
+String  IDRVersion = "29.09.2016";
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -2357,9 +2357,8 @@ int __fastcall TFMain_11011981::EstimateProcSize(DWORD fromAdr)
                 if (IsValidCodeAdr(Adr))
                 {
                     if (Adr > lastAdr) lastAdr = Adr;
-                    Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                    int delta = Pos - NPos;
-                    if (delta >= 0)// && delta < outRows)
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0)
                     {
                         if (Code[Pos] == 0xE9) //jmp Handle...
                         {
@@ -2415,9 +2414,9 @@ int __fastcall TFMain_11011981::EstimateProcSize(DWORD fromAdr)
                             }
                         }
                     }
-                    curPos += instrLen; curAdr += instrLen;
-                    continue;
                 }
+                curPos += instrLen; curAdr += instrLen;
+                continue;
             }
         }
 
@@ -3306,61 +3305,62 @@ int __fastcall TFMain_11011981::IsValidCode(DWORD fromAdr)
                 Code[NPos] == 0xC3)
             {
                 Adr = DisInfo.Immediate;      //Adr=@1
-                if (!IsValidCodeAdr(Adr)) return -1;
-                if (Adr > lastAdr) lastAdr = Adr;
-                Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                int delta = Pos - NPos;
-                if (delta >= 0)// && delta < outRows)
+                if (IsValidCodeAdr(Adr))
                 {
-                    if (Code[Pos] == 0xE9) //jmp Handle...
+                    if (Adr > lastAdr) lastAdr = Adr;
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0)
                     {
-                        //Дизассемблируем jmp
-                        instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-                        //if (!instrLen1) return -1;
-
-                        recN = GetInfoRec(DisInfo.Immediate);
-                        if (recN)
+                        if (Code[Pos] == 0xE9) //jmp Handle...
                         {
-                            if (recN->SameName("@HandleFinally"))
-                            {
-                                //jmp HandleFinally
-                                Pos += instrLen1; Adr += instrLen1;
-                                //jmp @2
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                                /*
-                                //@2
-                                Adr1 = DisInfo.Immediate - 4;
-                                Adr = *((DWORD*)(Code + Adr2Pos(Adr1)));
-                                if (Adr > lastAdr) lastAdr = Adr;
-                                */
-                            }
-                            else if (recN->SameName("@HandleAnyException") || recN->SameName("@HandleAutoException"))
-                            {
-                                //jmp HandleAnyException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //call DoneExcept
-                                instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
-                                Adr += instrLen2;
-                                if (Adr > lastAdr) lastAdr = Adr;
-                            }
-                            else if (recN->SameName("@HandleOnException"))
-                            {
-                                //jmp HandleOnException
-                                Pos += instrLen1; Adr += instrLen1;
-                                //Флажок cfETable, чтобы правильно вывести данные
-                                SetFlag(cfETable, Pos);
-                                //dd num
-                                num = *((int*)(Code + Pos)); Pos += 4;
-                                if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+                            //Дизассемблируем jmp
+                            instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+                            //if (!instrLen1) return -1;
 
-                                for (int k = 0; k < num; k++)
+                            recN = GetInfoRec(DisInfo.Immediate);
+                            if (recN)
+                            {
+                                if (recN->SameName("@HandleFinally"))
                                 {
-                                    //dd offset ExceptionInfo
-                                    Pos += 4;
-                                    //dd offset ExceptionProc
-                                    Pos += 4;
+                                    //jmp HandleFinally
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //jmp @2
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                    /*
+                                    //@2
+                                    Adr1 = DisInfo.Immediate - 4;
+                                    Adr = *((DWORD*)(Code + Adr2Pos(Adr1)));
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                    */
+                                }
+                                else if (recN->SameName("@HandleAnyException") || recN->SameName("@HandleAutoException"))
+                                {
+                                    //jmp HandleAnyException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //call DoneExcept
+                                    instrLen2 = Disasm.Disassemble(Code + Pos, (__int64)Adr, 0, 0);
+                                    Adr += instrLen2;
+                                    if (Adr > lastAdr) lastAdr = Adr;
+                                }
+                                else if (recN->SameName("@HandleOnException"))
+                                {
+                                    //jmp HandleOnException
+                                    Pos += instrLen1; Adr += instrLen1;
+                                    //Флажок cfETable, чтобы правильно вывести данные
+                                    SetFlag(cfETable, Pos);
+                                    //dd num
+                                    num = *((int*)(Code + Pos)); Pos += 4;
+                                    if (Adr + 4 + 8 * num > lastAdr) lastAdr = Adr + 4 + 8 * num;
+
+                                    for (int k = 0; k < num; k++)
+                                    {
+                                        //dd offset ExceptionInfo
+                                        Pos += 4;
+                                        //dd offset ExceptionProc
+                                        Pos += 4;
+                                    }
                                 }
                             }
                         }
@@ -5338,9 +5338,8 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
                 if (IsValidCodeAdr(Adr))
                 {
                     if (Adr > lastAdr) lastAdr = Adr;
-                    Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                    int delta = Pos - NPos;
-                    if (delta >= 0)// && delta < outRows)
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0)
                     {
                         if (Code[Pos] == 0xE9) //jmp Handle...
                         {
@@ -5395,11 +5394,11 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
                             }
                         }
                     }
-                    wid = AddAsmLine(curAdr, line, flags); row++;
-                    if (wid > maxwid) maxwid = wid;
-                    curPos += instrLen; curAdr += instrLen;
-                    continue;
                 }
+                wid = AddAsmLine(curAdr, line, flags); row++;
+                if (wid > maxwid) maxwid = wid;
+                curPos += instrLen; curAdr += instrLen;
+                continue;
             }
         }
 
@@ -11172,9 +11171,8 @@ void __fastcall TFMain_11011981::OutputCode(FILE* outF, DWORD fromAdr, String pr
                 if (IsValidCodeAdr(Adr))
                 {
                     if (Adr > lastAdr) lastAdr = Adr;
-                    Pos = Adr2Pos(Adr); assert(Pos >= 0);
-                    int delta = Pos - NPos;
-                    if (delta >= 0)// && delta < outRows)
+                    Pos = Adr2Pos(Adr);
+                    if (Pos >= 0)
                     {
                         if (Code[Pos] == 0xE9) //jmp Handle...
                         {
@@ -11229,10 +11227,10 @@ void __fastcall TFMain_11011981::OutputCode(FILE* outF, DWORD fromAdr, String pr
                             }
                         }
                     }
-                    OutputLine(outF, flags, curAdr, line); row++;
-                    curPos += instrLen; curAdr += instrLen;
-                    continue;
                 }
+                OutputLine(outF, flags, curAdr, line); row++;
+                curPos += instrLen; curAdr += instrLen;
+                continue;
             }
         }
 

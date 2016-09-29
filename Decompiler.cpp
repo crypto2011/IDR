@@ -1386,7 +1386,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x005411E5)
+if (_curAdr == 0x005C78C3)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -7580,6 +7580,18 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         SetRegItem(16, &_item);
         _line += " := " + _item.Value + ";";
         Env->AddToBody(_line);
+        return false;
+    }
+    if (SameText(name, "@VarToReal"))
+    {
+        //eax=Variant
+        GetRegItem(16, &_item1);
+        if (_item1.Flags & IF_STACK_PTR)
+            Env->Stack[_item1.IntValue].Type = "Variant";
+        InitItem(&_item);
+        _item.Value = "Real(" + _item1.Value + ")";
+        _item.Type = "Extended";
+        FSet(0, &_item);
         return false;
     }
     if (SameText(name, "@Write0Ext"))
