@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//Create XRefs 
+//Create XRefs
 //Scan procedure calls (include constructors and destructors)
 //Calculate size of stack for arguments
 void __fastcall TFMain_11011981::AnalyzeProc1(DWORD fromAdr, char xrefType, DWORD xrefAdr, int xrefOfs, bool maybeEmb)

@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-#define NO_WIN32_LEAN_AND_MEAN
+#define NO_WIN32_LEAN_AND_MEAN 
 #include <vcl.h>
 #pragma hdrstop
 
