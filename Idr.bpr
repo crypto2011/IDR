@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="C:\PAPA\IDR\Idr.exe"/>
+    <PROJECT value="bin\Idr.exe"/>
     <OBJFILES value="obj\Idr.obj obj\Main.obj obj\TypeInfo.obj obj\StringInfo.obj 
       obj\Explorer.obj obj\KnowledgeBase.obj obj\Disasm.obj obj\Threads.obj 
       obj\InputDlg.obj obj\FindDlg.obj obj\Infos.obj obj\EditFunctionDlg.obj 
@@ -40,7 +40,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="ilink32"/>
-    <USERDEFINES value="_DEBUG"/>
+    <USERDEFINES value=""/>
     <SYSDEFINES value="NO_STRICT"/>
     <MAINSOURCE value="Idr.cpp"/>
     <INCLUDEPATH value="&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl"/>
@@ -51,12 +51,11 @@
   <OPTIONS>
     <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\Source\vcl -src_suffix cpp 
       -D_DEBUG -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -w- -Vx -Ve -X- -r- -a1 -5 -b- -k -y -v -vi- 
-      -c -tW -tWM"/>
-    <PFLAGS value="-N2obj -N0obj -$Y+ -$W -$O- -$A8 -v -JPHNE -M"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -w- -Vx -Ve -X- -a1 -5 -b- -k- -vi -c -tW -tWM"/>
+    <PFLAGS value="-N2obj -N0obj -$Y- -$L- -$D- -$A8 -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zi"/>
-    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -v"/>
+    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zn"/>
+    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn"/>
     <OTHERFILES value=""/>
   </OPTIONS>
   <LINKER>
@@ -130,16 +129,16 @@ C:\Windows\SysWOW64\ibevnt60.bpl=Borland Interbase Event Alerter Component
 c:\program files (x86)\borland\cbuilder6\Bin\dcltee60.bpl=TeeChart Components
 c:\program files (x86)\borland\cbuilder6\Bin\dcltqr60.bpl=TeeChart for QuickReport Components
 c:\program files (x86)\borland\cbuilder6\Bin\dclib60.bpl=InterBase Data Access Components
-c:\program files (x86)\borland\cbuilder6\Bin\dclclxdb60.bpl=Borland CLX Database Components
 c:\program files (x86)\borland\cbuilder6\Bin\dclclxstd60.bpl=Borland CLX Standard Components
 c:\program files (x86)\borland\cbuilder6\Bin\dclact60.bpl=Borland ActionBar Components
 c:\program files (x86)\borland\cbuilder6\Bin\dclnet60.bpl=Borland Internet Components
 c:\program files (x86)\borland\cbuilder6\Bin\DBWEBXPRT.BPL=Borland Web Wizard Package
 c:\program files (x86)\borland\cbuilder6\Bin\DCLNMF60.bpl=NetMasters Fastnet Tools
 c:\program files (x86)\borland\cbuilder6\Bin\dclsoap60.bpl=Borland SOAP Components
-c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
 c:\program files (x86)\borland\cbuilder6\Bin\dcldbx60.bpl=Borland dbExpress Components
 c:\program files (x86)\borland\cbuilder6\Bin\dcldbxcds60.bpl=Borland Local DBX ClientDataset Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclclxdb60.bpl=Borland CLX Database Components
+c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
 
 [HistoryLists\hlIncludePath]
 Count=18
@@ -200,20 +199,21 @@ Item2=D:\_D_\PROJECTS\IDD
 Item3=C:\_D_\PROJECTS\IDD
 
 [HistoryLists\hlFinalOutputDir]
-Count=13
-Item0=C:\PAPA\IDR
-Item1=build\
-Item2=C:\PAPA\IDR\
-Item3=build
-Item4=D:\PAPA\IDR\
-Item5=D:\PAPA\IDR
-Item6=exe\
-Item7=exe
-Item8=C:\Program Files\Borland\CBuilder6\Projects\IDR\
-Item9=C:\Program Files\Borland\CBuilder6\Projects\IDR
-Item10=D:\_D_\PROJECTS\IDD\
-Item11=C:\_D_\PROJECTS\IDD\
-Item12=C:\_D_\PROJECTS\IDD
+Count=14
+Item0=C:\PAPA\IDR\
+Item1=C:\PAPA\IDR
+Item2=bin\
+Item3=build\
+Item4=build
+Item5=D:\PAPA\IDR\
+Item6=D:\PAPA\IDR
+Item7=exe\
+Item8=exe
+Item9=C:\Program Files\Borland\CBuilder6\Projects\IDR\
+Item10=C:\Program Files\Borland\CBuilder6\Projects\IDR
+Item11=D:\_D_\PROJECTS\IDD\
+Item12=C:\_D_\PROJECTS\IDD\
+Item13=C:\_D_\PROJECTS\IDD
 
 [Debugging]
 DebugSourceDirs=$(BCB)\source\vcl
