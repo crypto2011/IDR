@@ -25,6 +25,7 @@
 #define     IF_INTVAL           256
 #define     IF_INTERFACE        512
 #define     IF_EXTERN_VAR       1024    //User for embedded procedures
+#define     IF_RECORD_FOFS      2048    //Offset inside record
 
 #define     CF_CONSTRUCTOR      1
 #define     CF_DESTRUCTOR       2
@@ -272,6 +273,7 @@ public:
     PITEM __fastcall FPop();
     void __fastcall FPush(PITEM val);
     void __fastcall FSet(int idx, PITEM val);
+    void __fastcall FXch(int idx1, int idx2);
     PFIELDINFO __fastcall GetArrayFieldOffset(String ATypeName, int AFromOfs, int AScale);
     int __fastcall GetCmpInfo(DWORD fromAdr);
     String __fastcall GetCycleFrom();

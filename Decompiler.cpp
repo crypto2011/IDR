@@ -435,14 +435,50 @@ PITEM __fastcall TDecompiler::FGet(int idx)
 //Save val into ST(idx)
 void __fastcall TDecompiler::FSet(int idx, PITEM val)
 {
-    Env->FStack[(_TOP_ + idx) & 7].Flags = val->Flags;
-    Env->FStack[(_TOP_ + idx) & 7].Precedence = val->Precedence;
-    Env->FStack[(_TOP_ + idx) & 7].Size = val->Size;
-    Env->FStack[(_TOP_ + idx) & 7].Offset = val->Offset;
-    Env->FStack[(_TOP_ + idx) & 7].IntValue = val->IntValue;
-    Env->FStack[(_TOP_ + idx) & 7].Value = val->Value;
-    Env->FStack[(_TOP_ + idx) & 7].Type = val->Type;
-    Env->FStack[(_TOP_ + idx) & 7].Name = val->Name;
+    int     n = (_TOP_ + idx) & 7;
+    Env->FStack[n].Flags = val->Flags;
+    Env->FStack[n].Precedence = val->Precedence;
+    Env->FStack[n].Size = val->Size;
+    Env->FStack[n].Offset = val->Offset;
+    Env->FStack[n].IntValue = val->IntValue;
+    Env->FStack[n].Value = val->Value;
+    Env->FStack[n].Type = val->Type;
+    Env->FStack[n].Name = val->Name;
+}
+//---------------------------------------------------------------------------
+//Xchange ST(idx1) and ST(idx2)
+void __fastcall TDecompiler::FXch(int idx1, int idx2)
+{
+    ITEM    _tmp;
+    PITEM   _item1 = FGet(idx1);
+    PITEM   _item2 = FGet(idx2);
+
+    _tmp.Flags = _item1->Flags;
+    _tmp.Precedence = _item1->Precedence;
+    _tmp.Size = _item1->Size;
+    _tmp.Offset = _item1->Offset;
+    _tmp.IntValue = _item1->IntValue;
+    _tmp.Value = _item1->Value;
+    _tmp.Type = _item1->Type;
+    _tmp.Name = _item1->Name;
+
+    _item1->Flags = _item2->Flags;
+    _item1->Precedence = _item2->Precedence;
+    _item1->Size = _item2->Size;
+    _item1->Offset = _item2->Offset;
+    _item1->IntValue = _item2->IntValue;
+    _item1->Value = _item2->Value;
+    _item1->Type = _item2->Type;
+    _item1->Name = _item2->Name;
+
+    _item2->Flags = _tmp.Flags;
+    _item2->Precedence = _tmp.Precedence;
+    _item2->Size = _tmp.Size;
+    _item2->Offset = _tmp.Offset;
+    _item2->IntValue = _tmp.IntValue;
+    _item2->Value = _tmp.Value;
+    _item2->Type = _tmp.Type;
+    _item2->Name = _tmp.Name;
 }
 //---------------------------------------------------------------------------
 void __fastcall TDecompiler::FPush(PITEM val)
@@ -1386,7 +1422,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x005C78C3)
+if (_curAdr == 0x0047FBEB)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -1464,7 +1500,7 @@ _curAdr = _curAdr;
                             _adr += _instrLen;
                             _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &_disInfo, 0);
                             _branchAdr = _disInfo.Immediate;
-                            //Save position
+                            //Save position and address
                             _sPos = _pos + _instrLen;
                             _sAdr = _adr + _instrLen;
 
@@ -1871,9 +1907,8 @@ _curAdr = _curAdr;
             }
             else
             {
-                //Save position
-                _sPos = _curPos;
-                _sAdr = _curAdr;
+                //Save position and address
+                _sPos = _curPos; _sAdr = _curAdr;
 
                 //Simulate push
                 _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &DisInfo, 0);
@@ -1962,7 +1997,7 @@ _curAdr = _curAdr;
         }
         if (_op == OP_CMP || (DisInfo.Float && _dd == 'mocf'))
         {
-            //Save position
+            //Save position and address
             _sPos = _curPos; _sAdr = _curAdr;
             _bytesToSkip = IsBoundErr(_curAdr);
             if (_bytesToSkip)
@@ -2166,7 +2201,7 @@ _curAdr = _curAdr;
         }
         if (_op == OP_TEST || _op == OP_BT)
         {
-            //Save position
+            //Save address
             _sAdr = _curAdr;
             _bytesToSkip = IsInlineLengthTest(_curAdr);
             if (_bytesToSkip)
@@ -2307,7 +2342,7 @@ _curAdr = _curAdr;
         }
         if (_op == OP_SUB)
         {
-            //Save position
+            //Save address
             _sAdr = _curAdr;
             _bytesToSkip = IsIntOver(_curAdr + _instrLen);
 
@@ -2538,6 +2573,8 @@ _curAdr = _curAdr;
         }
         if (_op == OP_INC || _op == OP_DEC)
         {
+            //Save address
+            _sAdr = _curAdr;
             _endAdr = IsGeneralCase(_curAdr, Env->StartAdr + Env->Size);
             if (_endAdr)
             {
@@ -3072,7 +3109,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
 
                     _rn = -1; _regName = "";
                     _kind = GetTypeKind(_argInfo->TypeDef, &_size);
-                    if (_argInfo->Tag == 0x22)
+                    if (_argInfo->Tag == 0x22 || _argInfo->Tag == 0x23)
                         _size = 4;
                     //else
                     //    _size = _argInfo->Size;
@@ -3307,7 +3344,10 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                     }
                     if (_kind == ikRecord)
                     {
-                        _line += _item.Value;//ExtractClassName(_item.Value);
+                        if (_size < 8)
+                            _line += _item.Value;
+                        else
+                            _line += _item1.Value;
                         continue;
                     }
                     if (_kind == ikFloat)
@@ -5594,14 +5634,14 @@ void __fastcall TDecompiler::SimulateInstr2RegMem(DWORD curAdr, BYTE Op)
     }
     if (Op == OP_MOV || Op == OP_LEA)
     {
-        InitItem(&_item);
-        _item.Flags = _itemSrc.Flags;
-        _item.Value = _itemSrc.Value;
-        _item.Type = _itemSrc.Type;
+        //InitItem(&_item);
+        //_item.Flags = _itemSrc.Flags;
+        //_item.Type = _itemSrc.Type;
+        //_item.Value = _itemSrc.Value;
         //if (Op == OP_LEA)
         //    _item.Type = "^" + _item.Type;
-        SetRegItem(_reg1Idx, &_item);
-        _line = GetDecompilerRegisterName(_reg1Idx) + " := " + _item.Value + ";";
+        SetRegItem(_reg1Idx, &_itemSrc);
+        _line = GetDecompilerRegisterName(_reg1Idx) + " := " + _itemSrc.Value + ";";
         Env->AddToBody(_line);
         return;
     }
@@ -7213,6 +7253,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
 
     if (SameText(name, "@Sin") ||
         SameText(name, "@Cos") ||
+        SameText(name, "@Exp") ||
         SameText(name, "@Int"))
     {
         _value = name.SubString(2, 5);
@@ -8452,6 +8493,16 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
         FPush(&_item);
         return;
     }
+    //fldln2
+    if (_dd == 'nldl')
+    {
+        InitItem(&_item);
+        _item.Precedence = PRECEDENCE_ATOM;
+        _item.Value = "Ln(2)";
+        _item.Type = "Extended";
+        FPush(&_item);
+        return;
+    }
     //fpatan
     if (_dd == 'atap')
     {
@@ -8474,6 +8525,31 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
         _item.Value = "Sqrt(" + FGet(0)->Value + ")";
         _item.Type = "Extended";
         FSet(0, &_item);
+        return;
+    }
+    //fxch
+    if (_dd == 'hcx')
+    {
+        _reg1Idx = 1;
+        //fxch st(i)
+        if (DisInfo.OpNum == 1)
+        {
+            _reg1Idx = DisInfo.OpRegIdx[0] - 30;
+            //fxch st(0) == fxcg
+            if (!_reg1Idx) _reg1Idx = 1;
+        }
+        FXch(0, _reg1Idx);
+        return;
+    }
+    //fyl2x
+    if (_dd == 'x2ly')
+    {
+        InitItem(&_item);
+        _item.Precedence = PRECEDENCE_MULT;
+        _item.Value = GetString(FGet(1), PRECEDENCE_MULT) + " * Log2(" + GetString(FGet(0), PRECEDENCE_MULT) + ")";
+        _item.Type = "Extended";
+        FSet(1, &_item);
+        FPop();
         return;
     }
     Env->ErrAdr = curAdr;
@@ -9294,6 +9370,27 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 Dst->Name = "";
                 return;
             }
+            if (_itemBase.Flags & IF_RECORD_FOFS)
+            {
+                _value = _itemBase.Value;
+                _text = GetRecordFields(_itemBase.Offset, _itemBase.Type);
+                if (_text.Pos(":"))
+                {
+                    _value += "." + ExtractName(_text);
+                    _typeName = ExtractType(_text);
+                }
+                else
+                {
+                    _value += ".f" + Val2Str0(_itemBase.Offset);
+                    _typeName = _text;
+                }
+                if (_itemBase.Flags & IF_ARRAY_PTR)
+                    _value += "[]";
+                Dst->Value = _value;
+                Dst->Type = _typeName;
+                Dst->Name = "";
+                return;
+            }
             if (_itemBase.Flags & IF_ARRAY_PTR)
             {
                 Dst->Value = _itemBase.Value + "[]";
@@ -9411,6 +9508,27 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             Dst->Value = _name + "[" + GetDecompilerRegisterName(DisInfo.BaseReg) + "]";
             return;
         }
+        if (_itemBase.Flags & IF_RECORD_FOFS)
+        {
+            _value = _itemBase.Value;
+            _text = GetRecordFields(_itemBase.Offset + _offset, _itemBase.Type);
+            if (_text.Pos(":"))
+            {
+                _value += "." + ExtractName(_text);
+                _typeName = ExtractType(_text);
+            }
+            else
+            {
+                _value += ".f" + Val2Str0(_itemBase.Offset + _offset);
+                _typeName = _text;
+            }
+            if (_itemBase.Flags & IF_ARRAY_PTR)
+                _value += "[]";
+            Dst->Value = _value;
+            Dst->Type = _typeName;
+            Dst->Name = "";
+            return;
+        }
         if (_itemBase.Flags & IF_ARRAY_PTR)
         {
             if ((_itemBase.Flags & IF_STACK_PTR) && Env->Stack[_itemBase.IntValue].Value != "")
@@ -9456,6 +9574,14 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 _value = _itemBase.Value;
             else
                 _value = GetDecompilerRegisterName(DisInfo.BaseReg);
+            if (Op == OP_LEA)//address of field with ofs=_offset in structure _typeName
+            {
+                Dst->Flags = IF_RECORD_FOFS;
+                Dst->Value = _value;
+                Dst->Type = _typeName;
+                Dst->Offset = _offset;
+                return;
+            }
             _text = GetRecordFields(_offset, _typeName);
             if (_text.Pos(":"))
             {
