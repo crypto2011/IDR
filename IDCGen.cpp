@@ -1175,6 +1175,7 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
             names->Add(itemName);
             fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
             fprintf(idcF, "MakeNameEx(0x%lX, \"%s\", 0x20);\n", fromAdr, itemName.c_str());
+            //fprintf(idcF, "ApplyType(0x%lX, \"%s\", 0);\n", fromAdr, recN->MakeIDCPrototype(...));
         }
         else
         {
@@ -1190,6 +1191,7 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
             info->counter++;
             fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
             fprintf(idcF, "MakeNameEx(0x%lX, \"%s_%d\", 0x20);\n", fromAdr, itemName.c_str(), cnt);
+            //fprintf(idcF, "ApplyType(0x%lX, \"%s_%d\", 0);\n", fromAdr, recN->MakeIDCPrototype(...), cnt);
         }
         MakeComment(pos, recN->MakePrototype(fromAdr, true, false, false, true, false));
     }

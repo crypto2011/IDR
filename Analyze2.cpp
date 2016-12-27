@@ -184,7 +184,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
     WORD            bpBase;
     int             n, num, instrLen, instrLen1, instrLen2, _ap, _procSize;
     int             reg1Idx, reg2Idx;
-    int			    sp = -1, fromIdx = -1; 	//fromIdx - индекс регистра в инструкции mov eax,reg (для обработки вызова @IsClass)
+    int			    sp = -1, fromIdx = -1; 	//fromIdx - index of register in instruction mov eax,reg (for processing call @IsClass)
     DWORD           b;
     int             fromPos, curPos, Pos;
     DWORD           curAdr;

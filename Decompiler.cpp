@@ -210,22 +210,28 @@ __fastcall TDecompileEnv::~TDecompileEnv()
     //if (EmbeddedList) delete EmbeddedList;
 }
 //---------------------------------------------------------------------------
-String __fastcall TDecompileEnv::GetLvarName(int Ofs)
+String __fastcall TDecompileEnv::GetLvarName(int Ofs, String Type)
 {
+    PLOCALINFO  locInfo;
+    String  _defaultName = String("lvar_") + Val2Str0(LocBase - Ofs);
+
     //Insert by ZGL
     PInfoRec _recN = GetInfoRec(StartAdr);
-    if (_recN->procInfo->locals)
+    if (_recN && _recN->procInfo)
     {
-        for (int n = 0; n < _recN->procInfo->locals->Count; n++)
+        if (_recN->procInfo->locals)
         {
-            PLOCALINFO locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
-            if (locInfo->Ofs == Ofs - LocBase && locInfo->Name != "")
-                 return locInfo->Name;
+            for (int n = 0; n < _recN->procInfo->locals->Count; n++)
+            {
+                locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
+                if (locInfo->Ofs == Ofs && locInfo->Name != "")//Ofs - LocBase
+                     return locInfo->Name;
+            }
         }
+        locInfo = _recN->procInfo->AddLocal(Ofs, 1, _defaultName, Type);
     }
     ////////////////
-    
-    return String("lvar_") + Val2Str0(LocBase - Ofs);
+    return _defaultName;
 }
 //---------------------------------------------------------------------------
 PDCONTEXT __fastcall TDecompileEnv::GetContext(DWORD Adr)
@@ -732,11 +738,7 @@ void __fastcall TDecompileEnv::DecompileProc()
         for (int n = 0; n < _recN->procInfo->locals->Count; n++)
         {
             PLOCALINFO locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
-            String line = "  " + GetLvarName(locInfo->Ofs);
-            if (locInfo->TypeDef == "")
-                line += ": ?;";
-            else
-                line += ": " + locInfo->TypeDef + ";";
+            String line = "  " + GetLvarName(locInfo->Ofs, locInfo->TypeDef) + ": " + locInfo->TypeDef + ";";
             AddToBody(line);
         }
     }
@@ -1422,7 +1424,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0047FBEB)
+if (_curAdr == 0x00496E48)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -1513,7 +1515,7 @@ _curAdr = _curAdr;
                                     if (_pos == _decPos) break;
                                     _instrLen = Disasm.Disassemble(Code + _pos, (__int64)_adr, &DisInfo, 0);
                                     _op = Disasm.GetOp(DisInfo.Mnem);
-                                    if (_op == OP_PUSH) SimulatePush(_adr);
+                                    if (_op == OP_PUSH) SimulatePush(_adr, true);
                                     if (_op == OP_ADD || _op == OP_SUB) SimulateInstr2(_adr, _op);
                                     _pos += _instrLen;
                                     _adr += _instrLen;
@@ -1559,7 +1561,7 @@ _curAdr = _curAdr;
                                 _line += GetDecompilerRegisterName(_varidx);
                             //local var
                             if (_loopInfo->forInfo->CntInfo.IdxType == itLVAR)
-                                _line += Env->GetLvarName((int)_varidx);
+                                _line += Env->GetLvarName((int)_varidx, "Integer");
                         }
                         else
                         {
@@ -1569,7 +1571,7 @@ _curAdr = _curAdr;
                                 _line += GetDecompilerRegisterName(_varidx);
                             //local var
                             if (_loopInfo->forInfo->VarInfo.IdxType == itLVAR)
-                                _line += Env->GetLvarName((int)_varidx);
+                                _line += Env->GetLvarName((int)_varidx, "Integer");
                         }
                         _line += " := " + _loopInfo->forInfo->From + " ";
                         if (_loopInfo->forInfo->Down) _line += "down";
@@ -1902,7 +1904,7 @@ _curAdr = _curAdr;
             _bytesToSkip2 = IsInt64ComparisonViaStack2(_curAdr, &_skip1, &_skip2, &_endAdr);
             if (_bytesToSkip1 + _bytesToSkip2 == 0)
             {
-                SimulatePush(_curAdr);
+                SimulatePush(_curAdr, !IsFlagSet(cfFrame, _curPos));
                 _curPos += _instrLen; _curAdr += _instrLen;
             }
             else
@@ -1912,10 +1914,10 @@ _curAdr = _curAdr;
 
                 //Simulate push
                 _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &DisInfo, 0);
-                SimulatePush(_curAdr);
+                SimulatePush(_curAdr, true);
                 _curPos += _instrLen; _curAdr += _instrLen;
                 _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &DisInfo, 0);
-                SimulatePush(_curAdr);
+                SimulatePush(_curAdr, true);
                 _curPos += _instrLen; _curAdr += _instrLen;
 
                 //Decompile until _skip1
@@ -2739,7 +2741,7 @@ _curAdr = _curAdr;
                         Env->Stack[_item1.IntValue + r].Type = _typeName;
                     }
                 }
-                Env->AddToBody(Env->GetLvarName(_item1.IntValue) + " := " + _item2.Value + ";");
+                Env->AddToBody(Env->GetLvarName(_item1.IntValue, _typeName) + " := " + _item2.Value + ";");
                 _curPos += _instrLen; _curAdr += _instrLen;
                 continue;
             }
@@ -2789,7 +2791,7 @@ _curAdr = _curAdr;
                         Env->Stack[_item1.IntValue + r].Type = _typeName;
                     }
                 }
-                Env->AddToBody(_item1.Value + " := " + Env->GetLvarName(_item2.IntValue) + ";");
+                Env->AddToBody(_item1.Value + " := " + Env->GetLvarName(_item2.IntValue, _typeName) + ";");
                 _curPos += _instrLen; _curAdr += _instrLen;
                 continue;
             }
@@ -2845,7 +2847,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
     MTypeInfo   _tInfo;
     TDecompiler *de;
     String      _name, _alias, _line, _retType, _value, _iname, _embAdr;
-    String      _typeName, _comment, _regName, _propName;
+    String      _typeName, _comment, _regName, _propName, _lvarName;
 
     pp = 0; ss = 0; _propName = "";
     //call imm
@@ -3206,20 +3208,23 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         _item1 = Env->Stack[_item.IntValue];
                         if (_kind == ikInteger)
                         {
-                            _line += Env->GetLvarName(_item.IntValue);
-                            Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue);
+                            _lvarName = Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
+                            _line += _lvarName;
+                            Env->Stack[_item.IntValue].Value = _lvarName;
                             continue;
                         }
                         if (_kind == ikEnumeration)
                         {
-                            _line += Env->GetLvarName(_item.IntValue);
-                            Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue);
+                            _lvarName = Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
+                            _line += _lvarName;
+                            Env->Stack[_item.IntValue].Value = _lvarName;
                             continue;
                         }
                         if (_kind == ikLString || _kind == ikVariant)
                         {
-                            _line += Env->GetLvarName(_item.IntValue);
-                            Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue);
+                            _lvarName = Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
+                            _line += _lvarName;
+                            Env->Stack[_item.IntValue].Value = _lvarName;;
                             Env->Stack[_item.IntValue].Type = _argInfo->TypeDef;
                             continue;
                         }
@@ -3230,12 +3235,12 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         }
                         if (_kind == ikArray)
                         {
-                            _line += Env->GetLvarName(_item.IntValue);
+                            _line += Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
                             continue;
                         }
                         if (_kind == ikRecord)
                         {
-                            _line += Env->GetLvarName(_item.IntValue);
+                            _line += Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
                             _recsize = GetRecordSize(_argInfo->TypeDef);
                             for (int r = 0; r < _recsize; r++)
                             {
@@ -3254,8 +3259,9 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                             continue;
                         }
                         //Type not found
-                        _line += Env->GetLvarName(_item.IntValue);
-                        Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue);
+                        _lvarName = Env->GetLvarName(_item.IntValue, _argInfo->TypeDef);
+                        _line += _lvarName;
+                        Env->Stack[_item.IntValue].Value = _lvarName;
                         Env->Stack[_item.IntValue].Type = _argInfo->TypeDef;
                         continue;
                     }
@@ -3474,7 +3480,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         else if (_item.Value != "")
                             _line = _item.Value + " := " + _line;
                         else
-                            _line = Env->GetLvarName(_item.IntValue) + " := " + _line;
+                            _line = Env->GetLvarName(_item.IntValue, _retType) + " := " + _line;
                         if (_retKind == ikRecord)
                         {
                             _size = GetRecordSize(_retType);
@@ -3559,7 +3565,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
         if (DisInfo.BaseReg == 20)
         {
             _item = Env->Stack[_ESP_ + DisInfo.Offset];
-            _line = Env->GetLvarName(_ESP_ + DisInfo.Offset) + "(...);";
+            _line = Env->GetLvarName(_ESP_ + DisInfo.Offset, "") + "(...);";
             Env->AddToBody(_line);
             _value = ManualInput(CurProcAdr, curAdr, "Input return bytes number (in hex) of procedure at " + Val2Str8(curAdr), "Bytes:");
             if (_value == "")
@@ -3832,7 +3838,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
                                     from = String(Env->Stack[varIdxInfo.IdxValue].IntValue);
                                 else
                                     from = Env->Stack[varIdxInfo.IdxValue].Value;
-                                Env->Stack[varIdxInfo.IdxValue].Value = Env->GetLvarName(varIdxInfo.IdxValue);
+                                Env->Stack[varIdxInfo.IdxValue].Value = Env->GetLvarName(varIdxInfo.IdxValue, "Integer");
                                 break;
                             }
                         }
@@ -3844,7 +3850,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
                                     from = String(Env->Stack[varIdxInfo.IdxValue].IntValue);
                                 else
                                     from = Env->Stack[varIdxInfo.IdxValue].Value;
-                                Env->Stack[varIdxInfo.IdxValue].Value = Env->GetLvarName(varIdxInfo.IdxValue);
+                                Env->Stack[varIdxInfo.IdxValue].Value = Env->GetLvarName(varIdxInfo.IdxValue, "Integer");
                                 break;
                             }
                         }
@@ -4297,7 +4303,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
                     }
                     //else
                     //    to = item.Value;
-                    item.Value = Env->GetLvarName(cntIdxInfo.IdxValue);
+                    item.Value = Env->GetLvarName(cntIdxInfo.IdxValue, "Integer");
                     Env->Stack[cntIdxInfo.IdxValue] = item;
                 }
             }
@@ -4321,7 +4327,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
                 {
                     item = Env->Stack[varIdxInfo.IdxValue];
                     from = item.Value1;
-                    item.Value = Env->GetLvarName(varIdxInfo.IdxValue);
+                    item.Value = Env->GetLvarName(varIdxInfo.IdxValue, "Integer");
                     item.Flags |= IF_CYCLE_VAR;
                     Env->Stack[varIdxInfo.IdxValue] = item;
                 }
@@ -4341,7 +4347,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
                 else if (cntIdxInfo.IdxType == itLVAR)
                 {
                     cnt = Env->Stack[cntIdxInfo.IdxValue].Value;
-                    Env->Stack[cntIdxInfo.IdxValue].Value = Env->GetLvarName(cntIdxInfo.IdxValue);
+                    Env->Stack[cntIdxInfo.IdxValue].Value = Env->GetLvarName(cntIdxInfo.IdxValue, "Integer");
                 }
                 if (SameText(from, "1"))
                     to = cnt;
@@ -4361,7 +4367,7 @@ PLoopInfo __fastcall TDecompiler::GetLoopInfo(int fromAdr)
     return res;
 }
 //---------------------------------------------------------------------------
-void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
+void __fastcall TDecompiler::SimulatePush(DWORD curAdr, bool bShowComment)
 {
     bool        _vmt;
     int         _offset, _idx;
@@ -4370,7 +4376,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
     ITEM        _item, _item1;
     PInfoRec    _recN;
     PFIELDINFO  _fInfo;
-    String      _name, _typeName, _value;
+    String      _name, _typeName, _value, _regname;
 
     //push imm
     if (DisInfo.OpType[0] == otIMM)
@@ -4429,8 +4435,8 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
         }
         GetRegItem(_idx, &_item);
 
-        _value = GetDecompilerRegisterName(_idx);
-        if (_item.Value != "") _value = _item.Value + "{" + _value + "}";
+        _regname = GetDecompilerRegisterName(_idx);
+        if (_item.Value != "" && !SameText(_regname, _item.Value)) _value = _item.Value + "{" + _regname + "}";
         _item.Value = _value;
 
         //push eax - clear flag IF_CALL_RESULT
@@ -4446,6 +4452,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
         //}
 
         Push(&_item);
+        if (bShowComment) Env->AddToBody("//push " + _regname);
         return;
     }
     //push mem
@@ -4472,7 +4479,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
                 //push [ebp-N]
                 if (_item1.Flags & IF_STACK_PTR)
                 {
-                    _name = Env->GetLvarName(_item1.IntValue + _offset);
+                    _name = Env->GetLvarName(_item1.IntValue + _offset, "");
                     _item = Env->Stack[_item1.IntValue + _offset];
                     _item.Value = _name;
                     Push(&_item);
@@ -4561,22 +4568,25 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr)
 //---------------------------------------------------------------------------
 void __fastcall TDecompiler::SimulatePop(DWORD curAdr)
 {
-    String  _line;
+    String  _regname;
     PITEM   _item;
 
     //pop reg
     if (DisInfo.OpType[0] == otREG)
     {
         _item = Pop();
-        if (_item->Flags & IF_ARG)
+        if (!IsFlagSet(cfFrame, Adr2Pos(curAdr)))
         {
-            if (!IsFlagSet(cfFrame, Adr2Pos(curAdr)))
-            {
-                _line = GetDecompilerRegisterName(DisInfo.OpRegIdx[0]) + " := " + _item->Name + ";";
-                Env->AddToBody(_line);
-            }
+            _regname = GetDecompilerRegisterName(DisInfo.OpRegIdx[0]);
+            //_line = _regname + " := ";
+            //if (_item->Flags & IF_ARG)
+            //    _line += _item->Name;
+            //else
+            //    _line += _item->Value;
+            Env->AddToBody("//pop " + _regname);
         }
         _item->Precedence = PRECEDENCE_NONE;
+        _item->Value = _regname;
         SetRegItem(DisInfo.OpRegIdx[0], _item);
         return;
     }
@@ -4726,7 +4736,7 @@ void __fastcall TDecompiler::SimulateInstr1(DWORD curAdr, BYTE Op)
                         _item.Type = "Integer";
                         SetRegItem(16, &_item);
                         SetRegItem(18, &_item);
-                        _line = "EDX_EAX := EAX * " + Env->GetLvarName(_ESP_ + _offset) + ";//" + _item1.Value;
+                        _line = "EDX_EAX := EAX * " + Env->GetLvarName(_ESP_ + _offset, "Integer") + ";//" + _item1.Value;
                         Env->AddToBody(_line);
                         return;
                     }
@@ -4741,7 +4751,7 @@ void __fastcall TDecompiler::SimulateInstr1(DWORD curAdr, BYTE Op)
                         if (_item1.Value != "")
                             _name = _item1.Value;
                         else
-                            _name = Env->GetLvarName(_itemBase.IntValue + _offset);
+                            _name = Env->GetLvarName(_itemBase.IntValue + _offset, "Integer");
 
                         InitItem(&_item);
                         _item.Precedence = PRECEDENCE_MULT;
@@ -4749,7 +4759,7 @@ void __fastcall TDecompiler::SimulateInstr1(DWORD curAdr, BYTE Op)
                         _item.Type = "Integer";
                         SetRegItem(16, &_item);
                         SetRegItem(18, &_item);
-                        _line = "EDX_EAX := EAX * " + Env->GetLvarName(_ESP_ + _offset) + ";//" + _item.Value;
+                        _line = "EDX_EAX := EAX * " + Env->GetLvarName(_ESP_ + _offset, "Integer") + ";//" + _item.Value;
                         Env->AddToBody(_line);
                         return;
                     }
@@ -4968,6 +4978,14 @@ void __fastcall TDecompiler::SimulateInstr2RegImm(DWORD curAdr, BYTE Op)
                 {
                     _value = _item1.Value;
                     InitItem(&_item);
+
+                    _item.Flags = IF_RECORD_FOFS;
+                    _item.Value = _value;
+                    _item.Type = _typeName;
+                    _item.Offset = (int)DisInfo.Immediate;
+                    SetRegItem(_reg1Idx, &_item);
+                    return;
+                    /*
                     _text = GetRecordFields(DisInfo.Immediate, _typeName);
                     if (_text.Pos(":"))
                     {
@@ -4985,6 +5003,7 @@ void __fastcall TDecompiler::SimulateInstr2RegImm(DWORD curAdr, BYTE Op)
                     _line = GetDecompilerRegisterName(_reg1Idx) + " := ^" + _item.Value;
                     Env->AddToBody(_line);
                     return;
+                    */
                 }
             }
             _fInfo = FMain_11011981->GetField(_item1.Type, DisInfo.Immediate, &_vmt, &_vmtAdr);
@@ -5433,13 +5452,14 @@ void __fastcall TDecompiler::SimulateInstr2RegMem(DWORD curAdr, BYTE Op)
                 _foffset = _item.Offset;
                 _fname = GetRecordFields(_foffset, Env->Stack[_itemSrc.IntValue - _foffset].Type);
                 _name = Env->Stack[_itemSrc.IntValue - _foffset].Value;
+                _type = ExtractType(_fname);
                 if (_name == "")
-                    _name = Env->GetLvarName(_itemSrc.IntValue - _foffset);
+                    _name = Env->GetLvarName(_itemSrc.IntValue - _foffset, _type);
                 InitItem(&_itemDst);
                 if (_fname.Pos(":"))
                 {
                     _itemDst.Value = _name + "." + ExtractName(_fname);
-                    _itemDst.Type = ExtractType(_fname);
+                    _itemDst.Type = _type;
                 }
                 else
                 {
@@ -5454,7 +5474,7 @@ void __fastcall TDecompiler::SimulateInstr2RegMem(DWORD curAdr, BYTE Op)
                 _value = _item.Name;
             else
             {
-                _value = Env->GetLvarName(_itemSrc.IntValue);
+                _value = Env->GetLvarName(_itemSrc.IntValue, "");
                 if (_item.Value != "")
                     _value += "{" + _item.Value + "}";
             }
@@ -6059,13 +6079,13 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
             if (_itemSrc.Flags & IF_CALL_RESULT)
             {
                 _itemSrc.Flags &= ~IF_CALL_RESULT;
-                _itemSrc.Value = Env->GetLvarName(_itemDst.IntValue);
+                _itemSrc.Value = Env->GetLvarName(_itemDst.IntValue, "");
                 SetRegItem(_reg2Idx, &_itemSrc);
             }
             else
             {
                 if (!(_itemSrc.Flags & IF_ARG))
-                    _itemSrc.Name = Env->GetLvarName(_itemDst.IntValue);
+                    _itemSrc.Name = Env->GetLvarName(_itemDst.IntValue, "");
             }
 
             Env->Stack[_itemDst.IntValue] = _itemSrc;
@@ -6810,17 +6830,18 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     {
         //dest:Pointer
         GetRegItem(16, &_item1);
-        if (_item1.Flags & IF_STACK_PTR)
-        {
-            Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
-            _item1 = Env->Stack[_item1.IntValue];
-        }
         //source:Pointer
         GetRegItem(18, &_item2);
         //typeInfo:Pointer
         GetRegItem(17, &_item3);
         _recN = GetInfoRec(_item3.IntValue);
-        Env->Stack[_item1.IntValue].Type = _recN->GetName();
+        _typeName = _recN->GetName();
+        if (_item1.Flags & IF_STACK_PTR)
+        {
+            Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, _typeName);
+            _item1 = Env->Stack[_item1.IntValue];
+        }
+        Env->Stack[_item1.IntValue].Type = _typeName;
         
         _line = _item1.Value + " := " + _item2.Value + ";";
         Env->AddToBody(_line);
@@ -6832,14 +6853,14 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
         {
-            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
+            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, "array of");
             _item1 = Env->Stack[_item1.IntValue];
         }
         //edx - src
         GetRegItem(18, &_item2);
         if (_item2.Flags & IF_STACK_PTR)
         {
-            if (Env->Stack[_item2.IntValue].Value == "") Env->Stack[_item2.IntValue].Value = Env->GetLvarName(_item2.IntValue);
+            if (Env->Stack[_item2.IntValue].Value == "") Env->Stack[_item2.IntValue].Value = Env->GetLvarName(_item2.IntValue, "array of");
             _item2 = Env->Stack[_item2.IntValue];
         }
         _line = _item1.Value + " := " + _item2.Value + ";";
@@ -6852,7 +6873,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
         {
-            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
+            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, "array of");
             _item1 = Env->Stack[_item1.IntValue];
         }
         _line = _item1.Value + " := Nil;";
@@ -6865,7 +6886,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
         {
-            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
+            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, "array of");
             _item1 = Env->Stack[_item1.IntValue];
         }
         _value = "Length(" + _item1.Value + ")";
@@ -6882,15 +6903,16 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     {
         //eax - dst
         GetRegItem(16, &_item1); _item = _item1;
+        //edx - type of DynArray
+        GetRegItem(18, &_item2);
+        _typeName = GetTypeName(_item2.IntValue);
         if (_item1.Flags & IF_STACK_PTR)
         {
-            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
+            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, _typeName);
             _item = Env->Stack[_item1.IntValue];
         }
         _line = "SetLength(" + _item.Value;
-        //edx - type of DynArray
-        GetRegItem(18, &_item2);
-        Env->Stack[_item1.IntValue].Type = GetTypeName(_item2.IntValue);
+        Env->Stack[_item1.IntValue].Type = _typeName;
         //ecx - dims cnt
         GetRegItem(17, &_item3); _cnt = _item3.IntValue;
         _esp = _ESP_;
@@ -6979,7 +7001,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
                 if (r == 0) _item.Type = _typeName;
                 Env->Stack[_item1.IntValue + r] = _item;
             }
-            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
+            if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, _typeName);
             Env->Stack[_item1.IntValue].Type = _typeName;
         }
         return false;
@@ -6989,17 +7011,18 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     {
         //eax - dst
         GetRegItem(16, &_item1); _item = _item1;
-        if (_item1.Flags & IF_STACK_PTR)
-        {
-            if (Env->Stack[_item1.IntValue].Value == "")
-                Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue);
-            _item = Env->Stack[_item1.IntValue];
-        }
         //edx - type of DynArray
         GetRegItem(18, &_item2);
         //ecx - dims cnt
         GetRegItem(17, &_item3); _cnt = _item3.IntValue;
-        Env->Stack[_item1.IntValue].Type = "array [1.." + String(_cnt) + "] of " + GetTypeName(_item2.IntValue);;
+        _typeName = "array [1.." + String(_cnt) + "] of " + GetTypeName(_item2.IntValue);
+        if (_item1.Flags & IF_STACK_PTR)
+        {
+            if (Env->Stack[_item1.IntValue].Value == "")
+                Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, _typeName);
+            _item = Env->Stack[_item1.IntValue];
+        }
+        Env->Stack[_item1.IntValue].Type = _typeName;
         return false;
     }
     if (SameText(name, "@IntfClear"))
@@ -7074,7 +7097,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item.Flags & IF_STACK_PTR)
         {
             Env->Stack[_item.IntValue].Flags = 0;
-            Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue);
+            Env->Stack[_item.IntValue].Value = Env->GetLvarName(_item.IntValue, "String");
             if (name[2] == 'L')
                 Env->Stack[_item.IntValue].Type = "AnsiString";
             else if (name[2] == 'W')
@@ -7562,7 +7585,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     {
         GetRegItem(16, &_item1);
         if (_item1.Flags & IF_STACK_PTR)
-            _line = Env->GetLvarName(_item1.IntValue);
+            _line = Env->GetLvarName(_item1.IntValue, "Variant");
         _line += " := Variant(" + FPop()->Value + ")";//???
         Env->AddToBody(_line);
         return false;
@@ -7574,7 +7597,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item1.Flags & IF_STACK_PTR)
             Env->Stack[_item1.IntValue].Type = "Variant";
         InitItem(&_item);
-        _item.Value = "Integer(" + Env->GetLvarName(_item1.IntValue) + ")";
+        _item.Value = "Integer(" + Env->GetLvarName(_item1.IntValue, "Variant") + ")";
         SetRegItem(16, &_item);
         _line = "EAX := " + _item.Value + ";";
         Env->AddToBody(_line);
@@ -7590,7 +7613,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         InitItem(&_item);
         _item.Value = "Integer(" + _item1.Value + ")";
         SetRegItem(16, &_item);
-        _line = Env->GetLvarName(_item2.IntValue) + " := " + _item.Value + ";";
+        _line = Env->GetLvarName(_item2.IntValue, "Variant") + " := " + _item.Value + ";";
         Env->AddToBody(_line);
         return false;
     }
@@ -7606,7 +7629,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         }
         else if (_item2.Flags & IF_STACK_PTR)
         {
-            _line = Env->GetLvarName(_item2.IntValue);
+            _line = Env->GetLvarName(_item2.IntValue, "String");
             Env->Stack[_item2.IntValue].Type = "String";
         }
         else
@@ -7738,7 +7761,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_item1.Flags & IF_STACK_PTR)
         {
             _item = Env->Stack[_item1.IntValue];
-            _item.Value = Env->GetLvarName(_item1.IntValue);
+            _item.Value = Env->GetLvarName(_item1.IntValue, "String");
             _item.Type = "WideString";
             Env->Stack[_item1.IntValue] = _item;
             _item1 = _item;
@@ -7955,7 +7978,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
     ITEM        _item, _itemBase, _itemSrc;
     PInfoRec    _recN;
     PFIELDINFO  _fInfo;
-    String      _name, _typeName, _val, _line;
+    String      _name, _typeName, _val, _line, _lvarName;
 
     _r = false; _p = false; _pp = false;
     _dd = *((DWORD*)(DisInfo.Mnem + 1));
@@ -8015,9 +8038,10 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                 _item = Env->FStack[_TOP_];
                 if (_p) FPop();
 
-                _line = Env->GetLvarName(_itemSrc.IntValue) + " := " + _item.Value + ";";
+                _lvarName = Env->GetLvarName(_itemSrc.IntValue, "Double");
+                _line = _lvarName + " := " + _item.Value + ";";
                 Env->AddToBody(_line);
-                _item.Value = Env->GetLvarName(_itemSrc.IntValue);
+                _item.Value = _lvarName;
                 _ofs = _itemSrc.IntValue; _sz = DisInfo.MemSize;
                 Env->Stack[_ofs] = _item; _ofs += 4; _sz -= 4;
 
@@ -8089,7 +8113,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     if (_item.Value != "")
                         CmpInfo.R = _item.Value;
                     else
-                        CmpInfo.R = Env->GetLvarName(_itemSrc.IntValue);
+                        CmpInfo.R = Env->GetLvarName(_itemSrc.IntValue, "Double");
                     if (_p)
                     {
                         FPop();
@@ -8155,7 +8179,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     if (_item.Value != "")
                         _val = GetString(&_item, PRECEDENCE_ADD);
                     else
-                        _val = Env->GetLvarName(_itemSrc.IntValue);
+                        _val = Env->GetLvarName(_itemSrc.IntValue, "Extended");
 
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_ADD;
@@ -8237,7 +8261,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     if (_item.Value != "")
                         _val = GetString(&_item, PRECEDENCE_ADD);
                     else
-                        _val = Env->GetLvarName(_itemSrc.IntValue);
+                        _val = Env->GetLvarName(_itemSrc.IntValue, "Extended");
 
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_ADD;
@@ -8322,7 +8346,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     if (_item.Value != "")
                         _val = GetString(&_item, PRECEDENCE_MULT);
                     else
-                        _val = Env->GetLvarName(_itemSrc.IntValue);
+                        _val = Env->GetLvarName(_itemSrc.IntValue, "Extended");
 
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_MULT;
@@ -8406,7 +8430,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                     if (_item.Value != "")
                         _val = GetString(&_item, PRECEDENCE_MULT);
                     else
-                        _val = Env->GetLvarName(_itemSrc.IntValue);
+                        _val = Env->GetLvarName(_itemSrc.IntValue, "Extended");
 
                     InitItem(&_item);
                     _item.Precedence = PRECEDENCE_MULT;
@@ -9193,7 +9217,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
     PInfoRec    _recN, _recN1;
     PFIELDINFO  _fInfo;
     ITEM        _item, _itemBase, _itemIndx;
-    String      _fname, _name, _typeName, _iname, _value, _text;
+    String      _fname, _name, _typeName, _iname, _value, _text, _lvarName;
 
     InitItem(Dst);
     _offset = DisInfo.Offset;
@@ -9241,11 +9265,12 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 _foffset = _item.Offset;
                 _offset -= _foffset;
                 _fname = GetRecordFields(_foffset, Env->Stack[_ESP_ + _offset].Type);
-                _name = Env->GetLvarName(_ESP_ + _offset);
+                _typeName = ExtractType(_fname);
+                _name = Env->GetLvarName(_ESP_ + _offset, _typeName);
                 if (_fname.Pos(":"))
                 {
                     Dst->Value = _name + "." + ExtractName(_fname);
-                    Dst->Type = ExtractType(_fname);
+                    Dst->Type = _typeName;
                 }
                 else
                 {
@@ -9254,7 +9279,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 Dst->Name = Dst->Value;
                 return;
             }
-            _value = Env->GetLvarName(_ESP_ + _offset);
+            _value = Env->GetLvarName(_ESP_ + _offset, "");
             if (_item.Value != "") _value += "{" + _item.Value + "}";
             Dst->Value = _value;
             return;
@@ -9320,7 +9345,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 _item.Flags &= ~IF_VAR;
                 _item.Type = "^" + _item.Type;
                 AssignItem(Dst, &_item);
-                Dst->Name = Env->GetLvarName(_itemBase.IntValue + _offset);
+                Dst->Name = Env->GetLvarName(_itemBase.IntValue + _offset, "");
                 return;
             }
             //Field
@@ -9329,11 +9354,12 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 _foffset = _item.Offset;
                 _offset -= _foffset;
                 _fname = GetRecordFields(_foffset, Env->Stack[_itemBase.IntValue + _offset].Type);
-                _name = Env->GetLvarName(_itemBase.IntValue + _offset);
+                _typeName = ExtractType(_fname);
+                _name = Env->GetLvarName(_itemBase.IntValue + _offset, _typeName);
                 if (_fname.Pos(":"))
                 {
                     Dst->Value = _name + "." + ExtractName(_fname);
-                    Dst->Type = ExtractType(_fname);
+                    Dst->Type = _typeName;
                 }
                 else
                 {
@@ -9345,10 +9371,11 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             //Not interface
             if (_item.Type == "" || GetTypeKind(_item.Type, &_size) != ikInterface)
             {
-                Env->Stack[_itemBase.IntValue + _offset].Name = Env->GetLvarName(_itemBase.IntValue + _offset);
+                _lvarName = Env->GetLvarName(_itemBase.IntValue + _offset, "");
+                Env->Stack[_itemBase.IntValue + _offset].Name = _lvarName;
                 Dst->Flags = IF_STACK_PTR;
                 Dst->IntValue = _itemBase.IntValue + _offset;
-                Dst->Value = Env->GetLvarName(_itemBase.IntValue + _offset);
+                Dst->Value = _lvarName;
                 Dst->Name = Dst->Value;
                 return;
             }
@@ -9373,6 +9400,8 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             if (_itemBase.Flags & IF_RECORD_FOFS)
             {
                 _value = _itemBase.Value;
+                if (_itemBase.Flags & IF_ARRAY_PTR)
+                    _value += "[]";
                 _text = GetRecordFields(_itemBase.Offset, _itemBase.Type);
                 if (_text.Pos(":"))
                 {
@@ -9384,8 +9413,6 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     _value += ".f" + Val2Str0(_itemBase.Offset);
                     _typeName = _text;
                 }
-                if (_itemBase.Flags & IF_ARRAY_PTR)
-                    _value += "[]";
                 Dst->Value = _value;
                 Dst->Type = _typeName;
                 Dst->Name = "";
@@ -9511,6 +9538,8 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
         if (_itemBase.Flags & IF_RECORD_FOFS)
         {
             _value = _itemBase.Value;
+            if (_itemBase.Flags & IF_ARRAY_PTR)
+                _value += "[]";
             _text = GetRecordFields(_itemBase.Offset + _offset, _itemBase.Type);
             if (_text.Pos(":"))
             {
@@ -9522,8 +9551,6 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 _value += ".f" + Val2Str0(_itemBase.Offset + _offset);
                 _typeName = _text;
             }
-            if (_itemBase.Flags & IF_ARRAY_PTR)
-                _value += "[]";
             Dst->Value = _value;
             Dst->Type = _typeName;
             Dst->Name = "";
@@ -9740,13 +9767,13 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             //esp
             if (DisInfo.BaseReg == 20)
             {
-                Dst->Value = Env->GetLvarName(_ESP_ + _offset + DisInfo.Scale) + "[" + _itemIndx.Value + "]";
+                Dst->Value = Env->GetLvarName(_ESP_ + _offset + DisInfo.Scale, "") + "[" + _itemIndx.Value + "]";
                 return;
             }
             //ebp
             if (DisInfo.BaseReg == 21 && (_itemBase.Flags & IF_STACK_PTR))
             {
-                Dst->Value = Env->GetLvarName(_itemBase.IntValue + _offset + DisInfo.Scale) + "[" + _itemIndx.Value + "]";
+                Dst->Value = Env->GetLvarName(_itemBase.IntValue + _offset + DisInfo.Scale, "") + "[" + _itemIndx.Value + "]";
                 return;
             }
             _kind = 0;
@@ -10038,7 +10065,7 @@ String __fastcall TDecompiler::GetStringArgument(PITEM item)
     if (item->Flags & IF_STACK_PTR)
     {
         Env->Stack[item->IntValue].Type = "String";
-        return Env->GetLvarName(item->IntValue);
+        return Env->GetLvarName(item->IntValue, "String");
     }
     else if (item->Flags & IF_INTVAL)
     {

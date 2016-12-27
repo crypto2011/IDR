@@ -8488,7 +8488,7 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
     if (NTHeaders.FileHeader.SizeOfOptionalHeader < sizeof(IMAGE_OPTIONAL_HEADER) ||
         NTHeaders.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-        ShowMessage("File is invalid PE-executable");
+        ShowMessage("File is invalid 32-bit PE-executable");
         return 0;
     }
     //IDD_ERR_INVALID_PE_EXECUTABLE
@@ -8586,6 +8586,15 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
     CodeBase = ImageBase + SectionHeaders[0].VirtualAddress;
 
     DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
+    if (!evalInitTable)
+    {
+        ShowMessage("Cannot find initialization table");
+        delete[] SectionHeaders;
+        delete[] Image;
+        Image = 0;
+        return 0;
+    }
+
     DWORD evalEP = 0;
     //Find instruction mov eax,offset InitTable
     for (n = 0; n < TotalSize - 5; n++)
@@ -8599,7 +8608,7 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
     //Scan up until bytes 0x55 (push ebp) and 0x8B,0xEC (mov ebp,esp)
     if (evalEP)
     {
-        while (evalEP >= 0)
+        while (evalEP != 0)
         {
             if (Image[evalEP] == 0x55 && Image[evalEP + 1] == 0x8B && Image[evalEP + 2] == 0xEC)
                 break;

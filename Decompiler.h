@@ -218,7 +218,7 @@ public:
     String __fastcall GetFieldName(PFIELDINFO fInfo);
     String __fastcall GetArgName(PARGINFO argInfo);
     String __fastcall GetGvarName(DWORD adr);
-    String __fastcall GetLvarName(int Ofs);
+    String __fastcall GetLvarName(int Ofs, String Type);
     void __fastcall AssignItem(PITEM DstItem, PITEM SrcItem);
     void __fastcall AddToBody(String src);
     void __fastcall AddToBody(TStringList* src);
@@ -309,7 +309,7 @@ public:
     void __fastcall SimulateInstr2MemReg(DWORD curAdr, BYTE Op);
     void __fastcall SimulateInstr3(DWORD curAdr, BYTE Op);
     void __fastcall SimulatePop(DWORD curAdr);
-    void __fastcall SimulatePush(DWORD curAdr);
+    void __fastcall SimulatePush(DWORD curAdr, bool bShowComment);
     bool __fastcall SimulateSysCall(String name, DWORD procAdr, int instrLen);
     int __fastcall AnalyzeConditions(int brType, DWORD curAdr, DWORD sAdr, DWORD jAdr, PLoopInfo loopInfo);
 };
