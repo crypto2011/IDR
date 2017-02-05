@@ -3,7 +3,7 @@
 #define IDCGenH
 
 #include "Main.h"
-//---------------------------------------------------------------------------
+
 typedef struct
 {
     int     index;      //Index of name in names
@@ -13,8 +13,9 @@ typedef struct
 class TIDCGen
 {
 public:
-    __fastcall TIDCGen(FILE* FIdc);
+    __fastcall TIDCGen(FILE* FIdc, int splitSize);
     __fastcall ~TIDCGen();
+    void __fastcall NewIDCPart(FILE* FIdc);
     void __fastcall DeleteName(int pos);
     int __fastcall MakeByte(int pos);
     int __fastcall MakeWord(int pos);
@@ -30,7 +31,8 @@ public:
     void __fastcall MakeFunction(DWORD adr);
     void __fastcall MakeComment(int pos, String text);
     int __fastcall OutputAttrData(int pos);
-    void __fastcall OutputHeader();
+    void __fastcall OutputHeaderFull();
+    void __fastcall OutputHeaderShort();
     int __fastcall OutputRTTIHeader(BYTE kind, int pos);
     void __fastcall OutputRTTIInteger(BYTE kind, int pos);
     void __fastcall OutputRTTIChar(BYTE kind, int pos);
@@ -74,10 +76,20 @@ public:
     String          unitName;
     String          itemName;
     TStringList*    names;
-    TList*          repeated; 
+    TList*          repeated;
+    int             SplitSize;//Maximum output bytes if idc splitted
+    int             CurrentPartNo;//Current part number (filename looks like XXX_NN.idc)
+    int             CurrentBytes;//Current part output bytes
+};
+
+class TSaveIDCDialog : public TOpenDialog
+{
+public:
+	__fastcall TSaveIDCDialog(TComponent* AOwner, char* TemplateName);
+protected:
+	virtual void __fastcall WndProc(Messages::TMessage &Message);
 };
 //---------------------------------------------------------------------------
 #endif
 
 
- 

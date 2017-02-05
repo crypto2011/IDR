@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-#define NO_WIN32_LEAN_AND_MEAN 
+#define NO_WIN32_LEAN_AND_MEAN
 #include <vcl.h>
 #pragma hdrstop
 
@@ -24,6 +24,7 @@
 #include "AboutDlg.h"
 #include "Legend.h"
 #include "IDCGen.h"
+#include "IdcSplitSize.h"
 #include "Decompiler.h"
 #include "Hex2Double.h"
 #include "Plugins.h"
@@ -50,7 +51,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "29.09.2016"; 
+String  IDRVersion = "29.12.2016"; 
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -99,6 +100,8 @@ bool            SourceIsLibrary = false;
 bool            ClassTreeDone;
 bool            ProjectModified = false;
 bool            UserKnowledgeBase = false;
+bool            SplitIDC = false;
+int             SplitSize = 0;
 //Common variables
 String          IDPFile;
 int             MaxBufLen;      //Максимальная длина буфера (для загрузки)
@@ -129,20 +132,20 @@ TList           *VmtList;       //VMT list
 //Units
 int             UnitsNum = 0;
 TList           *Units = 0;
-int             UnitSortField = 0; //0 - по адресу, 1 - в порядке инициализации, 2 - по имени
+int             UnitSortField = 0; //0 - by address, 1 - by initialization order, 2 - by name
 //Types
 TList           *OwnTypeList = 0;
-int             RTTISortField = 0; //0 - по адресу, 1 - по виду, 2 - по имени
+int             RTTISortField = 0; //0 - by address, 1 - by initialization order, 2 - by name
 
 DWORD           CurProcAdr;
 int				CurProcSize;
 String          SelectedAsmItem;    //Selected item in Asm Listing
 DWORD           CurUnitAdr;
 DWORD           HInstanceVarAdr;
-DWORD           LastTls;            //Последний занятый индекс Tls, показывает, сколько ThreadVars в программе
+DWORD           LastTls;            //Last bust index Tls shows how many ThreadVars in program
 int             Reserved;
 int             LastResStrNo = 0;   //Last ResourceStringNo
-DWORD			CtdRegAdr;			//Адрес процедуры CtdRegAdr
+DWORD			CtdRegAdr;			//Procedure CtdRegAdr address
 
 int             VmtSelfPtr			 = 0;
 int             VmtIntfTable		 = 0;
@@ -8455,6 +8458,36 @@ void __fastcall TFMain_11011981::AnalyzeThreadDone(TObject* Sender)
     AnalyzeThread = 0;
 }
 //---------------------------------------------------------------------------
+bool __fastcall TFMain_11011981::ImportsValid(DWORD ImpRVA, DWORD ImpSize)
+{
+    if (ImpRVA || ImpSize)
+    {
+        DWORD EntryRVA = ImpRVA;
+        DWORD EndRVA = ImpRVA + ImpSize;
+        IMAGE_IMPORT_DESCRIPTOR ImportDescriptor;
+
+        while (1)
+        {
+            memmove(&ImportDescriptor, (Image + Adr2Pos(EntryRVA + ImageBase)), sizeof(IMAGE_IMPORT_DESCRIPTOR));
+
+            if (!ImportDescriptor.OriginalFirstThunk &&
+                !ImportDescriptor.TimeDateStamp &&
+                !ImportDescriptor.ForwarderChain &&
+                !ImportDescriptor.Name &&
+                !ImportDescriptor.FirstThunk) break;
+
+            if (!IsValidImageAdr(ImportDescriptor.Name + ImageBase)) return false;
+            int NameLength = strlen((char*)(Image + Adr2Pos(ImportDescriptor.Name + ImageBase)));
+            if (NameLength < 0 || NameLength > 256) return false;
+            if (!IsValidModuleName(NameLength, Adr2Pos(ImportDescriptor.Name + ImageBase))) return false;
+
+            EntryRVA += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+            if (EntryRVA >= EndRVA) break;
+        }
+    }
+    return true;
+}
+//---------------------------------------------------------------------------
 int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
 {
     int         	        i, n, m, bytes, pos, SectionsNum, ExpNum, NameLength;
@@ -8712,35 +8745,38 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
             ExpFuncList->Sort(ExportsCmpFunction);
         }
     }
-    if (loadImp)
+
+    DWORD	ImpRVA = NTHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+    DWORD	ImpSize = NTHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
+
+    if (loadImp && (ImpRVA || ImpSize))
     {
-        //Load Imports
-        DWORD	EntryRVA = 0;		//next import decriptor RVA
-        DWORD	ImpRVA = 0;			//import directory RVA
-        DWORD	ImpSize = 0;		//import directory size
-        DWORD	ThunkRVA = 0;		//RVA очередного thunk'a (через FirstThunk)
-        DWORD	LookupRVA = 0;		//RVA очередного thunk'a (через OriginalFirstTunk или FirstThunk)
-        DWORD	ThunkValue = 0;		//значение очередного thunk'a (через OriginalFirstTunk или FirstThunk)
-
-        WORD	Hint = 0;			//Ординал или хинт импортируемого символа
-
-        IMAGE_IMPORT_DESCRIPTOR ImportDescriptor;
-
-        //DWORD fnProc = 0;
-
-        ImpRVA = NTHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-        ImpSize = NTHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size;
-
-        if (ImpRVA || ImpSize)
+        if (!ImportsValid(ImpRVA, ImpSize))
         {
-            // На первый import descriptor
+            ShowMessage("Imports not valid, will skip!");
+        }
+        else
+        {
+            //Load Imports
+            DWORD	EntryRVA;		//Next import decriptor RVA
+            DWORD   EndRVA;         //End of imports
+            DWORD	ThunkRVA;		//RVA of next thunk (from FirstThunk)
+            DWORD	LookupRVA;		//RVA of next thunk (from OriginalFirstTunk or FirstThunk)
+            DWORD	ThunkValue;		//Value of next thunk (from OriginalFirstTunk or FirstThunk)
+            WORD	Hint;			//Ordinal or hint of imported symbol
+
+            IMAGE_IMPORT_DESCRIPTOR ImportDescriptor;
+
+            //DWORD fnProc = 0;
+
+            //First import descriptor
             EntryRVA = ImpRVA;
+            EndRVA = ImpRVA + ImpSize;
 
             while (1)
             {
                 memmove(&ImportDescriptor, (Image + Adr2Pos(EntryRVA + ImageBase)), sizeof(IMAGE_IMPORT_DESCRIPTOR));
-                // Если все поля дескриптора нулевые, значит список кончился
-                // Выходим из цикла
+                //All descriptor fields are NULL - end of list, break
                 if (!ImportDescriptor.OriginalFirstThunk &&
                     !ImportDescriptor.TimeDateStamp &&
                     !ImportDescriptor.ForwarderChain &&
@@ -8761,20 +8797,18 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
 
                 //HINSTANCE hLib = LoadLibraryEx(moduleName.c_str(), 0, LOAD_LIBRARY_AS_DATAFILE);
 
-                // Определяем, откуда будем брать имена импортов:
-                // из OriginalFirstThunk или FirstThunk
+                //Define the source of import names (OriginalFirstThunk or FirstThunk)
                 if (ImportDescriptor.OriginalFirstThunk)
                     LookupRVA = ImportDescriptor.OriginalFirstThunk;
                 else
                     LookupRVA = ImportDescriptor.FirstThunk;
 
-                // Thunk'и с адресами берем всегда из FirstThunk
+                // ThunkRVA get from FirstThunk always
                 ThunkRVA = ImportDescriptor.FirstThunk;
                 //Get Imported Functions
                 while (1)
                 {
-                    // Имена или ординалы берем из LookupTable (которая может быть
-                    // как в OriginalFirstThunk, так и в FirstThunk)
+                    //Names or ordinals get from LookupTable (this table can be inside OriginalFirstThunk or FirstThunk)
                     ThunkValue = *((DWORD*)(Image + Adr2Pos(LookupRVA + ImageBase)));
                     if (!ThunkValue) break;
 
@@ -8783,12 +8817,12 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
 
                     if (ThunkValue & 0x80000000)
                     {
-                        // by ordinal
+                        //By ordinal
                         Hint = (WORD)(ThunkValue & 0xFFFF);
 
                         //if (hLib) fnProc = (DWORD)GetProcAddress(hLib, (char*)Hint);
 
-                        // Но адреса используем только из FirstThunk
+                        //Addresse get from FirstThunk only
                         //recI->name = modName + "." + String(Hint);
                         recI->name = String(Hint);
                     }
@@ -8819,6 +8853,7 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
                     LookupRVA += 4;
                 }
                 EntryRVA += sizeof(IMAGE_IMPORT_DESCRIPTOR);
+                if (EntryRVA >= EndRVA) break;
 
                 //if (hLib)
                 //{
@@ -10291,34 +10326,61 @@ void __fastcall TFMain_11011981::miCommentsGeneratorClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miIDCGeneratorClick(TObject *Sender)
 {
-    String idcName = "";
-    if (SourceFile != "") idcName = ChangeFileExt(SourceFile, ".idc");
-    if (IDPFile != "") idcName = ChangeFileExt(IDPFile, ".idc");
+    String idcName = "", idcTemplate = "";
+    if (SourceFile != "")
+    {
+        idcName = ChangeFileExt(SourceFile, ".idc");
+        idcTemplate = ChangeFileExt(SourceFile, "");
+    }
+    if (IDPFile != "")
+    {
+        idcName = ChangeFileExt(IDPFile, ".idc");
+        idcTemplate = ChangeFileExt(IDPFile, "");
+    }
 
-    SaveDlg->InitialDir = WrkDir;
-    SaveDlg->Filter = "IDC|*.idc";
-    SaveDlg->FileName = idcName;
+    TSaveIDCDialog* SaveIDCDialog = new TSaveIDCDialog(this, "SAVEIDCDLG");
+    SaveIDCDialog->InitialDir = WrkDir;
+    SaveIDCDialog->Filter = "IDC|*.idc";
+    SaveIDCDialog->FileName = idcName;
+ 
+    if (!SaveIDCDialog->Execute()) return;
 
-    if (!SaveDlg->Execute()) return;
-
-    idcName = SaveDlg->FileName;
+    idcName = SaveIDCDialog->FileName;
+    delete SaveIDCDialog;
 
     if (FileExists(idcName))
     {
         if (Application->MessageBox("File already exists. Overwrite?", "Warning", MB_YESNO) == IDNO) return;
     }
 
+    if (SplitIDC)
+    {
+        if (FIdcSplitSize->ShowModal() == mrCancel) return;
+    }
+
 	Screen->Cursor = crHourGlass;
 
     FILE* idcF = fopen(idcName.c_str(), "wt+");
-    TIDCGen *idcGen = new TIDCGen(idcF);
+    TIDCGen *idcGen = new TIDCGen(idcF, SplitSize);
 
-    idcGen->OutputHeader();
+    idcGen->OutputHeaderFull();
 
-    for (int pos = 0; pos < TotalSize; pos++)
+    int     pos, curSize;
+
+    for (pos = 0, curSize = 0; pos < TotalSize; pos++)
     {
         PInfoRec recN = GetInfoRec(Pos2Adr(pos));
         if (!recN) continue;
+
+        if (SplitIDC && idcGen->CurrentBytes >= SplitSize)
+        {
+            fprintf(idcF, "}");
+            fclose(idcF);
+            idcName = idcTemplate + "_" + idcGen->CurrentPartNo + ".idc";
+            idcF = fopen(idcName.c_str(), "wt+");
+            idcGen->NewIDCPart(idcF);
+            idcGen->OutputHeaderShort();
+        }
 
         BYTE kind = recN->kind;
         BYTE len;

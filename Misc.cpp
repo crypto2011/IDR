@@ -840,6 +840,17 @@ String __fastcall GetDecompilerRegisterName(int Idx)
     return UpperCase(Reg32Tab[Idx]);
 }
 //---------------------------------------------------------------------------
+bool __fastcall IsValidModuleName(int len, int pos)
+{
+    if (!len) return false;
+    for (int i = pos; i < pos + len; i++)
+    {
+        BYTE b = *(Code + i);
+        if (b < ' ' || b == ':' || (b & 0x80)) return false;
+    }
+    return true;
+}
+//---------------------------------------------------------------------------
 bool __fastcall IsValidName(int len, int pos)
 {
     if (!len) return false;

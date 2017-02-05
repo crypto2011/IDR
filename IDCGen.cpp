@@ -11,14 +11,18 @@ extern  BYTE        *Code;
 extern  int         DelphiVersion;
 extern  DWORD       *Flags;
 extern  PInfoRec    *Infos;
+extern  bool        SplitIDC;
 //---------------------------------------------------------------------------
-__fastcall TIDCGen::TIDCGen(FILE* FIdc)
+__fastcall TIDCGen::TIDCGen(FILE* FIdc, int splitSize)
 {
     idcF = FIdc;
     unitName = "";
     itemName = "";
     names = new TStringList;
     repeated = new TList;
+    SplitSize = splitSize;
+    CurrentPartNo = 1;
+    CurrentBytes = 0;
 }
 //---------------------------------------------------------------------------
 __fastcall TIDCGen::~TIDCGen()
@@ -27,42 +31,49 @@ __fastcall TIDCGen::~TIDCGen()
     delete repeated;
 }
 //---------------------------------------------------------------------------
+void __fastcall TIDCGen::NewIDCPart(FILE* FIdc)
+{
+    idcF = FIdc;
+    CurrentBytes = 0;
+    CurrentPartNo++;
+}
+//---------------------------------------------------------------------------
 void __fastcall TIDCGen::DeleteName(int pos)
 {
     DWORD adr = Pos2Adr(pos);
 
-    fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
-    fprintf(idcF, "MakeNameEx(0x%lX, \"\", 0);\n", adr);
+    CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
+    CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"\", 0);\n", adr);
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeByte(int pos)
 {
-    fprintf(idcF, "MakeByte(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeByte(0x%lX);\n", Pos2Adr(pos));
     return pos + 1;
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeWord(int pos)
 {
-    fprintf(idcF, "MakeWord(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeWord(0x%lX);\n", Pos2Adr(pos));
     return pos + 2;
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeDword(int pos)
 {
-    fprintf(idcF, "MakeDword(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeDword(0x%lX);\n", Pos2Adr(pos));
     return pos + 4;
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeQword(int pos)
 {
-    fprintf(idcF, "MakeQword(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeQword(0x%lX);\n", Pos2Adr(pos));
     return pos + 8;
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeArray(int pos, int num)
 {
-    fprintf(idcF, "MakeByte(0x%lX);\n", Pos2Adr(pos));
-    fprintf(idcF, "MakeArray(0x%lX, %d);\n", Pos2Adr(pos), num);
+    CurrentBytes += fprintf(idcF, "MakeByte(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeArray(0x%lX, %d);\n", Pos2Adr(pos), num);
     return pos + num;
 }
 //---------------------------------------------------------------------------
@@ -74,23 +85,23 @@ int __fastcall TIDCGen::MakeShortString(int pos)
 
     if (!IsValidName(len, pos + 1)) return pos;
 
-    fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_PASCAL);\n");
-    fprintf(idcF, "MakeStr(0x%lX, 0x%lX);\n", Pos2Adr(pos), Pos2Adr(pos) + len + 1);
+    CurrentBytes += fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_PASCAL);\n");
+    CurrentBytes += fprintf(idcF, "MakeStr(0x%lX, 0x%lX);\n", Pos2Adr(pos), Pos2Adr(pos) + len + 1);
     return pos + len + 1;
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::MakeCString(int pos)
 {
     int len = strlen(Code + pos);
-    fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_TERMCHR);\n");
-    fprintf(idcF, "MakeStr(0x%lX, 0x%lX);\n", Pos2Adr(pos), Pos2Adr(pos) + len + 1);
+    CurrentBytes += fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_TERMCHR);\n");
+    CurrentBytes += fprintf(idcF, "MakeStr(0x%lX, 0x%lX);\n", Pos2Adr(pos), Pos2Adr(pos) + len + 1);
     return pos + len + 1;
 }
 //---------------------------------------------------------------------------
 void __fastcall TIDCGen::MakeLString(int pos)
 {
-    fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_TERMCHR);\n");
-    fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_TERMCHR);\n");
+    CurrentBytes += fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
     //Length
     MakeDword(pos - 4);
     //RefCount
@@ -99,16 +110,16 @@ void __fastcall TIDCGen::MakeLString(int pos)
 //---------------------------------------------------------------------------
 void __fastcall TIDCGen::MakeWString(int pos)
 {
-    fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_UNICODE);\n");
-    fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_UNICODE);\n");
+    CurrentBytes += fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
     //Length
     MakeDword(pos - 4);
 }
 //---------------------------------------------------------------------------
 void __fastcall TIDCGen::MakeUString(int pos)
 {
-    fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_UNICODE);\n");
-    fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "SetLongPrm(INF_STRTYPE, ASCSTR_UNICODE);\n");
+    CurrentBytes += fprintf(idcF, "MakeStr(0x%lX, -1);\n", Pos2Adr(pos));
     //Length
     MakeDword(pos - 4);
     //RefCount
@@ -123,7 +134,7 @@ int __fastcall TIDCGen::MakeCode(int pos)
 {
     DISINFO     DisInfo;
 
-    fprintf(idcF, "MakeCode(0x%lX);\n", Pos2Adr(pos));
+    CurrentBytes += fprintf(idcF, "MakeCode(0x%lX);\n", Pos2Adr(pos));
     int instrLen = Disasm.Disassemble(Code + pos, (__int64)Pos2Adr(pos), 0, 0);
     if (!instrLen) instrLen = 1;
     return instrLen;
@@ -133,14 +144,14 @@ void __fastcall TIDCGen::MakeFunction(DWORD adr)
 {
     if (adr)
     {
-        fprintf(idcF, "MakeFunction(0x%lX, -1);\n", adr);
+        CurrentBytes += fprintf(idcF, "MakeFunction(0x%lX, -1);\n", adr);
         MakeCode(Adr2Pos(adr));
     }
 }
 //---------------------------------------------------------------------------
 void __fastcall TIDCGen::MakeComment(int pos, String text)
 {
-    fprintf(idcF, "MakeComm(0x%lX, \"%s\");\n", Pos2Adr(pos), TransformString(text.c_str(), text.Length()).c_str());
+    CurrentBytes += fprintf(idcF, "MakeComm(0x%lX, \"%s\");\n", Pos2Adr(pos), TransformString(text.c_str(), text.Length()).c_str());
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::OutputAttrData(int pos)
@@ -150,25 +161,31 @@ int __fastcall TIDCGen::OutputAttrData(int pos)
     return pos;
 }
 //---------------------------------------------------------------------------
-void __fastcall TIDCGen::OutputHeader()
+void __fastcall TIDCGen::OutputHeaderFull()
 {
-    fprintf(idcF, "#include <idc.idc>\n");
-    fprintf(idcF, "static clear(from){\n");
-    fprintf(idcF, "auto ea;\n");
-    fprintf(idcF, "ea = from;\n");
-    fprintf(idcF, "while (1){\n");
-    fprintf(idcF, "ea = NextFunction(ea);\n");
-    fprintf(idcF, "if (ea == -1) break;\n");
-    fprintf(idcF, "DelFunction(ea);\n");
-    fprintf(idcF, "MakeNameEx(ea, \"\", 0);}\n");
-    fprintf(idcF, "ea = from;\n");
-    fprintf(idcF, "while (1){\n");
-    fprintf(idcF, "ea = FindExplored(ea, SEARCH_DOWN | SEARCH_NEXT);\n");
-    fprintf(idcF, "if (ea == -1) break;\n");
-    fprintf(idcF, "MakeUnkn(ea, 1);}\n");
-    fprintf(idcF, "}\n");
-    fprintf(idcF, "static main(){\n");
-    fprintf(idcF, "clear(0x%lX);\n", CodeBase);
+    CurrentBytes += fprintf(idcF, "#include <idc.idc>\n");
+    CurrentBytes += fprintf(idcF, "static clear(from){\n");
+    CurrentBytes += fprintf(idcF, "auto ea;\n");
+    CurrentBytes += fprintf(idcF, "ea = from;\n");
+    CurrentBytes += fprintf(idcF, "while (1){\n");
+    CurrentBytes += fprintf(idcF, "ea = NextFunction(ea);\n");
+    CurrentBytes += fprintf(idcF, "if (ea == -1) break;\n");
+    CurrentBytes += fprintf(idcF, "DelFunction(ea);\n");
+    CurrentBytes += fprintf(idcF, "MakeNameEx(ea, \"\", 0);}\n");
+    CurrentBytes += fprintf(idcF, "ea = from;\n");
+    CurrentBytes += fprintf(idcF, "while (1){\n");
+    CurrentBytes += fprintf(idcF, "ea = FindExplored(ea, SEARCH_DOWN | SEARCH_NEXT);\n");
+    CurrentBytes += fprintf(idcF, "if (ea == -1) break;\n");
+    CurrentBytes += fprintf(idcF, "MakeUnkn(ea, 1);}\n");
+    CurrentBytes += fprintf(idcF, "}\n");
+    CurrentBytes += fprintf(idcF, "static main(){\n");
+    CurrentBytes += fprintf(idcF, "clear(0x%lX);\n", CodeBase);
+}
+//---------------------------------------------------------------------------
+void __fastcall TIDCGen::OutputHeaderShort()
+{
+    CurrentBytes += fprintf(idcF, "#include <idc.idc>\n");
+    CurrentBytes += fprintf(idcF, "static main(){\n");
 }
 //---------------------------------------------------------------------------
 int __fastcall TIDCGen::OutputRTTIHeader(BYTE kind, int pos)
@@ -178,8 +195,8 @@ int __fastcall TIDCGen::OutputRTTIHeader(BYTE kind, int pos)
     BYTE len = *(Code + pos + 5);
     itemName = String((char*)(Code + pos + 6), len);
     DWORD adr = Pos2Adr(pos);
-    fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
-    fprintf(idcF, "MakeNameEx(0x%lX, \"RTTI_%lX_%s_%s\", 0);\n", adr, adr, TypeKind2Name(kind).c_str(), itemName.c_str());
+    CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
+    CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"RTTI_%lX_%s_%s\", 0);\n", adr, adr, TypeKind2Name(kind).c_str(), itemName.c_str());
     //Selfptr
     pos = MakeDword(pos);
     //Kind
@@ -832,8 +849,8 @@ int __fastcall TIDCGen::OutputVMTHeader(int pos, String vmtName)
     int fromPos = pos;
     DWORD adr = Pos2Adr(pos);
 
-    fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
-    fprintf(idcF, "MakeNameEx(0x%lX, \"VMT_%lX_%s\", 0);\n", adr, adr, vmtName.c_str());
+    CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
+    CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"VMT_%lX_%s\", 0);\n", adr, adr, vmtName.c_str());
     //VmtSelfPtr
     pos = MakeDword(pos);
     return pos - fromPos;
@@ -845,8 +862,8 @@ void __fastcall TIDCGen::OutputIntfTable(int pos)
     DWORD intfTable = *((DWORD*)(Code + pos));
     if (intfTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", intfTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_IntfTable\", 0);\n", intfTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", intfTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_IntfTable\", 0);\n", intfTable, itemName.c_str());
         pos = Adr2Pos(intfTable);
         //EntryCount
         DWORD EntryCount = *((DWORD*)(Code + pos));
@@ -896,8 +913,8 @@ void __fastcall TIDCGen::OutputAutoTable(int pos)
     DWORD autoTable = *((DWORD*)(Code + pos));
     if (autoTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", autoTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_AutoTable\", 0);\n", autoTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", autoTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_AutoTable\", 0);\n", autoTable, itemName.c_str());
         pos = Adr2Pos(autoTable);
         //EntryCount
         DWORD EntryCount = *((DWORD*)(Code + pos));
@@ -938,8 +955,8 @@ void __fastcall TIDCGen::OutputInitTable(int pos)
     DWORD initTable = *((DWORD*)(Code + pos));
     if (initTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", initTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_InitTable\", 0);\n", initTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", initTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_InitTable\", 0);\n", initTable, itemName.c_str());
         pos = Adr2Pos(initTable);
         //0xE
         pos = MakeByte(pos);
@@ -967,8 +984,8 @@ void __fastcall TIDCGen::OutputFieldTable(int pos)
     DWORD fieldTable = *((DWORD*)(Code + pos));
     if (fieldTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fieldTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_FieldTable\", 0);\n", fieldTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fieldTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_FieldTable\", 0);\n", fieldTable, itemName.c_str());
         pos = Adr2Pos(fieldTable);
         //num
         WORD num = *((WORD*)(Code + pos));
@@ -1028,8 +1045,8 @@ void __fastcall TIDCGen::OutputMethodTable(int pos)
     DWORD methodTable = *((DWORD*)(Code + pos));
     if (methodTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", methodTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_MethodTable\", 0);\n", methodTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", methodTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_MethodTable\", 0);\n", methodTable, itemName.c_str());
         pos = Adr2Pos(methodTable);
         //Count
         WORD count = *((WORD*)(Code + pos));
@@ -1133,8 +1150,8 @@ void __fastcall TIDCGen::OutputDynamicTable(int pos)
     DWORD dynamicTable = *((DWORD*)(Code + pos));
     if (dynamicTable)
     {
-        fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", dynamicTable);
-        fprintf(idcF, "MakeNameEx(0x%lX, \"%s_DynamicTable\", 0);\n", dynamicTable, itemName.c_str());
+        CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", dynamicTable);
+        CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_DynamicTable\", 0);\n", dynamicTable, itemName.c_str());
         pos = Adr2Pos(dynamicTable);
         //Num
         WORD num = *((WORD*)(Code + pos));
@@ -1173,9 +1190,9 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
         if (idx == -1)
         {
             names->Add(itemName);
-            fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
-            fprintf(idcF, "MakeNameEx(0x%lX, \"%s\", 0x20);\n", fromAdr, itemName.c_str());
-            //fprintf(idcF, "ApplyType(0x%lX, \"%s\", 0);\n", fromAdr, recN->MakeIDCPrototype(...));
+            CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
+            CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s\", 0x20);\n", fromAdr, itemName.c_str());
+            //CurrentBytes += fprintf(idcF, "ApplyType(0x%lX, \"%s\", 0);\n", fromAdr, recN->MakeIDCPrototype(...));
         }
         else
         {
@@ -1189,9 +1206,9 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
             }
             int cnt = info->counter;
             info->counter++;
-            fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
-            fprintf(idcF, "MakeNameEx(0x%lX, \"%s_%d\", 0x20);\n", fromAdr, itemName.c_str(), cnt);
-            //fprintf(idcF, "ApplyType(0x%lX, \"%s_%d\", 0);\n", fromAdr, recN->MakeIDCPrototype(...), cnt);
+            CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", fromAdr);
+            CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_%d\", 0x20);\n", fromAdr, itemName.c_str(), cnt);
+            //CurrentBytes += fprintf(idcF, "ApplyType(0x%lX, \"%s_%d\", 0);\n", fromAdr, recN->MakeIDCPrototype(...), cnt);
         }
         MakeComment(pos, recN->MakePrototype(fromAdr, true, false, false, true, false));
     }
@@ -1202,7 +1219,7 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
     int instrLen = MakeCode(pos);
     if (imp || _procSize == instrLen)
     {
-        fprintf(idcF, "MakeFunction(0x%lX, 0x%lX);\n", fromAdr, fromAdr + instrLen);
+        CurrentBytes += fprintf(idcF, "MakeFunction(0x%lX, 0x%lX);\n", fromAdr, fromAdr + instrLen);
         return instrLen - 1;//= procSize - 1
     }
 
@@ -1210,7 +1227,7 @@ int __fastcall TIDCGen::OutputProc(int pos, PInfoRec recN, bool imp)
     {
         if (pos - fromPos + 1 == _procSize)
         {
-            fprintf(idcF, "MakeFunction(0x%lX, 0x%lX);\n", fromAdr, Pos2Adr(pos) + 1);
+            CurrentBytes += fprintf(idcF, "MakeFunction(0x%lX, 0x%lX);\n", fromAdr, Pos2Adr(pos) + 1);
             break;
         }
 
@@ -1264,8 +1281,8 @@ void __fastcall TIDCGen::OutputData(int pos, PInfoRec recN)
             if (idx == -1)
             {
                 names->Add(_name);
-                fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
-                fprintf(idcF, "MakeNameEx(0x%lX, \"%s\", 0);\n", adr, _name.c_str());
+                CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
+                CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s\", 0);\n", adr, _name.c_str());
             }
             else
             {
@@ -1279,8 +1296,8 @@ void __fastcall TIDCGen::OutputData(int pos, PInfoRec recN)
                 }
                 int cnt = info->counter;
                 info->counter++;
-                fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
-                fprintf(idcF, "MakeNameEx(0x%lX, \"%s_%d\", 0);\n", adr, _name.c_str(), cnt);
+                CurrentBytes += fprintf(idcF, "MakeUnkn(0x%lX, 1);\n", adr);
+                CurrentBytes += fprintf(idcF, "MakeNameEx(0x%lX, \"%s_%d\", 0);\n", adr, _name.c_str(), cnt);
             }
         }
         if (recN->type != "") MakeComment(pos, recN->type.c_str());
@@ -1298,4 +1315,29 @@ PREPNAMEINFO __fastcall TIDCGen::GetNameInfo(int idx)
     return 0;
 }
 //---------------------------------------------------------------------------
-
+__fastcall TSaveIDCDialog::TSaveIDCDialog(TComponent* AOwner, char* TemplateName) : TOpenDialog(AOwner)
+{
+	Options >> ofEnableSizing;
+    Template = TemplateName;
+    CheckDlgButton(Handle, 101, SplitIDC ? BST_CHECKED : BST_UNCHECKED);
+}
+//---------------------------------------------------------------------------
+void __fastcall TSaveIDCDialog::WndProc(TMessage& Message)
+{
+    switch (Message.Msg)
+    {
+    case WM_COMMAND:
+        switch (Message.WParamLo)
+        {
+        case 101:
+            if (IsDlgButtonChecked(Handle, 101) == BST_CHECKED)
+                SplitIDC = true;
+            else
+                SplitIDC = false;
+            break;
+        };
+        break;
+    };
+    TOpenDialog::WndProc(Message);
+};
+//---------------------------------------------------------------------------

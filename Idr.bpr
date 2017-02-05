@@ -3,22 +3,22 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="bin\Idr.exe"/>
+    <PROJECT value="C:\PAPA\IDR\Idr.exe"/>
     <OBJFILES value="obj\Idr.obj obj\Main.obj obj\TypeInfo.obj obj\StringInfo.obj 
       obj\Explorer.obj obj\KnowledgeBase.obj obj\Disasm.obj obj\Threads.obj 
       obj\InputDlg.obj obj\FindDlg.obj obj\Infos.obj obj\EditFunctionDlg.obj 
       obj\UFileDropper.obj obj\AboutDlg.obj obj\Resources.obj 
       obj\EditFieldsDlg.obj obj\KBViewer.obj obj\UfrmFormTree.obj obj\Legend.obj 
       obj\IDCGen.obj obj\Decompiler.obj obj\Hex2Double.obj obj\Misc.obj 
-      obj\Plugins.obj obj\ActiveProcesses.obj"/>
-    <RESFILES value="Idr.res"/>
+      obj\Plugins.obj obj\ActiveProcesses.obj obj\IdcSplitSize.obj"/>
+    <RESFILES value="Idr.res IdcDialog.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
     <RESDEPEN value="$(RESFILES) Main.dfm TypeInfo.dfm StringInfo.dfm Explorer.dfm InputDlg.dfm 
       FindDlg.dfm EditFunctionDlg.dfm AboutDlg.dfm EditFieldsDlg.dfm 
       KBViewer.dfm UfrmFormTree.dfm Legend.dfm Hex2Double.dfm Plugins.dfm 
-      ActiveProcesses.dfm"/>
+      ActiveProcesses.dfm IdcSplitSize.dfm"/>
     <LIBFILES value=""/>
     <LIBRARIES value="dsnapcon.lib dsnapcrba.lib dss.lib bcb2kaxserver.lib indy.lib dbxcds.lib 
       dclocx.lib soaprtl.lib bcbie.lib nmfast.lib dbexpress.lib inetdbxpress.lib 
@@ -91,6 +91,8 @@
       <FILE FILENAME="Misc.cpp" FORMNAME="" UNITNAME="Misc" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="Plugins.cpp" FORMNAME="FPlugins" UNITNAME="Plugins" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="ActiveProcesses.cpp" FORMNAME="FActiveProcesses" UNITNAME="ActiveProcesses" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="IdcDialog.rc" FORMNAME="" UNITNAME="IdcDialog.rc" CONTAINERID="RC" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="IdcSplitSize.cpp" FORMNAME="FIdcSplitSize" UNITNAME="IdcSplitSize" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
   </FILELIST>
   <BUILDTOOLS>
   </BUILDTOOLS>

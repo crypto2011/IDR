@@ -712,6 +712,7 @@ private:	// User declarations
     void __fastcall LoadDelphiFile1(String FileName, int version, bool loadExp, bool loadImp);
     void __fastcall ReadNode(TStream* stream, TTreeNode* node, char* buf);
     void __fastcall OpenProject(String FileName);
+    bool __fastcall ImportsValid(DWORD ImpRVA, DWORD ImpSize);
     int __fastcall LoadImage(FILE* f, bool loadExp, bool loadImp);
     void __fastcall FindExports();
     void __fastcall FindImports();
