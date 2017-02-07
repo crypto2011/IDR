@@ -10225,10 +10225,10 @@ void __fastcall TFMain_11011981::miMapGeneratorClick(TObject *Sender)
                         procName = recN->MakeMapName(adr);
                         fprintf(fMap, " 0001:%08X       %s\n", n, procName.c_str());
                     }
-                    if (!IsFlagSet(cfImport, n))
-                    {
-                        fprintf(fMap, "%lX %s\n", adr, recN->MakePrototype(adr, true, true, false, true, false).c_str());
-                    }
+                    //if (!IsFlagSet(cfImport, n))
+                    //{
+                    //    fprintf(fMap, "%lX %s\n", adr, recN->MakePrototype(adr, true, true, false, true, false).c_str());
+                    //}
                 }
                 else
                 {
