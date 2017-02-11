@@ -51,12 +51,13 @@ extern  MDisasm     Disasm;
 //as: print every 10th address in status bar (analysis time booster)
 static const int SKIPADDR_COUNT = 10;
 //---------------------------------------------------------------------------
-__fastcall TAnalyzeThread::TAnalyzeThread(TFMain_11011981* AForm, bool AllValue)
+__fastcall TAnalyzeThread::TAnalyzeThread(TFMain_11011981* AForm, TFProgressBar* ApbForm, bool AllValues)
     : TThread(true)
 {
     Priority = tpLower;
     mainForm = AForm;
-    all = AllValue;
+    pbForm = ApbForm; 
+    all = AllValues;
     adrCnt = 0;
 }
 //---------------------------------------------------------------------------
@@ -202,51 +203,53 @@ int __fastcall TAnalyzeThread::StartProgress(int pbMaxCount, const String& sbTex
         }
     }
     ThreadAnalysisData* startOperation = new ThreadAnalysisData(pbSteps, sbText);
-    ::PostMessage(mainForm->Handle, WM_UPDANALYSISSTATUS, (int)taStartPrBar, (long)startOperation);
+    ::SendMessage(pbForm->Handle, WM_UPDANALYSISSTATUS, (int)taStartPrBar, (long)startOperation);//Post
 
-    //if (stepSize != 1) stepSize--;
     return stepSize - 1;
 }
 //---------------------------------------------------------------------------
 void __fastcall TAnalyzeThread::UpdateProgress()
 {
-    ::PostMessage(mainForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdatePrBar, 0);
+    if (!Terminated)
+        ::SendMessage(pbForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdatePrBar, 0);//Post
 }
 //---------------------------------------------------------------------------
 void __fastcall TAnalyzeThread::StopProgress()
 {
-    ::PostMessage(mainForm->Handle, WM_UPDANALYSISSTATUS, (int)taStopPrBar, 0);
-
-    //as the nice place to check if we are asked to Terminate
-    if (Terminated)
-        throw Exception("Termination request1");
 }
 //---------------------------------------------------------------------------
 void __fastcall TAnalyzeThread::UpdateStatusBar(int adr)
 {
-    if (Terminated)
-        throw Exception("Termination request2");
-
-    ThreadAnalysisData* updateStatusBar = new ThreadAnalysisData(0, Val2Str8(adr));
-    ::SendMessage(mainForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdateStBar, (long)updateStatusBar);
+    //if (Terminated)
+    //    throw Exception("Termination request2");
+    if (!Terminated)
+    {
+        ThreadAnalysisData* updateStatusBar = new ThreadAnalysisData(0, Val2Str8(adr));
+        ::SendMessage(pbForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdateStBar, (long)updateStatusBar);
+    }
 }
 //---------------------------------------------------------------------------
 void __fastcall TAnalyzeThread::UpdateStatusBar(const String& sbText)
 {
-    if (Terminated)
-        throw Exception("Termination request3");
-
-    ThreadAnalysisData* updateStatusBar = new ThreadAnalysisData(0, sbText);
-    ::SendMessage(mainForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdateStBar, (long)updateStatusBar);
+    //if (Terminated)
+    //    throw Exception("Termination request3");
+    if (!Terminated)
+    {
+        ThreadAnalysisData* updateStatusBar = new ThreadAnalysisData(0, sbText);
+        ::SendMessage(pbForm->Handle, WM_UPDANALYSISSTATUS, (int)taUpdateStBar, (long)updateStatusBar);
+    }
 }
 //---------------------------------------------------------------------------
 void __fastcall TAnalyzeThread::UpdateAddrInStatusBar(DWORD adr)
 {
-    adrCnt++;
-    if (adrCnt == SKIPADDR_COUNT)
+    if (!Terminated)
     {
-        UpdateStatusBar(adr);
-        adrCnt = 0;
+        adrCnt++;
+        if (adrCnt == SKIPADDR_COUNT)
+        {
+            UpdateStatusBar(adr);
+            adrCnt = 0;
+        }
     }
 }
 //---------------------------------------------------------------------------
@@ -316,12 +319,9 @@ void __fastcall TAnalyzeThread::StrapSysProcs()
     int         n, Idx, pos;
     MProcInfo   aInfo, *pInfo;
 
-    StartProgress(mainForm->SysProcsNum, "Strap SysProcs");
-
     WORD moduleID = KnowledgeBase.GetModuleID("System");
     for (n = 0; SysProcs[n].name && !Terminated; n++)
     {
-        UpdateProgress();
         Idx = KnowledgeBase.GetProcIdx(moduleID, SysProcs[n].name);
         if (Idx != -1)
         {
@@ -338,7 +338,6 @@ void __fastcall TAnalyzeThread::StrapSysProcs()
                     pos = KnowledgeBase.ScanCode(Code, Flags, CodeSize, pInfo);
                     if (pInfo && pos != -1)
                     {
-                        UpdateStatusBar(pInfo->ProcName);
                         mainForm->StrapProc(pos, Idx, pInfo, true, pInfo->DumpSz);
                     }
                 }
@@ -349,7 +348,6 @@ void __fastcall TAnalyzeThread::StrapSysProcs()
     moduleID = KnowledgeBase.GetModuleID("SysInit");
     for (n = 0; SysInitProcs[n].name && !Terminated; n++)
     {
-        UpdateProgress();
         Idx = KnowledgeBase.GetProcIdx(moduleID, SysInitProcs[n].name);
         if (Idx != -1)
         {
@@ -360,7 +358,6 @@ void __fastcall TAnalyzeThread::StrapSysProcs()
                 pos = KnowledgeBase.ScanCode(Code, Flags, CodeSize, pInfo);
                 if (pInfo && pos != -1)
                 {
-                    UpdateStatusBar(pInfo->ProcName);
                     mainForm->StrapProc(pos, Idx, pInfo, true, pInfo->DumpSz);
                 }
             }
@@ -387,7 +384,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
         DWORD adr = *((DWORD*)(Code + i));
         if (IsValidImageAdr(adr) && adr == Pos2Adr(i) + 4)
         {
-            //euristica - look at byte Code + i - 3 - may be case (jmp [adr + reg*4])
+            //Euristica - look at byte Code + i - 3 - may be case (jmp [adr + reg*4])
             instrLen = Disasm.Disassemble(Code + i - 3, (__int64)Pos2Adr(i) - 3, &DisInfo, 0);
             if (instrLen > 3 && DisInfo.Branch && DisInfo.Offset == adr) continue;
 

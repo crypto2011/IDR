@@ -1,27 +1,49 @@
 object FProgressBar: TFProgressBar
-  Left = 631
-  Top = 461
+  Left = 370
+  Top = 491
   BorderIcons = []
-  BorderStyle = bsNone
-  ClientHeight = 30
-  ClientWidth = 404
-  Color = clHighlight
+  BorderStyle = bsToolWindow
+  ClientHeight = 43
+  ClientWidth = 480
+  Color = clBtnFace
+  DefaultMonitor = dmMainForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -13
+  Font.Height = -10
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  FormStyle = fsStayOnTop
   OldCreateOrder = False
-  PixelsPerInch = 120
-  TextHeight = 16
+  Position = poScreenCenter
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 13
   object pb: TProgressBar
-    Left = 2
-    Top = 3
-    Width = 400
+    Left = 0
+    Top = 0
+    Width = 480
     Height = 24
+    Align = alClient
+    BorderWidth = 4
     Min = 0
-    Max = 100
+    Max = 256
     Smooth = True
     TabOrder = 0
+  end
+  object sb: TStatusBar
+    Left = 0
+    Top = 24
+    Width = 480
+    Height = 19
+    Panels = <
+      item
+        Text = '000'
+        Width = 200
+      end
+      item
+        Text = '111'
+        Width = 280
+      end>
+    SimplePanel = False
   end
 end

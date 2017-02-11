@@ -20,6 +20,7 @@ USEFORM("Hex2Double.cpp", FHex2DoubleDlg_11011981);
 USEFORM("Plugins.cpp", FPlugins);
 USEFORM("ActiveProcesses.cpp", FActiveProcesses);
 USEFORM("IdcSplitSize.cpp", FIdcSplitSize);
+USEFORM("ProgressBar.cpp", FProgressBar);
 //---------------------------------------------------------------------------
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -43,6 +44,7 @@ WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
          Application->CreateForm(__classid(TFPlugins), &FPlugins);
          Application->CreateForm(__classid(TFActiveProcesses), &FActiveProcesses);
          Application->CreateForm(__classid(TFIdcSplitSize), &FIdcSplitSize);
+         Application->CreateForm(__classid(TFProgressBar), &FProgressBar);
          Application->Run();
     }
     catch (Exception &exception)

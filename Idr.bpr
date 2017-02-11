@@ -10,7 +10,8 @@
       obj\UFileDropper.obj obj\AboutDlg.obj obj\Resources.obj 
       obj\EditFieldsDlg.obj obj\KBViewer.obj obj\UfrmFormTree.obj obj\Legend.obj 
       obj\IDCGen.obj obj\Decompiler.obj obj\Hex2Double.obj obj\Misc.obj 
-      obj\Plugins.obj obj\ActiveProcesses.obj obj\IdcSplitSize.obj"/>
+      obj\Plugins.obj obj\ActiveProcesses.obj obj\IdcSplitSize.obj 
+      obj\ProgressBar.obj"/>
     <RESFILES value="Idr.res IdcDialog.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -18,7 +19,7 @@
     <RESDEPEN value="$(RESFILES) Main.dfm TypeInfo.dfm StringInfo.dfm Explorer.dfm InputDlg.dfm 
       FindDlg.dfm EditFunctionDlg.dfm AboutDlg.dfm EditFieldsDlg.dfm 
       KBViewer.dfm UfrmFormTree.dfm Legend.dfm Hex2Double.dfm Plugins.dfm 
-      ActiveProcesses.dfm IdcSplitSize.dfm"/>
+      ActiveProcesses.dfm IdcSplitSize.dfm ProgressBar.dfm"/>
     <LIBFILES value=""/>
     <LIBRARIES value="dsnapcon.lib dsnapcrba.lib dss.lib bcb2kaxserver.lib indy.lib dbxcds.lib 
       dclocx.lib soaprtl.lib bcbie.lib nmfast.lib dbexpress.lib inetdbxpress.lib 
@@ -93,6 +94,7 @@
       <FILE FILENAME="ActiveProcesses.cpp" FORMNAME="FActiveProcesses" UNITNAME="ActiveProcesses" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="IdcDialog.rc" FORMNAME="" UNITNAME="IdcDialog.rc" CONTAINERID="RC" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="IdcSplitSize.cpp" FORMNAME="FIdcSplitSize" UNITNAME="IdcSplitSize" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ProgressBar.cpp" FORMNAME="FProgressBar" UNITNAME="ProgressBar" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
   </FILELIST>
   <BUILDTOOLS>
   </BUILDTOOLS>

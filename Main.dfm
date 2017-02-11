@@ -1,8 +1,8 @@
 object FMain_11011981: TFMain_11011981
-  Left = 227
+  Left = 212
   Top = 36
-  Width = 959
-  Height = 724
+  Width = 1033
+  Height = 915
   Caption = 'Interactive Delphi Reconstructor'
   Color = clBtnFace
   DefaultMonitor = dmDesktop
@@ -26,8 +26,8 @@ object FMain_11011981: TFMain_11011981
   TextHeight = 13
   object SplitterH1: TSplitter
     Left = 0
-    Top = 516
-    Width = 943
+    Top = 707
+    Width = 1017
     Height = 4
     Cursor = crVSplit
     Align = alBottom
@@ -38,10 +38,10 @@ object FMain_11011981: TFMain_11011981
     ParentColor = False
   end
   object SplitterV1: TSplitter
-    Left = 215
+    Left = 250
     Top = 0
     Width = 3
-    Height = 516
+    Height = 707
     Cursor = crHSplit
     AutoSnap = False
     Beveled = True
@@ -50,13 +50,13 @@ object FMain_11011981: TFMain_11011981
     ParentColor = False
   end
   object pcWorkArea: TPageControl
-    Left = 218
+    Left = 253
     Top = 0
-    Width = 725
-    Height = 516
-    ActivePage = tsStrings
+    Width = 764
+    Height = 707
+    ActivePage = tsCodeView
     Align = alClient
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -64,8 +64,8 @@ object FMain_11011981: TFMain_11011981
       object lbCode: TListBox
         Left = 0
         Top = 25
-        Width = 607
-        Height = 463
+        Width = 646
+        Height = 654
         Cursor = crIBeam
         Style = lbOwnerDrawFixed
         AutoComplete = False
@@ -93,7 +93,7 @@ object FMain_11011981: TFMain_11011981
       object CodePanel: TPanel
         Left = 0
         Top = 0
-        Width = 717
+        Width = 756
         Height = 25
         Align = alTop
         PopupMenu = pmCodePanel
@@ -138,7 +138,7 @@ object FMain_11011981: TFMain_11011981
           OnClick = bCodePrevClick
         end
         object ShowCXrefs: TPanel
-          Left = 605
+          Left = 644
           Top = 1
           Width = 111
           Height = 23
@@ -186,10 +186,10 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbCXrefs: TListBox
-        Left = 607
+        Left = 646
         Top = 25
         Width = 110
-        Height = 463
+        Height = 654
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -214,8 +214,8 @@ object FMain_11011981: TFMain_11011981
       object tvClassesFull: TTreeView
         Left = 0
         Top = 40
-        Width = 717
-        Height = 448
+        Width = 756
+        Height = 639
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -237,7 +237,7 @@ object FMain_11011981: TFMain_11011981
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 717
+        Width = 756
         Height = 40
         Align = alTop
         TabOrder = 1
@@ -259,8 +259,8 @@ object FMain_11011981: TFMain_11011981
       object tvClassesShort: TTreeView
         Left = 0
         Top = 40
-        Width = 717
-        Height = 448
+        Width = 756
+        Height = 639
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -287,8 +287,8 @@ object FMain_11011981: TFMain_11011981
       object lbStrings: TListBox
         Left = 0
         Top = 25
-        Width = 607
-        Height = 463
+        Width = 646
+        Height = 654
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -311,12 +311,12 @@ object FMain_11011981: TFMain_11011981
       object Panel3: TPanel
         Left = 0
         Top = 0
-        Width = 717
+        Width = 756
         Height = 25
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 605
+          Left = 806
           Top = 1
           Width = 111
           Height = 23
@@ -328,10 +328,10 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbSXrefs: TListBox
-        Left = 607
+        Left = 646
         Top = 25
         Width = 110
-        Height = 463
+        Height = 654
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -378,8 +378,8 @@ object FMain_11011981: TFMain_11011981
       object lbNames: TListBox
         Left = 0
         Top = 25
-        Width = 607
-        Height = 463
+        Width = 646
+        Height = 654
         AutoComplete = False
         Align = alClient
         Anchors = []
@@ -396,7 +396,7 @@ object FMain_11011981: TFMain_11011981
       object Panel5: TPanel
         Left = 0
         Top = 0
-        Width = 717
+        Width = 756
         Height = 25
         Align = alTop
         TabOrder = 1
@@ -413,10 +413,10 @@ object FMain_11011981: TFMain_11011981
         end
       end
       object lbNXrefs: TListBox
-        Left = 607
+        Left = 646
         Top = 25
         Width = 110
-        Height = 463
+        Height = 654
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -446,8 +446,8 @@ object FMain_11011981: TFMain_11011981
       object lbSourceCode: TListBox
         Left = 0
         Top = 0
-        Width = 717
-        Height = 484
+        Width = 756
+        Height = 679
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -467,8 +467,8 @@ object FMain_11011981: TFMain_11011981
   object pcInfo: TPageControl
     Left = 0
     Top = 0
-    Width = 215
-    Height = 516
+    Width = 250
+    Height = 707
     ActivePage = tsForms
     Align = alLeft
     TabIndex = 2
@@ -479,8 +479,8 @@ object FMain_11011981: TFMain_11011981
       object lbUnits: TListBox
         Left = 0
         Top = 0
-        Width = 207
-        Height = 488
+        Width = 242
+        Height = 679
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -510,8 +510,8 @@ object FMain_11011981: TFMain_11011981
       object lbRTTIs: TListBox
         Left = 0
         Top = 0
-        Width = 207
-        Height = 488
+        Width = 242
+        Height = 679
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -535,8 +535,8 @@ object FMain_11011981: TFMain_11011981
       ImageIndex = 3
       object Splitter1: TSplitter
         Left = 0
-        Top = 314
-        Width = 207
+        Top = 505
+        Width = 242
         Height = 4
         Cursor = crVSplit
         Align = alBottom
@@ -547,14 +547,14 @@ object FMain_11011981: TFMain_11011981
       object Panel2: TPanel
         Left = 0
         Top = 0
-        Width = 207
+        Width = 242
         Height = 40
         Align = alTop
         TabOrder = 0
         object rgViewFormAs: TRadioGroup
           Left = 1
           Top = 1
-          Width = 205
+          Width = 240
           Height = 38
           Align = alClient
           Columns = 2
@@ -570,8 +570,8 @@ object FMain_11011981: TFMain_11011981
       object lbForms: TListBox
         Left = 0
         Top = 40
-        Width = 207
-        Height = 274
+        Width = 242
+        Height = 465
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -592,15 +592,15 @@ object FMain_11011981: TFMain_11011981
       end
       object Panel4: TPanel
         Left = 0
-        Top = 318
-        Width = 207
+        Top = 509
+        Width = 242
         Height = 170
         Align = alBottom
         TabOrder = 2
         object lbAliases: TListBox
           Left = 1
           Top = 1
-          Width = 205
+          Width = 240
           Height = 75
           Align = alClient
           Font.Charset = RUSSIAN_CHARSET
@@ -619,7 +619,7 @@ object FMain_11011981: TFMain_11011981
         object pnlAliases: TPanel
           Left = 1
           Top = 76
-          Width = 205
+          Width = 240
           Height = 93
           Align = alBottom
           TabOrder = 1
@@ -638,7 +638,7 @@ object FMain_11011981: TFMain_11011981
             ParentFont = False
           end
           object cbAliases: TComboBox
-            Left = 24
+            Left = 8
             Top = 31
             Width = 202
             Height = 23
@@ -676,46 +676,10 @@ object FMain_11011981: TFMain_11011981
       end
     end
   end
-  object sb: TStatusBar
-    Left = 0
-    Top = 398
-    Width = 943
-    Height = 20
-    Align = alNone
-    BorderWidth = 1
-    Color = clGradientInactiveCaption
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clBtnText
-    Font.Height = -15
-    Font.Name = 'ms sans serif'
-    Font.Style = []
-    Panels = <
-      item
-        Text = '000'
-        Width = 500
-      end
-      item
-        Text = '111'
-        Width = 150
-      end>
-    SimplePanel = False
-    UseSystemFont = False
-  end
-  object pb: TProgressBar
-    Left = 0
-    Top = 374
-    Width = 938
-    Height = 16
-    Min = 0
-    Max = 100
-    Smooth = True
-    TabOrder = 3
-    Visible = False
-  end
   object lbUnitItems: TListBox
     Left = 0
-    Top = 520
-    Width = 943
+    Top = 711
+    Width = 1017
     Height = 146
     TabStop = False
     Style = lbOwnerDrawFixed
@@ -731,7 +695,7 @@ object FMain_11011981: TFMain_11011981
     ItemHeight = 16
     ParentFont = False
     PopupMenu = pmUnitItems
-    TabOrder = 4
+    TabOrder = 2
     OnClick = lbUnitItemsClick
     OnDblClick = lbUnitItemsDblClick
     OnDrawItem = lbUnitItemsDrawItem

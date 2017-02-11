@@ -11,6 +11,7 @@
 #include "Main.h"
 #include "Misc.h"
 #include "Threads.h"
+#include "ProgressBar.h"
 #include "TypeInfo.h"
 #include "StringInfo.h"
 #include "StrUtils.hpp"
@@ -51,7 +52,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "07.02.2017"; 
+String  IDRVersion = "11.02.2017"; 
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -487,16 +488,6 @@ void __fastcall TFMain_11011981::Init()
 
     ClearTreeNodeMap();
     ClearClassAdrMap();
-
-    sb->Parent = lbUnitItems;
-    sb->Align = alBottom;
-    sb->Panels->Items[0]->Width = Width / 2;
-    sb->Panels->Items[0]->Text = "";
-    sb->Panels->Items[1]->Text = "";
-    pb->Parent = lbUnitItems;
-    pb->Align = alTop;
-    pb->Position = 0;
-    pb->Visible = false;
 
     Update();
     Sleep(0);
@@ -7416,8 +7407,8 @@ void __fastcall TFMain_11011981::ShowDfm(TDfm* dfm)
         dfm->Open = 2;
         dfm->Form->Show();
 
-        if (!AnalyzeThread)
-            sb->Panels->Items[0]->Text = "Press F11 to open form controls tree";
+        //if (!AnalyzeThread)
+        //    sb->Panels->Items[0]->Text = "Press F11 to open form controls tree";
     }
 }
 //---------------------------------------------------------------------------
@@ -7439,18 +7430,6 @@ void __fastcall TFMain_11011981::lbCodeKeyDown(TObject *Sender,
     	bCodePrevClick(Sender);
         break;
     }
-}
-//---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::StartProgress(String text0, String text1, int steps)
-{
-    pb->Min = 0;
-    pb->Max = steps;
-    pb->Step = 1;
-    pb->Position = 0;
-    sb->Panels->Items[0]->Text = text0;
-    sb->Panels->Items[1]->Text = text1;
-    pb->Update();
-    sb->Update();
 }
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::CleanProject()
@@ -7921,9 +7900,9 @@ void __fastcall TFMain_11011981::miClassTreeBuilderClick(TObject *Sender)
     miCtdPassword->Enabled = false;
     miHex2Double->Enabled = false;
 
-    pb->Visible = true;
+    FProgressBar->Show();
 
-    AnalyzeThread = new TAnalyzeThread(FMain_11011981, false);
+    AnalyzeThread = new TAnalyzeThread(FMain_11011981, FProgressBar, false);
     AnalyzeThread->Resume();
 }
 //---------------------------------------------------------------------------
@@ -8403,9 +8382,9 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
     miSaveDelphiProject->Enabled = false;
     lbCXrefs->Enabled = false;
 
-    pb->Visible = true;
+    FProgressBar->Show();
 
-    AnalyzeThread = new TAnalyzeThread(FMain_11011981, true);
+    AnalyzeThread = new TAnalyzeThread(FMain_11011981, FProgressBar, true);
     AnalyzeThread->Resume();
 
     WrkDir = ExtractFileDir(FileName);
@@ -8426,11 +8405,8 @@ void __fastcall TFMain_11011981::AnalyzeThreadDone(TObject* Sender)
         AddExe2MRF(SourceFile);
     }
 
-    pb->Position = 0;
-    pb->Visible = false;
-    sb->Panels->Items[0]->Text = "Completed!";
-    sb->Panels->Items[1]->Text = "";
-    //Восстанавливаем пункты меню
+    FProgressBar->Close();
+    //Restore menu items
     miLoadFile->Enabled = true;
     miOpenProject->Enabled = true;
     miMRF->Enabled = true;
@@ -8928,7 +8904,7 @@ void __fastcall TFMain_11011981::ReadNode(TStream* stream, TTreeNode* node, char
     stream->Read(&len, sizeof(len));
     stream->Read(buf, len);
     node->Text = String(buf, len);
-    pb->StepIt();
+    FProgressBar->pb->StepIt();
 
     for (int n = 0; n < itemsCount; n++)
     {
@@ -8950,7 +8926,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
 
     Screen->Cursor = crHourGlass;
     FILE* projectFile = fopen(FileName.c_str(), "rb");
-    //Читаем версию Дельфи и максимальную длину буфера
+    //Read Delphi version and maximum length of buffer
     fseek(projectFile, 12, SEEK_SET);
     fread(&_ver, sizeof(_ver), 1, projectFile);
 
@@ -8992,7 +8968,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
 
     SetVmtConsts(DelphiVersion);
 
-    //На время загрузки проекта отключаем пункты меню
+    //Disable menu items
     miLoadFile->Enabled = false;
     miOpenProject->Enabled = false;
     miMRF->Enabled = false;
@@ -9000,11 +8976,10 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     miSaveDelphiProject->Enabled = false;
     lbCXrefs->Enabled = false;
 
-    pb->Visible = true;
     Update();
 
     char* buf = new BYTE[MaxBufLen];
-    TMemoryStream* inStream = new TMemoryStream();//new TFileStream(IDPFile, fmOpenRead);
+    TMemoryStream* inStream = new TMemoryStream();
     inStream->LoadFromFile(IDPFile);
 
     char magic[12];
@@ -9069,16 +9044,9 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     memset((void*)Infos, 0, sizeof(PInfoRec)*TotalSize);
 
     inStream->Read(&infosCnt, sizeof(infosCnt));
-    StartProgress("Reading Infos Objects (number = "+String(infosCnt)+")...", "", TotalSize / 4096);
     BYTE kind;
     for (n = 0; n < TotalSize; n++)
     {
-        if ((n & 4095) == 0)
-        {
-            pb->StepIt();
-            Application->ProcessMessages();
-        }
-
         inStream->Read(&pos, sizeof(pos));
         if (pos == -1) break;
         inStream->Read(&kind, sizeof(kind));
@@ -9104,13 +9072,10 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
 
     //Units
     inStream->Read(&num, sizeof(num));
-    StartProgress("Reading Units (number = "+String(num)+")...", "", num);
 
     UnitsNum = num;
     for (n = 0; n < UnitsNum; n++)
     {
-        pb->StepIt();
-        Application->ProcessMessages();
         PUnitRec recU = new UnitRec;
         inStream->Read(&recU->trivial, sizeof(recU->trivial));
         inStream->Read(&recU->trivialIni, sizeof(recU->trivialIni));
@@ -9376,13 +9341,11 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     Update();
 
     //Class Viewer
-    //Total nodes num (for progress)
+    //Total nodes num (for progress bar)
     int nodesNum;
     inStream->Read(&nodesNum, sizeof(nodesNum));
     if (nodesNum)
     {
-        StartProgress("Reading ClassViewer Tree Nodes (number = "+String(nodesNum)+")...", "", nodesNum);
-
         tvClassesFull->Items->BeginUpdate();
         TTreeNode* root = tvClassesFull->Items->Add(0, "");
         ReadNode(inStream, root, buf);
@@ -9412,7 +9375,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     }
     miClassTreeBuilder->Enabled = true;
 
-    //Для проверки
+    //Just cheking
     inStream->Read(&MaxBufLen, sizeof(MaxBufLen));
 
     if (buf) delete[] buf;
@@ -9423,11 +9386,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
 
     AddIdp2MRF(FileName);
 
-    pb->Position = 0;
-    pb->Visible = false;
-    sb->Panels->Items[0]->Text = "";
-    sb->Panels->Items[1]->Text = "";
-    //Восстанавливаем пункты меню
+    //Enable lemu items
     miLoadFile->Enabled = true;
     miOpenProject->Enabled = true;
     miMRF->Enabled = true;
@@ -9552,7 +9511,7 @@ void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
     //Count
     int itemsCount = node->Count;
     stream->Write(&itemsCount, sizeof(itemsCount));
-    pb->StepIt();
+    FProgressBar->pb->StepIt();
 
     //Text
     int len = node->Text.Length(); if (len > MaxBufLen) MaxBufLen = len;
@@ -9584,7 +9543,7 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
     {
         outStream = new TMemoryStream();
 
-        pb->Visible = true;
+        FProgressBar->Show();
 
         char* magic = "IDR proj v.3";
         outStream->Write(magic, 12);
@@ -9620,10 +9579,10 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         DWORD Items = TotalSize;
         BYTE *pImage = Image;
-        StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+        FProgressBar->StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
         while (Items >= MAX_ITEMS)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             outStream->Write(pImage, MAX_ITEMS);
             pImage += MAX_ITEMS;
             Items -= MAX_ITEMS;
@@ -9632,10 +9591,10 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         Items = TotalSize;
         DWORD *pFlags = Flags;
-        StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+        FProgressBar->StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
         while (Items >= MAX_ITEMS)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             outStream->Write(pFlags, sizeof(DWORD)*MAX_ITEMS);
             pFlags += MAX_ITEMS;
             Items -= MAX_ITEMS;
@@ -9650,7 +9609,7 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
         }
         outStream->Write(&infosCnt, sizeof(infosCnt));
 
-        StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
+        FProgressBar->StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
         MaxBufLen = 0;
         BYTE kind;
         try
@@ -9659,7 +9618,7 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
             {
                 if ((n & 4095) == 0)
                 {
-                    pb->StepIt();
+                    FProgressBar->pb->StepIt();
                     Application->ProcessMessages();
                 }
 
@@ -9700,11 +9659,11 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         //Units
         num = UnitsNum;
-        StartProgress("Writing Units (number = "+String(num)+")...", "", num);
+        FProgressBar->StartProgress("Writing Units (number = "+String(num)+")...", "", num);
         outStream->Write(&num, sizeof(num));
         for (n = 0; n < num; n++)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             Application->ProcessMessages();
             PUnitRec recU = (PUnitRec)Units->Items[n];
             outStream->Write(&recU->trivial, sizeof(recU->trivial));
@@ -9747,11 +9706,11 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         //Types
         num = OwnTypeList->Count;
-        StartProgress("Writing Types (number = "+String(num)+")...", "", num);
+        FProgressBar->StartProgress("Writing Types (number = "+String(num)+")...", "", num);
         outStream->Write(&num, sizeof(num));
         for (n = 0; n < num; n++)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             Application->ProcessMessages();
             PTypeRec recT = (PTypeRec)OwnTypeList->Items[n];
             outStream->Write(&recT->kind, sizeof(recT->kind));
@@ -9764,11 +9723,11 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         //Forms
         num = ResInfo->FormList->Count;
-        StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
+        FProgressBar->StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
         outStream->Write(&num, sizeof(num));
         for (n = 0; n < num; n++)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             Application->ProcessMessages();
             TDfm* dfm = (TDfm*)ResInfo->FormList->Items[n];
             //Flags
@@ -9852,11 +9811,11 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
         }
         //Aliases
         num = ResInfo->Aliases->Count;
-        StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
+        FProgressBar->StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
         outStream->Write(&num, sizeof(num));
         for (n = 0; n < num; n++)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             Application->ProcessMessages();
             len = ResInfo->Aliases->Strings[n].Length(); if (len > MaxBufLen) MaxBufLen = len;
             outStream->Write(&len, sizeof(len));
@@ -9868,10 +9827,10 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
         outStream->Write(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
         outStream->Write(&CodeHistoryMax, sizeof(CodeHistoryMax));
         PROCHISTORYREC phRec;
-        StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
+        FProgressBar->StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
         for (n = 0; n < CodeHistorySize; n++)
         {
-            pb->StepIt();
+            FProgressBar->pb->StepIt();
             Application->ProcessMessages();
             outStream->Write(&CodeHistory[n], sizeof(PROCHISTORYREC));
         }
@@ -9889,18 +9848,21 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
         outStream->Write(&CtdRegAdr, sizeof(CtdRegAdr));
 
+        FProgressBar->Close();
         //Class Viewer
         //Total nodes (for progress)
         num = 0; if (ClassTreeDone) num = tvClassesFull->Items->Count;
         if (num && Application->MessageBox("Save full Tree of Classes?", "Warning", MB_YESNO) == IDYES)
         {
+            FProgressBar->Show();
             outStream->Write(&num, sizeof(num));
             if (num)
             {
-                StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
+                FProgressBar->StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
                 TTreeNode* root = tvClassesFull->Items->GetFirstNode();
                 WriteNode(outStream, root);
             }
+            FProgressBar->Close();
         }
         else
         {
@@ -9915,11 +9877,6 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
         ProjectModified = false;
 
         AddIdp2MRF(FileName);
-
-        pb->Position = 0;
-        pb->Visible = false;
-        sb->Panels->Items[0]->Text = "";
-        sb->Panels->Items[1]->Text = "";
     }
     catch (EFCreateError &E)
     {
@@ -11433,7 +11390,7 @@ void __fastcall TFMain_11011981::wm_dropFiles(TWMDropFiles& msg)
             else if ((SameText(ext, ".exe") || SameText(ext, ".bpl") || SameText(ext, ".dll") || SameText(ext, ".scr")) && miLoadFile->Enabled)
                 DoOpenDelphiFile(DELHPI_VERSION_AUTO, droppedFile, true, true);
 
-            //обработали 1й - и валим - пока не умеем > 1 файла одновременно
+            //Processed the first - and go out - we cannot process more than one file yet
             break;
         }
         //TPoint ptDrop = fc->DropPoint;
@@ -11470,13 +11427,23 @@ void __fastcall TFMain_11011981::FormCloseQuery(TObject *Sender, bool &CanClose)
 
     if (AnalyzeThread)
     {
+        AnalyzeThread->Suspend();
+        String sbtext0 = FProgressBar->sb->Panels->Items[0]->Text;
+        String sbtext1 = FProgressBar->sb->Panels->Items[1]->Text;
+        FProgressBar->Visible = false;
+
         _res = Application->MessageBox("Analysis is not yet completed. Do You really want to exit IDR?", "Confirmation", MB_YESNO);
     	if (_res == IDNO)
         {
+            FProgressBar->Visible = true;
+            FProgressBar->sb->Panels->Items[0]->Text = sbtext0;
+            FProgressBar->sb->Panels->Items[1]->Text = sbtext1;
+            FProgressBar->Update();
+
+            AnalyzeThread->Resume();
         	CanClose = false;
             return;
         }
-
         AnalyzeThread->Terminate();
     }
 
@@ -11555,7 +11522,6 @@ void __fastcall TFMain_11011981::miCtdPasswordClick(TObject *Sender)
     {
         pwds += Val2Str2(pwd[n]);
     }
-    //sb->Panels->Items[1]->Text = pwds;
     */
 	PROCHISTORYREC  rec;
 
@@ -11990,41 +11956,7 @@ void __fastcall TFMain_11011981::miCopyListClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::wm_updAnalysisStatus(TMessage& msg)
 {
-    if (taStartPrBar == msg.WParam)
-    {
-        const ThreadAnalysisData* startOperation = (ThreadAnalysisData*)msg.LParam;
-        pb->Min = 0;
-        pb->Max = startOperation ? startOperation->pbSteps : 0;
-        pb->Step = 1;
-        pb->Position = 0;
-        sb->Panels->Items[0]->Text = startOperation ? startOperation->sbText : String("?");
-        sb->Panels->Items[1]->Text = "";
-        sb->Refresh();
-
-        if (startOperation) delete startOperation;
-    }
-    else if (taUpdatePrBar == msg.WParam)
-    {
-        pb->StepIt();
-    }
-    else if (taStopPrBar == msg.WParam)
-    {
-        pb->Position = 0;
-        sb->Panels->Items[0]->Text = "";
-        sb->Panels->Items[1]->Text = "";
-        sb->Refresh();
-    }
-    else if (taUpdateStBar == msg.WParam)
-    {
-        const ThreadAnalysisData* updStatusBar = (ThreadAnalysisData*)msg.LParam;
-        sb->Panels->Items[1]->Text = updStatusBar ? updStatusBar->sbText : String("?");
-        sb->Invalidate();
-
-        if (updStatusBar) delete updStatusBar;
-
-        Application->ProcessMessages();
-    }
-    else if (taUpdateUnits == msg.WParam)
+    if (taUpdateUnits == msg.WParam)
     {
         const long isLastStep = msg.LParam;
         tsUnits->Enabled = true;
@@ -12120,8 +12052,6 @@ void __fastcall TFMain_11011981::wm_updAnalysisStatus(TMessage& msg)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::wm_dfmClosed(TMessage& msg)
 {
-    if (!AnalyzeThread)
-        sb->Panels->Items[0]->Text = "";
 }
 //---------------------------------------------------------------------------
 //Fill ClassViewerTree for 1 class

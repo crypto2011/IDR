@@ -5,6 +5,7 @@
 #include "Resources.h"
 #include "Main.h"
 #include "Misc.h"
+#include "ProgressBar.h"
 
 #include <Math.hpp>
 #include <CheckLst.hpp>
@@ -1000,11 +1001,11 @@ void __fastcall IdrDfmForm::SetupControls()
             mi->Enabled = true;
         }
 
-        else if(TProgressBar* pb = dynamic_cast<TProgressBar*>(component))
-            pb->Position = pb->Max/3;        
+        //else if(TProgressBar* pb = dynamic_cast<TProgressBar*>(component))
+        //   FProgressBar->pb->Position = FProgressBar->pb->Max/3;
 
-        else if (TStatusBar* sb = dynamic_cast<TStatusBar*>(component))
-            sb->AutoHint = false;
+        //else if (TStatusBar* sb = dynamic_cast<TStatusBar*>(component))
+        //    FProgressBar->sb->AutoHint = false;
     }
 }
 //---------------------------------------------------------------------------
@@ -1412,7 +1413,7 @@ void __fastcall IdrDfmForm::MyFormClose(TObject *Sender, TCloseAction &Action)
     }
 
     //notify main window that form is closed (ugly ref to main form - refactor!)
-    ::PostMessage(FMain_11011981->Handle, WM_DFMCLOSED, 0, 0);
+    ::SendMessage(FMain_11011981->Handle, WM_DFMCLOSED, 0, 0);//Post
 
     Action = caFree;
 }

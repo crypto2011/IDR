@@ -380,8 +380,6 @@ __published:	// IDE-managed Components
     TPanel *Panel2;
     TRadioGroup *rgViewFormAs;
     TListBox *lbForms;
-    TStatusBar *sb;
-    TProgressBar *pb;
     TMenuItem *miCollapseAll;
 	TListBox *lbCXrefs;
 	TPanel *ShowCXrefs;
@@ -728,7 +726,6 @@ private:	// User declarations
     void __fastcall ShowCodeXrefs(DWORD Adr, int selIdx);
     void __fastcall ShowStringXrefs(DWORD Adr, int selIdx);
     void __fastcall ShowNameXrefs(DWORD Adr, int selIdx);
-    void __fastcall StartProgress(String text0, String text1, int steps);
     void __fastcall WriteNode(TStream* stream, TTreeNode* node);
     void __fastcall SaveProject(String FileName);
     void __fastcall CloseProject();

@@ -4,10 +4,11 @@
 //---------------------------------------------------------------------------
 #include <Classes.hpp>
 #include "Main.h"
+#include "ProgressBar.h"
 //---------------------------------------------------------------------------
 enum ThreadAnalysisOperation
 {
-    taStartPrBar, taUpdatePrBar, taStopPrBar, taUpdateStBar,
+    taStartPrBar, taUpdatePrBar, taUpdateStBar,
     taUpdateUnits, taUpdateRTTIs, taUpdateVmtList, taUpdateStrings, taUpdateCode, taUpdateXrefs,
     taUpdateShortClassViewer, taUpdateClassViewer, taUpdateBeforeClassViewer,
     taFinished
@@ -31,6 +32,7 @@ class TAnalyzeThread : public TThread
 {
 private:
     TFMain_11011981 *mainForm;
+    TFProgressBar   *pbForm;
     int             adrCnt;
 
     int __fastcall StartProgress(int pbMaxCount, const String& sbText);
@@ -74,7 +76,7 @@ private:
 protected:
     void __fastcall Execute();
 public:
-    __fastcall TAnalyzeThread(TFMain_11011981* AForm, bool AllValue);
+    __fastcall TAnalyzeThread(TFMain_11011981* AForm, TFProgressBar* ApbForm, bool AllValues);
     __fastcall ~TAnalyzeThread();
     int __fastcall GetRetVal();
     bool            all;    //if false, only ClassViewer
