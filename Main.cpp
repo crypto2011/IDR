@@ -52,7 +52,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "11.02.2017"; 
+String  IDRVersion = "12.02.2017"; 
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -7956,7 +7956,7 @@ void __fastcall TFMain_11011981::IniFileRead()
         pos = str.LastDelimiter(",");
         if (pos)
         {
-            filename = str.SubString(1, pos - 1);
+            filename = str.SubString(2, pos - 3);   //Modified by ZGL
             version = str.SubString(pos + 1, str.Length() - pos).ToInt();
         }
         else

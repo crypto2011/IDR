@@ -1573,7 +1573,12 @@ MTypeInfo* __fastcall MKnowledgeBase::GetTypeInfo(int ATypeIdx, DWORD AFlags, MT
 
     const BYTE* p = GetKBCachePtr(TypeOffsets[ATypeIdx].Offset, TypeOffsets[ATypeIdx].Size);
 
-    tInfo->Size = *((DWORD*)p); p += 4;
+    //Modified by ZGL
+    if (Version == 1)
+        tInfo->Size = TypeOffsets[ATypeIdx].Size;
+    else
+        tInfo->Size = *((DWORD*)p); p += 4;
+
     tInfo->ModuleID = *((WORD*)p); p += 2;
     WORD Len = *((WORD*)p); p += 2;
     tInfo->TypeName = String((char*)p); p += Len + 1;
