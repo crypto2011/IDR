@@ -650,7 +650,7 @@ void __fastcall TFMain_11011981::ShowUnitItems(PUnitRec recU, int topIdx, int it
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
 {
-    int         idx = -1, len, size, refCnt;
+    int         idx = -1, len, size, refCnt, pos, bytes;
     WORD*       uses;
     DWORD       adr;
     char        *tmpBuf;
@@ -672,7 +672,7 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
     if (SameText(name, "????"))
     {
         //Find end of unexplored Data
-        int bytes = 1024, pos = Adr2Pos(adr);
+        bytes = 1024; pos = Adr2Pos(adr);
         //Get first byte (use later for filtering code?data)
         BYTE db = *(Code + pos);
 
@@ -731,6 +731,11 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
         ShowClassViewer(adr);
         return;
     }
+    if (IsFlagSet(cfRTTI, pos))
+    {
+        FTypeInfo_11011981->ShowRTTI(adr);
+        return;
+    }
     if (SameText(name, "<ResString>"))
     {
         FStringInfo_11011981->memStringInfo->Clear();
@@ -770,6 +775,7 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
         }
         return;
     }
+    /*
     if (SameText(name, "<Integer>")     ||
         SameText(name, "<Char>")        ||
         SameText(name, "<Enumeration>") ||
@@ -806,6 +812,7 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
         }
         return;
     }
+    */
     if (SameText(name, "<Proc>")    	||
         SameText(name, "<Func>")     	||
         SameText(name, "<Constructor>") ||

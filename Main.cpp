@@ -3529,7 +3529,7 @@ void __fastcall TFMain_11011981::ScanIntfTable(DWORD adr)
         {
             cnt = 0;
             vpos = Adr2Pos(vAdr);
-            for (int v = 0;;v += 4)
+            for (int v = 0;;v++)
             {
                 if (IsFlagSet(cfVTable, vpos)) cnt++;
                 if (cnt == 2) break;
@@ -6057,7 +6057,7 @@ int __fastcall TFMain_11011981::CodeGetTargetAdr(String Line, DWORD* trgAdr)
         }
     }
     if (IsValidImageAdr(targetAdr)) *trgAdr = targetAdr;
-    return DisInfo.MemSize;
+    return DisInfo.OpSize;
 }
 //---------------------------------------------------------------------------
 //May be Plugin!!!
@@ -10664,7 +10664,7 @@ void __fastcall TFMain_11011981::lbCodeDrawItem(TWinControl *Control,
                     }
                     else if (_disInfo.OpType[n] == otMEM)
                     {
-                        if (_disInfo.MemSize)
+                        if (_disInfo.OpSize)
                         {
                             _item = String(_disInfo.sSize) + " ptr ";
                             DrawOneItem(_item, canvas, Rect, TColor(0), flags);

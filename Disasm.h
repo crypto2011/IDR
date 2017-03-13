@@ -34,8 +34,8 @@ typedef struct
     //
     //bool    ImmPresent;
     DWORD   Immediate;
-	BYTE	MemSize;//size of memory
-    BYTE    ImmSize;//size of immediate operand
+	BYTE	OpSize;//Operand size
+    //BYTE    ImmSize;//size of immediate operand
     char	sSize[32];
 	int 	RepPrefix;
     int     SegPrefix;

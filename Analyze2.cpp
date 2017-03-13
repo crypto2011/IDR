@@ -841,7 +841,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
             long double extendedVal;
             String		fVal = "";
 
-            switch (DisInfo.MemSize)
+            switch (DisInfo.OpSize)
             {
             case 4:
                 sType = "Single";
@@ -867,7 +867,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                 {
                     if (_ap >= 0)
                     {
-                        switch (DisInfo.MemSize)
+                        switch (DisInfo.OpSize)
                         {
                         case 4:
                             singleVal = 0; memmove((void*)&singleVal, Code + _ap, 4);
@@ -888,7 +888,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                             }
                             break;
                         }
-                        SetFlags(cfData, _ap, DisInfo.MemSize);
+                        SetFlags(cfData, _ap, DisInfo.OpSize);
 
                         recN = GetInfoRec(Adr);
                         if (!recN) recN = new InfoRec(_ap, ikData);
@@ -912,7 +912,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                     if (bpBased && DisInfo.BaseReg == 21 && (int)DisInfo.Offset < 0)
                     {
                         recN1 = GetInfoRec(fromAdr);
-                        recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.MemSize, "", sType);
+                        recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.OpSize, "", sType);
                     }
                     //fxxx [esp + Offset]
                     else if (DisInfo.BaseReg == 20)
@@ -1487,7 +1487,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                         else
                                         {
                                             recN1 = GetInfoRec(fromAdr);
-                                            locInfo = recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.MemSize, "", "");
+                                            locInfo = recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.OpSize, "", "");
                                             //mov, xchg
                                             if (op == OP_MOV || op == OP_XCHG)
                                             {
@@ -1778,7 +1778,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                 if (bpBased && DisInfo.BaseReg == 21 && (int)DisInfo.Offset < 0)
                                 {
                                     recN1 = GetInfoRec(fromAdr);
-                                    recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.MemSize, "", "");
+                                    recN1->procInfo->AddLocal((int)DisInfo.Offset, DisInfo.OpSize, "", "");
                                 }
                                 //cop [esp], Imm
                                 else if (DisInfo.BaseReg == 20)

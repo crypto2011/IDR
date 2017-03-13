@@ -16,7 +16,7 @@ extern  int __fastcall Adr2Pos(DWORD Adr);
 extern  TCriticalSection* CrtSection;
 
 DWORD* (__stdcall* PdisNew)(int);
-DWORD (_stdcall* CchFormatAddr)(unsigned __int64, char*, DWORD);
+DWORD (_stdcall* CchFormatInstr)(char*, DWORD);
 DWORD (_stdcall* Dist)();
 DWORD   *DIS;
 char*   Reg8Tab[8] =
@@ -52,8 +52,7 @@ __fastcall MDisasm::MDisasm()
 {
     hModule = 0;
     PdisNew = 0;
-//    CchFormatInstr = 0;
-    CchFormatAddr = 0;
+    CchFormatInstr = 0;
     Dist = 0;
     DIS = 0;
 }
@@ -68,12 +67,8 @@ int __fastcall MDisasm::Init()
 {
     hModule = LoadLibrary("dis.dll");
     if (!hModule) return 0;
-    //DWORD* (__stdcall* PdisNew)(int);
     PdisNew = (DWORD* (__stdcall*)(int))GetProcAddress(hModule, "?PdisNew@DIS@@SGPAV1@W4DIST@1@@Z");
-//    CchFormatInstr = (DWORD (_stdcall*)(char*, DWORD))GetProcAddress(hModule, "?CchFormatInstr@DIS@@QBEIPADI@Z");
-    //DWORD (_stdcall* CchFormatAddr)(unsigned __int64, char*, DWORD)
-    CchFormatAddr = (DWORD (_stdcall*)(unsigned __int64, char*, DWORD))GetProcAddress(hModule, "?CchFormatAddr@DIS@@QBEI_KPADI@Z");
-    //DWORD (_stdcall* Dist)();
+    CchFormatInstr = (DWORD (_stdcall*)(char*, DWORD))GetProcAddress(hModule, "?CchFormatInstr@DIS@@QBEIPADI@Z");
     Dist = (DWORD (_stdcall*)())GetProcAddress(hModule, "?Dist@DIS@@QBE?AW4DIST@1@XZ");
     DIS = PdisNew(1);
     return 1;
@@ -163,7 +158,7 @@ int __fastcall MDisasm::Disassemble(BYTE* from, __int64 address, PDISINFO pDisIn
 {
 	int	    InstrLen, _res;
 	char    *p, *q;
-    char    Instr[100];
+    char    Instr[1024];
 
     CrtSection->Enter();
 
@@ -192,22 +187,19 @@ int __fastcall MDisasm::Disassemble(BYTE* from, __int64 address, PDISINFO pDisIn
             pDisInfo->IndxReg = -1;
             pDisInfo->RepPrefix = -1;
             pDisInfo->SegPrefix = -1;
-
-            FormatInstr(pDisInfo, disLine);
-            if (pDisInfo->IndxReg != -1 && !pDisInfo->Scale) pDisInfo->Scale = 1;
-        /*
+            /*
             asm
             {
+                push    400h
                 lea     eax, [Instr]
-                push    64h
                 push    eax
                 mov     ecx, [DIS]
                 call    CchFormatInstr
             }
-            //Compare results of Microsoft disassembler
-            if (stricmp(pDisInfo->DisLine, Instr))
-                p = 0;
-        */
+            */
+            FormatInstr(pDisInfo, disLine);
+            if (pDisInfo->IndxReg != -1 && !pDisInfo->Scale) pDisInfo->Scale = 1;
+
             DWORD   dd = *((DWORD*)pDisInfo->Mnem);
 
             if (pDisInfo->Mnem[0] == 'f' || dd == 'tiaw')
@@ -656,7 +648,7 @@ void __fastcall MDisasm::OutputSizePtr(int size, bool mm, PDISINFO pDisInfo, cha
             strcat(disLine, sptr);
             strcat(disLine, " ptr ");
         }
-        pDisInfo->MemSize = size;
+        pDisInfo->OpSize = size;
         strcpy(pDisInfo->sSize, sptr);
     }
 }
@@ -1027,7 +1019,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
-        pDisInfo->ImmSize = 1;
+        //pDisInfo->ImmSize = 1;
         OutputHex(Op, dval);
         break;
     //Immediate byte
@@ -1042,7 +1034,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
-        pDisInfo->ImmSize = 1;
+        //pDisInfo->ImmSize = 1;
         OutputHex(Op, dval);
         break;
     //Immediate dword
@@ -1071,7 +1063,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
-        pDisInfo->ImmSize = 4;
+        //pDisInfo->ImmSize = 4;
         OutputHex(Op, dval);
         break;
     //Immediate word (ret)
@@ -1086,7 +1078,7 @@ void __fastcall MDisasm::FormatArg(int argno, DWORD cmd, DWORD arg, PDISINFO pDi
         }
         pDisInfo->Immediate = dval;
         //pDisInfo->ImmPresent = true;
-        pDisInfo->ImmSize = 2;
+        //pDisInfo->ImmSize = 2;
         OutputHex(Op, dval);
         break;
     //Address (jmp, jcond, call)

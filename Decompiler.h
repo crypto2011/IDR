@@ -81,7 +81,7 @@ typedef struct
     BYTE    Precedence;
     int     Size;       //Size in bytes
     int     Offset;     //Offset from beginning of type
-    int     IntValue;   //For array element size calculation
+    DWORD   IntValue;   //For array element size calculation
     DWORD   Flags;
     String  Value;
     String  Value1;     //For various purposes

@@ -553,7 +553,7 @@ String __fastcall TFMain_11011981::AnalyzeArguments(DWORD fromAdr)
                 //For embedded procs we have on1 additional argument (pushed on stack first), that poped from stack by instrcution pop ecx
                 if (!emb || (int)DisInfo.Offset != retBytes + bpBase)
                 {
-                    int argSize = DisInfo.MemSize;
+                    int argSize = DisInfo.OpSize;
                     String argType = "";
                     if (argSize == 10) argType = "Extended";
                     //Each argument in stack has size 4*N bytes

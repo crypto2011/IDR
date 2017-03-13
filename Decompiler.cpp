@@ -4372,7 +4372,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr, bool bShowComment)
     bool        _vmt;
     int         _offset, _idx;
     BYTE        *_pdi, _b;
-    DWORD       _vmtAdr, _imm;
+    DWORD       _vmtAdr;//, _imm;
     ITEM        _item, _item1;
     PInfoRec    _recN;
     PFIELDINFO  _fInfo;
@@ -4396,7 +4396,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr, bool bShowComment)
 
         InitItem(&_item);
         _item.Flags = IF_INTVAL;
-
+        /*
         _pdi = (BYTE*)&DisInfo.Immediate; _b = *_pdi;
         if (DisInfo.ImmSize == 1)//byte
         {
@@ -4416,7 +4416,8 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr, bool bShowComment)
         {
             _imm = DisInfo.Immediate;
         }
-        _item.IntValue = _imm;
+        */
+        _item.IntValue = DisInfo.Immediate;
         Push(&_item);
         return;
     }
@@ -8042,7 +8043,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
                 _line = _lvarName + " := " + _item.Value + ";";
                 Env->AddToBody(_line);
                 _item.Value = _lvarName;
-                _ofs = _itemSrc.IntValue; _sz = DisInfo.MemSize;
+                _ofs = _itemSrc.IntValue; _sz = DisInfo.OpSize;
                 Env->Stack[_ofs] = _item; _ofs += 4; _sz -= 4;
 
                 InitItem(&_item);
