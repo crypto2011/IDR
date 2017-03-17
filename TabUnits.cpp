@@ -650,7 +650,7 @@ void __fastcall TFMain_11011981::ShowUnitItems(PUnitRec recU, int topIdx, int it
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
 {
-    int         idx = -1, len, size, refCnt, pos, bytes;
+    int         idx = -1, len, size, refCnt, pos, bytes = 1024;
     WORD*       uses;
     DWORD       adr;
     char        *tmpBuf;
@@ -668,11 +668,11 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
     else
         sscanf(item.c_str() + 1, "%lX%d%s%s", &adr, &refCnt, tkName, typeName);
     String name = String(tkName);
+    pos = Adr2Pos(adr);
 
     if (SameText(name, "????"))
     {
         //Find end of unexplored Data
-        bytes = 1024; pos = Adr2Pos(adr);
         //Get first byte (use later for filtering code?data)
         BYTE db = *(Code + pos);
 
