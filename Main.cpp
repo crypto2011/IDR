@@ -4979,7 +4979,7 @@ int __fastcall TFMain_11011981::AddAsmLine(DWORD Adr, String text, BYTE Flags)
 void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int XrefIdx, int topIdx)
 {
     BYTE        op, flags;
-    int         row = 0, wid, maxwid = 0, _pos, _idx, _ap, _selectedRow;
+    int         row = 0, wid, maxwid = 0, _pos, _idx, _ap;
     TCanvas*    canvas = lbCode->Canvas;
     int			num, instrLen, instrLen1, instrLen2, _procSize;
     DWORD       Adr, Adr1, Pos, lastMovAdr = 0;
@@ -4994,8 +4994,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
     fromPos = Adr2Pos(fromAdr);
     if (fromPos < 0) return;
-
-    //if (AnalyzeThread) AnalyzeThread->Suspend();
 
     bool selectByAdr = (IsValidImageAdr(SelectedIdx) == true);
     //If procedure is the same then move selection and not update Xrefs
@@ -5026,7 +5024,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
             lbCode->ItemIndex = SelectedIdx;
 
         pcWorkArea->ActivePage = tsCodeView;
-        //if (lbCode->CanFocus()) ActiveControl = lbCode;
         return;
     }
     if (!AnalyzeThread)//Clear all Items (used in highlighting)
@@ -5076,7 +5073,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
     _procSize = GetProcSize(fromAdr);
     curPos = fromPos; curAdr = fromAdr;
-    _selectedRow = -1;
 
     while (row < outRows)
     {
@@ -5138,9 +5134,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
             continue;
         }
         op = Disasm.GetOp(DisInfo.Mnem);
-
-        //Calculate ItemIdx (ItemIdx can be distinct with instruction begin!)
-        if (selectByAdr && curAdr <= SelectedIdx && SelectedIdx < curAdr + instrLen) _selectedRow = row;
 
         //Check inside instruction Fixup or ThreadVar
         bool NameInside = false; DWORD NameInsideAdr;
@@ -5509,18 +5502,37 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
     pcWorkArea->ActivePage = tsCodeView;
     lbCode->ScrollWidth = maxwid + 2;
-    if (_selectedRow != -1)
+
+    if (selectByAdr)
     {
-        lbCode->Selected[_selectedRow] = true;
-        lbCode->ItemIndex = _selectedRow;
+        for (int i = 1; i < lbCode->Items->Count; i++)
+        {
+            line = lbCode->Items->Strings[i];
+            sscanf(line.c_str() + 1, "%lX", &Adr);
+            if (Adr >= SelectedIdx)
+            {
+                if (Adr == SelectedIdx)
+                {
+                    lbCode->ItemIndex = i;
+                    break;
+                }
+                else
+                {
+                    lbCode->ItemIndex = i - 1;
+                    break;
+                }
+            }
+        }
     }
+    else
+        lbCode->ItemIndex = SelectedIdx;
+
     if (topIdx != -1) lbCode->TopIndex = topIdx;
     lbCode->ItemHeight = lbCode->Canvas->TextHeight("T");
     lbCode->Items->EndUpdate();
 
     ShowCodeXrefs(CurProcAdr, XrefIdx);
-
-    //if (AnalyzeThread) AnalyzeThread->Resume();
+    pcWorkArea->ActivePage = tsCodeView;
 }
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::AnalyzeMethodTable(int Pass, DWORD Adr, const bool* Terminated)
@@ -12929,7 +12941,7 @@ void __fastcall TFMain_11011981::lbCodeClick(TObject *Sender)
         if (wid >= x)
         {
             char c;
-            int beg = n - 1;
+            int beg = n;
             while (beg >= 1)
             {
                 c = text[beg];

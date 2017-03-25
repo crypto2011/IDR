@@ -1998,7 +1998,7 @@ void __fastcall TAnalyzeThread::ScanCode()
     WORD        moduleID;
     DWORD       Adr, iniAdr, finAdr, vmtAdr;
     int         FirstProcIdx, LastProcIdx, Num, DumpSize;
-    int         i, n, m, k, r, u, Idx, fromPos, toPos, lastMatchPos, stepMask;
+    int         i, n, m, k, r, u, Idx, fromPos, toPos, stepMask;
     PUnitRec    recU;
     PInfoRec    recN;
     MProcInfo   aInfo;
@@ -2134,18 +2134,18 @@ void __fastcall TAnalyzeThread::ScanCode()
                             if (!KnowledgeBase.IsUsedProc(Idx))
                             {
                                 matched = false;
-                                if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP, pInfo) && pInfo->DumpSz >= 8)
+                                if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                                 {
                                     matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                     if (matched)
                                     {
                                         //If method of class, check that ClassName is found
-                                        className = ExtractClassName(pInfo->ProcName);
-                                        if (className == "" || GetOwnTypeByName(className))
-                                        {
+                                        //className = ExtractClassName(pInfo->ProcName);
+                                        //if (className == "" || GetOwnTypeByName(className))
+                                        //{
                                             recU->matchedPercent += 100.0*pInfo->DumpSz/(toPos - fromPos + 1);
                                             break;
-                                        }
+                                        //}
                                     }
                                 }
                             }
@@ -2200,19 +2200,19 @@ void __fastcall TAnalyzeThread::ScanCode()
                         if (!KnowledgeBase.IsUsedProc(Idx))
                         {
                             matched = false;
-                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8)
+                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                             {
                                 matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                 if (matched)
                                 {
                                     //If method of class, check that ClassName is found
-                                    className = ExtractClassName(pInfo->ProcName);
-                                    if (className == "" || GetOwnTypeByName(className))
-                                    {
+                                    //className = ExtractClassName(pInfo->ProcName);
+                                    //if (className == "" || GetOwnTypeByName(className))
+                                    //{
                                         mainForm->StrapProc(m, Idx, pInfo, true, pInfo->DumpSz);
                                         StdUnits[r].used = true;
                                         break;
-                                    }
+                                    //}
                                 }
                             }
                         }
@@ -2244,12 +2244,10 @@ void __fastcall TAnalyzeThread::ScanCode()
             stepMask = StartProgress(toPos - fromPos + 1, "Scan Unit " + unitName + ": step1");
 
             recU->kb = true;
-            lastMatchPos = 0;
             for (m = fromPos, i = 0; m < toPos && !Terminated; m++, i++)
             {
                 if ((i & stepMask) == 0) UpdateProgress();
 
-                if (lastMatchPos && m > lastMatchPos + DumpSize) break;
                 if (!*(Code + m)) continue;
                 if (IsFlagSet(cfProcStart, m) || !Flags[m])
                 {
@@ -2264,21 +2262,20 @@ void __fastcall TAnalyzeThread::ScanCode()
                         Idx = KnowledgeBase.ProcOffsets[k].ModId;
                         if (!KnowledgeBase.IsUsedProc(Idx))
                         {
-                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8)
+                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                             {
                                 //Check code matching
                                 matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                 if (matched)
                                 {
                                     //If method of class, check that ClassName is found
-                                    className = ExtractClassName(pInfo->ProcName);
-                                    if (className == "" || GetOwnTypeByName(className))
-                                    {
-                                        if (!lastMatchPos) lastMatchPos = m;
+                                    //className = ExtractClassName(pInfo->ProcName);
+                                    //if (className == "" || GetOwnTypeByName(className))
+                                    //{
                                         mainForm->StrapProc(m, Idx, pInfo, true, pInfo->DumpSz);
                                         m += pInfo->DumpSz - 1;
                                         break;
-                                    }
+                                    //}
                                 }
                             }
                         }
@@ -2398,18 +2395,18 @@ void __fastcall TAnalyzeThread::ScanCode1()
                         Idx = KnowledgeBase.ProcOffsets[k].ModId;
                         if (!KnowledgeBase.IsUsedProc(Idx))
                         {
-                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz > 1)
+                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                             {
                                 matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                 if (matched)
                                 {
                                     //If method of class, check that ClassName is found
-                                    className = ExtractClassName(pInfo->ProcName);
-                                    if (className == "" || GetOwnTypeByName(className))
-                                    {
+                                    //className = ExtractClassName(pInfo->ProcName);
+                                    //if (className == "" || GetOwnTypeByName(className))
+                                    //{
                                         mainForm->StrapProc(m, Idx, pInfo, true, pInfo->DumpSz);
                                         break;
-                                    }
+                                    //}
                                 }
                             }
                         }
@@ -2460,18 +2457,18 @@ void __fastcall TAnalyzeThread::ScanCode1()
                             if (!KnowledgeBase.IsUsedProc(Idx))
                             {
                                 matched = false;
-                                if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP, pInfo) && pInfo->DumpSz > 1)
+                                if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                                 {
                                     matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                     if (matched)
                                     {
                                         //If method of class, check that ClassName is found
-                                        className = ExtractClassName(pInfo->ProcName);
-                                        if (className == "" || GetOwnTypeByName(className))
-                                        {
+                                        //className = ExtractClassName(pInfo->ProcName);
+                                        //if (className == "" || GetOwnTypeByName(className))
+                                        //{
                                             recU->matchedPercent += 100.0*pInfo->DumpSz/(toPos - fromPos + 1);
                                             break;
-                                        }
+                                        //}
                                     }
                                 }
                             }
@@ -2526,19 +2523,19 @@ void __fastcall TAnalyzeThread::ScanCode1()
                         if (!KnowledgeBase.IsUsedProc(Idx))
                         {
                             matched = false;
-                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz > 1)
+                            if (KnowledgeBase.GetProcInfo(Idx, INFO_DUMP | INFO_ARGS, pInfo) && pInfo->DumpSz >= 8 && m + pInfo->DumpSz < toPos)
                             {
                                 matched = (MatchCode(Code + m, pInfo) && mainForm->StrapCheck(m, pInfo));
                                 if (matched)
                                 {
                                     //If method of class, check that ClassName is found
-                                    className = ExtractClassName(pInfo->ProcName);
-                                    if (className == "" || GetOwnTypeByName(className))
-                                    {
+                                    //className = ExtractClassName(pInfo->ProcName);
+                                    //if (className == "" || GetOwnTypeByName(className))
+                                    //{
                                         mainForm->StrapProc(m, Idx, pInfo, true, pInfo->DumpSz);
                                         StdUnits[r].used = true;
                                         break;
-                                    }
+                                    //}
                                 }
                             }
                         }
