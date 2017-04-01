@@ -211,7 +211,7 @@ public:
     TList       *bjllist;//TBJL
     TList       *CmpStack;
     bool        Embedded;       //Is proc embedded
-    //TStringList *EmbeddedList;  //List of embedded procedures addresses
+    TStringList *EmbeddedList;  //List of embedded procedures addresses
 
     __fastcall TDecompileEnv(DWORD AStartAdr, int ASize, PInfoRec recN);
     __fastcall ~TDecompileEnv();

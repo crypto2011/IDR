@@ -52,7 +52,7 @@ int         DelphiThemesCount;
 //unsigned long stat_GetClassAdr_calls = 0;
 //unsigned long stat_GetClassAdr_adds = 0;
 //---------------------------------------------------------------------------
-String  IDRVersion = "27.03.2017"; 
+String  IDRVersion = "01.04.2017"; 
 //---------------------------------------------------------------------------
 SysProcInfo    SysProcs[] = {
     {"@HandleFinally", 0},
@@ -546,6 +546,10 @@ void __fastcall TFMain_11011981::FindImports()
                 if (!Infos[i])
                 {
                     PInfoRec recN = new InfoRec(i, ikRefine);
+                    recN->procInfo->procSize = 6;
+                    SetFlag(cfProcStart, i);
+                    SetFlag(cfProcEnd, i + 6);
+
                     if (recI->name.Pos("@Initialization$") || recI->name.Pos("@Finalization$"))
                     {
                         recN->SetName(recI->module + "." + recI->name);
@@ -8819,7 +8823,7 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
                         // by name
                         Hint = *((WORD*)(Image + Adr2Pos(ThunkValue + ImageBase)));
                         NameLength = lstrlen((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)));
-                        impFuncName = String((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)), NameLength);
+                        impFuncName = "__imp_" + String((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)), NameLength);
 
                         //if (hLib)
                         //{

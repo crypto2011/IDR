@@ -469,9 +469,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 250
     Height = 707
-    ActivePage = tsForms
+    ActivePage = tsUnits
     Align = alLeft
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 0
     OnChange = pcInfoChange
     object tsUnits: TTabSheet
@@ -647,7 +647,7 @@ object FMain_11011981: TFMain_11011981
             Font.Height = -12
             Font.Name = 'Courier New'
             Font.Style = []
-            ItemHeight = 15
+            ItemHeight = 0
             ParentFont = False
             Sorted = True
             TabOrder = 0

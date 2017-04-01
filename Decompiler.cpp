@@ -195,7 +195,7 @@ __fastcall TDecompileEnv::TDecompileEnv(DWORD AStartAdr, int ASize, PInfoRec rec
     bjllist = new TList;
     CmpStack = new TList;
     Embedded = (recN->procInfo->flags & PF_EMBED);
-    //EmbeddedList = new TStringList;
+    EmbeddedList = new TStringList;
 }
 //---------------------------------------------------------------------------
 __fastcall TDecompileEnv::~TDecompileEnv()
@@ -207,7 +207,7 @@ __fastcall TDecompileEnv::~TDecompileEnv()
     if (BJLseq) delete BJLseq;
     if (bjllist) delete bjllist;
     if (CmpStack) delete CmpStack;
-    //if (EmbeddedList) delete EmbeddedList;
+    if (EmbeddedList) delete EmbeddedList;
 }
 //---------------------------------------------------------------------------
 String __fastcall TDecompileEnv::GetLvarName(int Ofs, String Type)
@@ -716,7 +716,7 @@ void __fastcall TDecompileEnv::OutputSourceCode()
 //Embedded???
 void __fastcall TDecompileEnv::DecompileProc()
 {
-    //EmbeddedList->Clear();
+    EmbeddedList->Clear();
     TDecompiler* De = new TDecompiler(this);
     if (!De->Init(StartAdr))
     {
@@ -1424,7 +1424,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00496E48)
+if (_curAdr == 0x004D5693)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -2908,7 +2908,6 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             //stdcall, pascal, cdecl - return bytes = 4 * ArgsNum
             if ((_callKind == 3 || _callKind == 2 || _callKind == 1) && !_retBytes)
                 _retBytes = _argsNum * 4;
-            /*
             if (_recN->procInfo->flags & PF_EMBED)
             {
                 _embAdr = Val2Str8(callAdr);
@@ -2954,7 +2953,6 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                     FMain_11011981->lbCode->ItemIndex = _savedIdx;
                 }
             }
-            */
         }
         else
         {
@@ -6771,7 +6769,9 @@ String __fastcall TDecompiler::GetSysCallAlias(String AName)
         SameText(AName, "@UStrLen")) return "Length";
     if (SameText(AName, "@LStrOfChar")) return "StringOfChar";
     if (SameText(AName, "@Pos") ||
-        SameText(AName, "@LStrPos")) return "Pos";
+        SameText(AName, "@LStrPos") ||
+        SameText(AName, "@WStrPos") ||
+        SameText(AName, "@UStrPos")) return "Pos";
     if (SameText(AName, "@LStrSetLength") ||
         SameText(AName, "@UStrSetLength")) return "SetLength";
     if (SameText(AName, "@MkDir")) return "MkDir";
@@ -9685,7 +9685,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             _fInfo = FMain_11011981->GetField(_typeName, _offset, &_vmt, &_vmtAdr);
             if (!_fInfo)
             {
-                _text = ManualInput(CurProcAdr, CurAdr, "Define correct type of field f" + Val2Str0(_offset), "Type:");
+                _text = ManualInput(CurProcAdr, CurAdr, "Define correct type of field " + _typeName + ".f" + Val2Str0(_offset), "Type:");
                 if (_text == "")
                 {
                     Env->ErrAdr = CurAdr;
