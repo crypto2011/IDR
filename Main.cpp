@@ -1664,7 +1664,7 @@ int __fastcall TFMain_11011981::GetDelphiVersion()
                 //Проверяем смещение -0x34
                 TControlInstSize = *((DWORD*)(Image + Adr2Pos(vmtAdr) - 0x34));
                 if (TControlInstSize == 0x1A4) return 2009;
-                if (TControlInstSize == 0x1AC) return 2010;
+                //if (TControlInstSize == 0x1AC) return 2010;
             }
         }
     }
