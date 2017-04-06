@@ -21,9 +21,9 @@ void __fastcall TFMain_11011981::AnalyzeProc1(DWORD fromAdr, char xrefType, DWOR
 
     if (IsFlagSet(cfEmbedded, fromPos)) return;
 
-    b1 = Code[fromPos];
-    b2 = Code[fromPos + 1];
-    if (!b1 && !b2) return;
+    //b1 = Code[fromPos];
+    //b2 = Code[fromPos + 1];
+    //if (!b1 && !b2) return;
 
     recN = GetInfoRec(fromAdr);
 

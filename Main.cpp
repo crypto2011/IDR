@@ -5128,6 +5128,7 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
         BYTE b1 = Code[curPos];
         BYTE b2 = Code[curPos + 1];
+        if (!b1 && !b2 && !lastAdr) break;
 
         instrLen = Disasm.Disassemble(Code + curPos, (__int64)curAdr, &DisInfo, disLine);
         if (!instrLen)
@@ -5802,9 +5803,9 @@ DWORD __fastcall TFMain_11011981::AnalyzeProcInitial(DWORD fromAdr)
     if (IsFlagSet(cfEmbedded, fromPos)) return 0;
     if (IsFlagSet(cfExport, fromPos)) return 0;
 
-    b1 = Code[fromPos];
-    b2 = Code[fromPos + 1];
-    if (!b1 && !b2) return 0;
+    //b1 = Code[fromPos];
+    //b2 = Code[fromPos + 1];
+    //if (!b1 && !b2) return 0;
 
     SetFlag(cfProcStart | cfPass0, fromPos);
     

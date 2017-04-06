@@ -209,9 +209,9 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
     if (IsFlagSet(cfEmbedded, fromPos)) return false;
     if (IsFlagSet(cfExport, fromPos)) return false;
 
-    b1 = Code[fromPos];
-    b2 = Code[fromPos + 1];
-    if (!b1 && !b2) return false;
+    //b1 = Code[fromPos];
+    //b2 = Code[fromPos + 1];
+    //if (!b1 && !b2) return false;
 
     //Import - return ret type of function
     if (IsFlagSet(cfImport, fromPos)) return false;
@@ -297,6 +297,8 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
 
         b1 = Code[curPos];
         b2 = Code[curPos + 1];
+        if (!b1 && !b2 && !lastAdr) break;
+
         instrLen = Disasm.Disassemble(Code + curPos, (__int64)curAdr, &DisInfo, 0);
         //if (!instrLen) break;
         if (!instrLen)

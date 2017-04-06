@@ -99,6 +99,8 @@ String __fastcall TFMain_11011981::AnalyzeArguments(DWORD fromAdr)
 
         BYTE b1 = Code[curPos];
         BYTE b2 = Code[curPos + 1];
+        if (!b1 && !b2 && !lastAdr) break;
+
         instrLen = Disasm.Disassemble(Code + curPos, (__int64)curAdr, &DisInfo, 0);
         //if (!instrLen) break;
         if (!instrLen)

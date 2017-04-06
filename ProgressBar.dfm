@@ -1,6 +1,6 @@
 object FProgressBar: TFProgressBar
-  Left = 370
-  Top = 491
+  Left = 449
+  Top = 484
   BorderIcons = []
   BorderStyle = bsToolWindow
   ClientHeight = 43

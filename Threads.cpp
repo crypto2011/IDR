@@ -2971,8 +2971,8 @@ void __fastcall TAnalyzeThread::FindStrings()
             if (!elemSize || elemSize > 4) continue;
             refCnt = *((DWORD*)(Code + i + 4));
             if (refCnt != 0xFFFFFFFF) continue;
-            len = wcslen((wchar_t*)(Code + i + 12));
-            //len = *((int*)(Code + i + 8));
+            //len = wcslen((wchar_t*)(Code + i + 12));
+            len = *((int*)(Code + i + 8));
             if (len <= 0 || len > 10000) continue;
             if (i + 12 + (len + 1)*elemSize >= CodeSize) continue;
             if (!Infos[i + 12])
