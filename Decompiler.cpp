@@ -1424,7 +1424,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x004D5693)
+if (_curAdr == 0x00652D85)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -9691,7 +9691,10 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     Env->ErrAdr = CurAdr;
                     throw Exception("See ya later!");
                 }
-                _fInfo = FMain_11011981->GetField(_text, _offset, &_vmt, &_vmtAdr);
+                _recN1 = GetInfoRec(_vmtAdr);
+                _recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, _offset, -1, "", _text);
+
+                _fInfo = FMain_11011981->GetField(_typeName, _offset, &_vmt, &_vmtAdr);
                 if (!_fInfo)
                 {
                     Env->ErrAdr = CurAdr;

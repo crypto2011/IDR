@@ -5505,9 +5505,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
     CurProcSize = (curAdr + instrLen) - CurProcAdr;
 
-    pcWorkArea->ActivePage = tsCodeView;
-    lbCode->ScrollWidth = maxwid + 2;
-
     if (selectByAdr)
     {
         for (int i = 1; i < lbCode->Items->Count; i++)
@@ -5534,6 +5531,7 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
 
     if (topIdx != -1) lbCode->TopIndex = topIdx;
     lbCode->ItemHeight = lbCode->Canvas->TextHeight("T");
+    lbCode->ScrollWidth = maxwid + 2;
     lbCode->Items->EndUpdate();
 
     ShowCodeXrefs(CurProcAdr, XrefIdx);
@@ -8824,7 +8822,7 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
                         // by name
                         Hint = *((WORD*)(Image + Adr2Pos(ThunkValue + ImageBase)));
                         NameLength = lstrlen((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)));
-                        impFuncName = "__imp_" + String((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)), NameLength);
+                        impFuncName = String((char*)(Image + Adr2Pos(ThunkValue + 2 + ImageBase)), NameLength);
 
                         //if (hLib)
                         //{
@@ -11588,17 +11586,14 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
 
         if (classAdr)
         {
+            *vmtAdr = classAdr;
             PInfoRec recN = GetInfoRec(classAdr);
             if (recN && recN->vmtInfo && recN->vmtInfo->fields)
             {
                 if (recN->vmtInfo->fields->Count == 1)
                 {
                     fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[0];
-                    if (Offset == fInfo->Offset)
-                    {
-                        *vmtAdr = classAdr;
-                        return fInfo;
-                    }
+                    if (Offset == fInfo->Offset) return fInfo;
                     return 0;
                 }
                 for (int n = 0; n < recN->vmtInfo->fields->Count - 1; n++)
@@ -11607,33 +11602,23 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                     fInfo2 = (PFIELDINFO)recN->vmtInfo->fields->Items[n + 1];
                     if (Offset >= fInfo1->Offset && Offset < fInfo2->Offset)
                     {
-                        if (Offset == fInfo1->Offset)
-                        {
-                            *vmtAdr = classAdr;
-                            return fInfo1;
-                        }
+                        if (Offset == fInfo1->Offset) return fInfo1;
+                        return 0;
+                        /*
                         kind = GetTypeKind(fInfo1->Type, &size);
-                        if (kind == ikRecord || kind == ikArray)
-                        {
-                            *vmtAdr = classAdr;
-                            return fInfo1;
-                        }
+                        if (kind == ikRecord || kind == ikArray) return fInfo1;
+                        */
                     }
                 }
                 fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[recN->vmtInfo->fields->Count - 1];
                 if (Offset >= fInfo->Offset)
                 {
-                    if (Offset == fInfo->Offset)
-                    {
-                        *vmtAdr = classAdr;
-                        return fInfo;
-                    }
+                    if (Offset == fInfo->Offset) return fInfo;
+                    return 0;
+                    /*
                     kind = GetTypeKind(fInfo->Type, &size);
-                    if (kind == ikRecord || kind == ikArray)
-                    {
-                        *vmtAdr = classAdr;
-                        return fInfo;
-                    }
+                    if (kind == ikRecord || kind == ikArray) return fInfo;
+                    */
                 }
             }
         }
