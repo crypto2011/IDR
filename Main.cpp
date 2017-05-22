@@ -977,6 +977,9 @@ void __fastcall TFMain_11011981::StrapProc(int pos, int ProcIdx, MProcInfo* Proc
     }
     DWORD ProcStart = Pos2Adr(pos);
     DWORD ProcEnd = ProcStart + procSize;
+//!!!
+if(ProcStart == 0x04061A8)
+pos = pos;
 
     String ModuleName = KnowledgeBase.GetModuleName(ProcInfo->ModuleID);
     if (!IsUnitExist(ModuleName))
@@ -2293,10 +2296,13 @@ int __fastcall TFMain_11011981::EstimateProcSize(DWORD fromAdr)
             }
         }
         //End of procedure
-        if (DisInfo.Ret && (!lastAdr || curAdr == lastAdr))
+        if (DisInfo.Ret)// && (!lastAdr || curAdr == lastAdr))
         {
-            curAdr += instrLen;
-            break;
+            if (!IsFlagSet(cfLoc, Pos + instrLen))
+            {
+                curAdr += instrLen;
+                break;
+            }
         }
 
         if (op == OP_MOV) lastMovAdr = DisInfo.Offset;
@@ -4932,7 +4938,7 @@ String __fastcall TFMain_11011981::MakeComment(PPICODE Picode)
     }
     else
     {
-        PFIELDINFO fInfo = GetField(Picode->Name, Picode->Ofs.Offset, &vmt, &vmtAdr);
+        PFIELDINFO fInfo = GetField(Picode->Name, Picode->Ofs.Offset, &vmt, &vmtAdr, "");
         if (fInfo)
         {
             comment = Picode->Name + ".";
@@ -6289,7 +6295,13 @@ void __fastcall TFMain_11011981::lbCodeDblClick(TObject *Sender)
 
                 if (!ContainsUnexplored(GetUnit(targetAdr))) ShowUnits(true);
                 ShowUnitItems(GetUnit(targetAdr), lbUnitItems->TopIndex, lbUnitItems->ItemIndex);
+                rec.adr = CurProcAdr;
+                rec.itemIdx = lbCode->ItemIndex;
+                rec.xrefIdx = lbCXrefs->ItemIndex;
+                rec.topIdx = lbCode->TopIndex;
                 ShowCode(targetAdr, 0, -1, -1);
+                CodeHistoryPush(&rec);
+                ProjectModified = true;
             }
         }
     }
@@ -11560,12 +11572,275 @@ void __fastcall TFMain_11011981::miEmptyHistoryClick(TObject *Sender)
     CodeHistoryMax = CodeHistoryPtr;
 }
 //---------------------------------------------------------------------------
-PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr)
+PFIELDINFO __fastcall GetClassField(String TypeName, int Offset)
 {
-    BYTE        scope;
-    int         n, idx, kind, size, Ofs;
+    int         n, Ofs1, Ofs2;
+    DWORD       classAdr, prevClassAdr = 0;
+    PInfoRec    recN;
+    PFIELDINFO	fInfo1, fInfo2;
+
+    classAdr = GetClassAdr(TypeName);
+    while (classAdr && Offset < GetClassSize(classAdr))
+    {
+        prevClassAdr = classAdr;
+        classAdr = GetParentAdr(classAdr);
+    }
+    classAdr = prevClassAdr;
+    if (classAdr)
+    {
+        recN = GetInfoRec(classAdr);
+        if (recN && recN->vmtInfo && recN->vmtInfo->fields)
+        {
+            for (n = 0; n < recN->vmtInfo->fields->Count; n++)
+            {
+                fInfo1 = (PFIELDINFO)recN->vmtInfo->fields->Items[n]; Ofs1 = fInfo1->Offset;
+                if (n == recN->vmtInfo->fields->Count - 1)
+                {
+                    Ofs2 = 0x7FFFFFFF;
+                }
+                else
+                {
+                    fInfo2 = (PFIELDINFO)recN->vmtInfo->fields->Items[n + 1];
+                    Ofs2 = fInfo2->Offset;
+                }
+                if (Offset >= Ofs1 && Offset < Ofs2)
+                {
+                    return fInfo1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+//---------------------------------------------------------------------------
+int __fastcall GetRecordField(String ARecType, int AOfs, String& name, String& type)
+{
+    BYTE        _len, _numOps, _kind;
+    char        *p, *ps;
+    WORD        _dw;
+    WORD        *_uses;
+    int         n, _idx, _pos, _elNum, Ofs, Ofs1, Ofs2;
+    DWORD       _typeAdr;
+    PTypeRec    _recT;
+    MTypeInfo   _tInfo;
+    String      _str, _name, _typeName, _result = "";
+
+    if (ARecType == "") return -1;
+
+    name = ""; type = "";
+
+    _pos = ARecType.LastDelimiter(".");
+    if (_pos > 1 && ARecType[_pos + 1] != ':')
+        ARecType = ARecType.SubString(_pos + 1, ARecType.Length());
+
+    //File
+    String _recFileName = FMain_11011981->WrkDir + "\\types.idr";
+    FILE* _recFile = fopen(_recFileName.c_str(), "rt");
+    if (_recFile)
+    {
+        while (1)
+        {
+            if (!fgets(StringBuf, 1024, _recFile)) break;
+            _str = String(StringBuf);
+            if (_str.Pos(ARecType + "=") == 1)
+            {
+                while (1)
+                {
+                    if (!fgets(StringBuf, 1024, _recFile)) break;
+                    _str = String(StringBuf);
+                    if (_str.Pos("end;")) break;
+                    if (_str.Pos("//" + Val2Str0(AOfs)))
+                    {
+                        _result = _str;
+                        _pos = _result.LastDelimiter(";");
+                        if (_pos) _result.SetLength(_pos - 1);
+                        _pos = _str.Pos(":");
+                        if (_pos)
+                        {
+                            name = _str.SubString(1, _pos - 1);
+                            type = _str.SubString(_pos + 1, _str.Length());
+                        }
+                        fclose(_recFile);
+                        return AOfs;
+                    }
+                }
+            }
+        }
+        fclose(_recFile);
+    }
+
+    //KB
+    _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
+    _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
+    if (_uses) delete[] _uses;
+
+    if (_idx != -1)
+    {
+        _idx = KnowledgeBase.TypeOffsets[_idx].NamId;
+        if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo))
+        {
+            if (_tInfo.FieldsNum)
+            {
+                p = _tInfo.Fields;
+                for (n = 0; n < _tInfo.FieldsNum; n++)
+                {
+                    ps = p;
+                    p++;//scope
+                    Ofs1 = *((int*)p); p += 4;//offset
+                    p += 4;//case
+                    _len = *((WORD*)p); p += _len + 3;//name
+                    _len = *((WORD*)p); p += _len + 3;//type
+                    if (n == _tInfo.FieldsNum - 1)
+                    {
+                        Ofs2 = 0x7FFFFFFF;
+                    }
+                    else
+                    {
+                        Ofs2 = *((int*)(p + 1));
+                    }
+                    if (AOfs >= Ofs1 && AOfs < Ofs2)
+                    {
+                        p = ps;
+                        p++;//scope
+                        Ofs1 = *((int*)p); p += 4;//offset
+                        p += 4;//case
+                        _len = *((WORD*)p); p += 2;
+                        name = String(p, _len); p += _len + 1;
+                        _len = *((WORD*)p); p += 2;
+                        type = String(p, _len);
+                        return Ofs1;
+                    }
+                }
+            }
+            else if (_tInfo.Decl != "")
+            {
+                Ofs = GetRecordField(_tInfo.Decl, AOfs, name, type);
+                if (Ofs >= 0)
+                    return Ofs;
+            }
+        }
+    }
+    //RTTI
+    _recT = GetOwnTypeByName(ARecType);
+    if (_recT && _recT->kind == ikRecord)
+    {
+        _pos = Adr2Pos(_recT->adr);
+        _pos += 4;//SelfPtr
+        _pos++;//TypeKind
+        _len = Code[_pos]; _pos++;
+        _name = String((char*)(Code + _pos), _len); _pos += _len;//Name
+        _pos += 4;//Size
+        _elNum = *((DWORD*)(Code + _pos)); _pos += 4;
+        for (n = 0; n < _elNum; n++)
+        {
+            _typeAdr = *((DWORD*)(Code + _pos)); _pos += 4;
+            Ofs1 = *((DWORD*)(Code + _pos)); _pos += 4;
+            if (n == _elNum - 1)
+                Ofs2 = 0x7FFFFFFF;
+            else
+                Ofs2 = *((DWORD*)(Code + _pos + 4));
+            if (AOfs >= Ofs1 && AOfs < Ofs2)
+            {
+                name = _name + ".f" + Val2Str0(Ofs1);
+                type = GetTypeName(_typeAdr);
+                return Ofs1;
+            }
+
+        }
+        if (DelphiVersion >= 2010)
+        {
+            //NumOps
+            _numOps = Code[_pos]; _pos++;
+            for (n = 0; n < _numOps; n++)    //RecOps
+            {
+                _pos += 4;
+            }
+            _elNum = *((DWORD*)(Code + _pos)); _pos += 4;  //RecFldCnt
+
+            for (n = 0; n < _elNum; n++)
+            {
+                _typeAdr = *((DWORD*)(Code + _pos)); _pos += 4;
+                Ofs1 = *((DWORD*)(Code + _pos)); _pos += 4;
+                _pos++;//Flags
+                _len = Code[_pos]; _pos++;
+                _name = String((char*)(Code + _pos), _len); _pos += _len;
+                //AttrData
+                _dw = *((WORD*)(Code + _pos));
+                _pos += _dw;//ATR!!
+
+                if (n == _elNum - 1)
+                    Ofs2 = 0x7FFFFFFF;
+                else
+                    Ofs2 = *((DWORD*)(Code + _pos + 4));
+
+                if (AOfs >= Ofs1 && AOfs < Ofs2)
+                {
+                    if (_name != "")
+                        name = _name;
+                    else
+                        name = "f" + Val2Str0(Ofs1);
+                    type = GetTypeName(_typeAdr);
+                    return Ofs1;
+                }
+            }
+        }
+    }
+    return -1;
+}
+//---------------------------------------------------------------------------
+int __fastcall TFMain_11011981::GetField(String TypeName, int Offset, String& name, String& type)
+{
+    int         size, kind, ofs;
+    PFIELDINFO	fInfo;
+    String      _fname, _ftype, _type = TypeName;
+
+    _fname = ""; _ftype = "";
+
+    while (Offset >= 0)
+    {
+        kind = GetTypeKind(_type, &size);
+        if (kind != ikVMT && kind != ikArray && kind != ikRecord && kind != ikDynArray) break;
+        
+        if (kind == ikVMT)
+        {
+            if (!Offset) return 0;
+            fInfo = GetClassField(_type, Offset);
+            if (name != "")
+                name += ".";
+            if (fInfo->Name != "")
+                name += fInfo->Name;
+            else
+                name += "f" + IntToHex((int)Offset, 0);
+            type = fInfo->Type;
+
+            _type = fInfo->Type;
+            Offset -= fInfo->Offset;
+            continue;
+        }
+        if (kind == ikRecord)
+        {
+            ofs = GetRecordField(_type, Offset, _fname, _ftype);
+            if (ofs >= 0)
+            {
+                if (name != "")
+                    name += ".";
+                name += _fname;
+                type = _ftype;
+
+                _type = _ftype;
+                Offset -= ofs;
+            }
+            continue;
+        }
+    }
+    return Offset;
+}
+//---------------------------------------------------------------------------
+PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr, String prefix)
+{
+    int         n, idx, kind, size, Ofs, Ofs1, Ofs2, pos1, pos2;
     DWORD       classAdr;
-    BYTE        *p;
+    BYTE        *p, *ps;
     WORD        *uses, Len;
     MTypeInfo   atInfo;
     MTypeInfo   *tInfo = &atInfo;
@@ -11575,7 +11850,7 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
     classAdr = GetClassAdr(TypeName);
     if (IsValidImageAdr(classAdr))
     {
-        *vmt = true; *vmtAdr = classAdr; 
+        *vmt = true; *vmtAdr = classAdr;
         DWORD prevClassAdr = 0;
     	while (classAdr && Offset < GetClassSize(classAdr))
         {
@@ -11593,32 +11868,45 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                 if (recN->vmtInfo->fields->Count == 1)
                 {
                     fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[0];
-                    if (Offset == fInfo->Offset) return fInfo;
-                    return 0;
-                }
-                for (int n = 0; n < recN->vmtInfo->fields->Count - 1; n++)
-                {
-                    fInfo1 = (PFIELDINFO)recN->vmtInfo->fields->Items[n];
-                    fInfo2 = (PFIELDINFO)recN->vmtInfo->fields->Items[n + 1];
-                    if (Offset >= fInfo1->Offset && Offset < fInfo2->Offset)
+                    if (Offset == fInfo->Offset)
                     {
-                        if (Offset == fInfo1->Offset) return fInfo1;
-                        return 0;
-                        /*
-                        kind = GetTypeKind(fInfo1->Type, &size);
-                        if (kind == ikRecord || kind == ikArray) return fInfo1;
-                        */
+                        fInfo->Name = prefix + "." + fInfo->Name;
+                        return fInfo;
                     }
-                }
-                fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[recN->vmtInfo->fields->Count - 1];
-                if (Offset >= fInfo->Offset)
-                {
-                    if (Offset == fInfo->Offset) return fInfo;
                     return 0;
-                    /*
-                    kind = GetTypeKind(fInfo->Type, &size);
-                    if (kind == ikRecord || kind == ikArray) return fInfo;
-                    */
+                }
+                for (int n = 0; n < recN->vmtInfo->fields->Count; n++)
+                {
+                    fInfo1 = (PFIELDINFO)recN->vmtInfo->fields->Items[n]; Ofs1 = fInfo1->Offset;
+                    if (n == recN->vmtInfo->fields->Count - 1)
+                    {
+                        Ofs2 = 0x7FFFFFFF;
+                    }
+                    else
+                    {
+                        fInfo2 = (PFIELDINFO)recN->vmtInfo->fields->Items[n + 1];
+                        Ofs2 = fInfo2->Offset;
+                    }
+                    if (Offset >= Ofs1 && Offset < Ofs2)
+                    {
+                        if (Offset == Ofs1) return fInfo1;
+                        kind = GetTypeKind(fInfo1->Type, &size);
+                        if (kind == ikClass || kind == ikRecord)
+                        {
+                            prefix = fInfo1->Name;
+                            fInfo = GetField(fInfo1->Type, Offset - Ofs1, vmt, vmtAdr, prefix);
+                            if (fInfo)
+                            {
+                                fInfo->Offset = Offset;
+                                fInfo->Name = prefix + "." + fInfo->Name;
+                                return fInfo;
+                            }
+                            return 0;
+                        }
+                        if (kind == ikArray)
+                            return fInfo1;
+                        return 0;
+                    }
                 }
             }
         }
@@ -11632,7 +11920,6 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
 
     if (idx != -1)
     {
-    	fInfo = 0;
         idx = KnowledgeBase.TypeOffsets[idx].NamId;
         if (KnowledgeBase.GetTypeInfo(idx, INFO_FIELDS, tInfo))
         if (tInfo->Fields)
@@ -11640,32 +11927,38 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
             p = tInfo->Fields;
             for (n = 0; n < tInfo->FieldsNum; n++)
             {
-                //Scope
-                scope = *p; p++;
-                //offset
-                Ofs = *((int*)p); p += 4;
-                if (Ofs == Offset)
+                ps = p;
+                p++;//scope
+                Ofs1 = *((int*)p); p += 4;//offset
+                p += 4;//case
+                Len = *((WORD*)p); p += Len + 3;//name
+                Len = *((WORD*)p); p += Len + 3;//type
+                if (n == tInfo->FieldsNum - 1)
                 {
-                	fInfo = new FIELDINFO;
-                    fInfo->Scope = scope;
+                    Ofs2 = 0x7FFFFFFF;
+                }
+                else
+                {
+                    Ofs2 = *((int*)(p + 1));
+                }
+                if (Offset >= Ofs1 && Offset < Ofs2)
+                {
+                    p = ps;
+                    p++;//Scope
+                    Ofs = *((int*)p); p += 4;//offset
+                    fInfo = new FIELDINFO;
+                    fInfo->Offset = Offset - Ofs;
+                    fInfo->Scope = SCOPE_TMP;
                     fInfo->Case = *((int*)p); p += 4;
                     fInfo->xrefs = 0;
                     Len = *((WORD*)p); p += 2;
                     fInfo->Name = String((char*)p, Len); p += Len + 1;
                     Len = *((WORD*)p); p += 2;
                     fInfo->Type = TrimTypeName(String((char*)p, Len));
-                    break;
-                }
-                else
-                {
-                    p += 4;
-                    Len = *((WORD*)p); p += 2;
-                    p += Len + 1;
-                    Len = *((WORD*)p); p += 2;
-                    p += Len + 1;
+                    return fInfo;
                 }
             }
-            return fInfo;
+            return 0;
         }
     }
     return 0;

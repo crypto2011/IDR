@@ -83,6 +83,7 @@ DWORD __fastcall GetOwnTypeAdr(String AName);
 PTypeRec __fastcall GetOwnTypeByName(String AName);
 String __fastcall GetTypeDeref(String ATypeName);
 BYTE __fastcall GetTypeKind(String AName, int* size);
+int __fastcall GetRTTIRecordSize(DWORD adr);
 int __fastcall GetPackedTypeSize(String AName);
 String __fastcall GetTypeName(DWORD TypeAdr);
 int __fastcall GetTypeSize(String AName);

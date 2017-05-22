@@ -809,7 +809,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                             instrLen1 = Disasm.Disassemble(Code + Pos, (__int64)Adr, &DisInfo, 0);
                             if (DisInfo.Offset == callOfs + 4)
                             {
-                                fInfo = GetField(typeName, callOfs, &vmt, &vmtAdr);
+                                fInfo = GetField(typeName, callOfs, &vmt, &vmtAdr, "");
                                 if (fInfo)
                                 {
                                     if (fInfo->Name != "") AddPicode(curPos, OP_CALL, typeName + "." + fInfo->Name, 0);
@@ -951,7 +951,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                             typeName = TrimTypeName(registers[DisInfo.BaseReg].type);
                             if (typeName != "")
                             {
-                                fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                                fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                                 if (fInfo)
                                 {
                                     if (vmt)
@@ -960,9 +960,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                         AddFieldXref(fInfo, fromAdr, curAdr - fromAdr, 'C');
                                     }
                                     else
-                                    {
                                         delete fInfo;
-                                    }
                                     //if (vmtAdr) typeName = GetClsName(vmtAdr);
                                     AddPicode(curPos, 0, typeName, DisInfo.Offset);
                                 }
@@ -1042,7 +1040,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                     typeName = TrimTypeName(registers[DisInfo.BaseReg].type);
                     if (typeName != "")
                     {
-                        fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                        fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                         if (fInfo)
                         {
                             if (vmt)
@@ -1099,7 +1097,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                             {
                             	if (typeName != "" && source != 'v')
                                 {
-                                    fInfo = GetField(typeName, (int)DisInfo.Immediate, &vmt, &vmtAdr);
+                                    fInfo = GetField(typeName, (int)DisInfo.Immediate, &vmt, &vmtAdr, "");
                                     if (fInfo)
                                     {
                                         registers[reg1Idx].type = fInfo->Type;
@@ -1622,17 +1620,18 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                         }
                                         if (typeName != "")
                                         {
-                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                                             if (fInfo)
                                             {
                                                 if (op == OP_MOV || op == OP_XCHG)
                                                 {
                                                     registers[reg1Idx].type = fInfo->Type;
                                                 }
-                                                if (CanReplace(fInfo->Type, sType)) fInfo->Type = sType;
-
                                                 if (vmt)
+                                                {
+                                                    if (CanReplace(fInfo->Type, sType)) fInfo->Type = sType;
                                                     AddFieldXref(fInfo, fromAdr, curAdr - fromAdr, 'C');
+                                                }
                                                 else
                                                     delete fInfo;
                                                 //if (vmtAdr) typeName = GetClsName(vmtAdr);
@@ -1817,7 +1816,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                         typeName = TrimTypeName(registers[DisInfo.BaseReg].type);
                                         if (typeName != "")
                                         {
-                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                                             if (fInfo)
                                             {
                                                 if (vmt)
@@ -1936,7 +1935,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                             if (typeName != "")
                                             {
                                                 if (registers[reg2Idx].type != "") sType = registers[reg2Idx].type;
-                                                fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                                                fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                                                 if (fInfo)
                                                 {
                                                     if (vmt)
@@ -1945,9 +1944,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                                         AddFieldXref(fInfo, fromAdr, curAdr - fromAdr, 'c');
                                                     }
                                                     else
-                                                    {
                                                         delete fInfo;
-                                                    }
                                                     AddPicode(curPos, 0, typeName, DisInfo.Offset);
                                                 }
                                                 else if (vmt)
@@ -1969,7 +1966,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                         if (typeName != "")
                                         {
                                         	if (registers[reg2Idx].type != "") sType = registers[reg2Idx].type;
-                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr);
+                                            fInfo = GetField(typeName, (int)DisInfo.Offset, &vmt, &vmtAdr, "");
                                             if (fInfo)
                                             {
                                                 if (vmt)
@@ -1978,9 +1975,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                                     AddFieldXref(fInfo, fromAdr, curAdr - fromAdr, 'c');
                                                 }
                                                 else
-                                                {
                                                     delete fInfo;
-                                                }
                                                 //if (vmtAdr) typeName = GetClsName(vmtAdr);
                                                 AddPicode(curPos, 0, typeName, DisInfo.Offset);
                                             }

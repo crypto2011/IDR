@@ -87,6 +87,7 @@ typedef struct
     DWORD       Flags;
     String      Name;
 } SegmentInfo, *PSegmentInfo;
+
 /*
 typedef struct
 {
@@ -801,7 +802,8 @@ public:		// User declarations
     DWORD __fastcall FollowInstructions(DWORD fromAdr, DWORD toAdr);
     int __fastcall EstimateProcSize(DWORD fromAdr);
     DWORD __fastcall EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base);
-    PFIELDINFO __fastcall GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr);
+    int __fastcall GetField(String TypeName, int Offset, String& name, String& type);
+    PFIELDINFO __fastcall GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr, String prefix);
     PFIELDINFO __fastcall AddField(DWORD ProcAdr, int ProcOfs, String TypeName, BYTE Scope, int Offset, int Case, String Name, String Type);
     int __fastcall GetMethodOfs(PInfoRec rec, DWORD procAdr);
     PMethodRec __fastcall GetMethodInfo(PInfoRec rec, String name);

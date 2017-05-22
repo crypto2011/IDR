@@ -113,16 +113,17 @@ WORD 	LocalsNum; //Local vars number
 LOCALINFO Locals[LocalNum]; //Local vars
 */
 
+#define SCOPE_TMP   32  //Temp struct FIELDINFO, to be deleted
 typedef struct FIELDINFO
 {
     FIELDINFO():xrefs(0){}
     ~FIELDINFO();
     BYTE 	Scope;      //9-private, 10-protected, 11-public, 12-published
-    int 	Offset;     //Смещение в экземпляре объекта данного типа
-    int 	Case;       //case для типа record (в остальных случаях 0xFFFFFFFF)
-    String  Name;       //Имя поля
-    String  Type;       //Тип поля
-    TList	*xrefs;		//ссылки из кода на данное поле
+    int 	Offset;     //Offset in class instance
+    int 	Case;       //Case for record (in other cases 0xFFFFFFFF)
+    String  Name;       //Field Name
+    String  Type;       //Field Type
+    TList	*xrefs;		//Xrefs from code
 } FIELDINFO, *PFIELDINFO;
 
 typedef struct
@@ -223,16 +224,16 @@ public:
     WORD        ModuleID;
     String      TypeName;
     BYTE 	    Kind;       //drArrayDef,...,drVariantDef
-    WORD 	    VMCnt;      //Количество элементов VMT (начиная с 0)
-    String 	    Decl;       //Декларация
-    DWORD 	    DumpSz;     //Размер бинарного дампа
-    DWORD 	    FixupNum;   //Количество фиксапов дампа
-    BYTE 	    *Dump;      //Бинарный дамп
-    WORD 	    FieldsNum;  //Количество полей (class, interface, record)
+    WORD 	    VMCnt;      //VMT elements number (from 0)
+    String 	    Decl;       //Declaration
+    DWORD 	    DumpSz;     //Binary dump size
+    DWORD 	    FixupNum;   //Binary dump fixup number
+    BYTE 	    *Dump;      //Binary dump
+    WORD 	    FieldsNum;  //Fields number (class, interface, record)
     BYTE        *Fields;
-    WORD 	    PropsNum;   //Количество свойств (class, interface)
+    WORD 	    PropsNum;   //Properties number (class, interface)
     BYTE        *Props;
-    WORD 	    MethodsNum; //Количество методов (class, interface)
+    WORD 	    MethodsNum; //Methods number (class, interface)
     BYTE        *Methods;
 };
 //Var Type field

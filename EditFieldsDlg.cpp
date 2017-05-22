@@ -154,30 +154,47 @@ void __fastcall TFEditFieldsDlg_11011981::bApplyClick(TObject *Sender)
 {
     bool        vmt, ok = false;
     DWORD       adr;
-    int         offset;
+    int         n, size, offset, fromOfs, toOfs;
     PInfoRec    recN;
     PFIELDINFO  fInfo;
-    String      text;
+    String      rtti;
 
+    recN = GetInfoRec(VmtAdr);
     switch (Op)
     {
     case FD_OP_EDIT:
         fInfo = (PFIELDINFO)fieldsList->Items[lbFields->ItemIndex];
         fInfo->Name = edtName->Text;
         fInfo->Type = edtType->Text;
+        //Delete all fields (if exists) that covered by new type
+        fromOfs = fInfo->Offset;
+        if (GetTypeKind(edtType->Text, &size) == ikRecord)
+        {
+
+            toOfs = fromOfs + size;
+            for (n = 0; n < fieldsList->Count; n++)
+            {
+                fInfo = (PFIELDINFO)fieldsList->Items[n];
+                offset = fInfo->Offset;
+                if (offset > fromOfs && offset < toOfs)
+                {
+                    recN->vmtInfo->RemoveField(offset);
+                }
+            }
+        }
         break;
     case FD_OP_ADD:
     case FD_OP_DELETE:
-        text = edtOffset->Text;
-        sscanf(text.c_str(), "%lX", &offset);
-        recN = GetInfoRec(VmtAdr);
+        sscanf(edtOffset->Text.Trim().c_str(), "%lX", &offset);
         if (Op == FD_OP_ADD)
         {
-            fInfo = FMain_11011981->GetField(recN->GetName(), offset, &vmt, &adr);
+            fInfo = FMain_11011981->GetField(recN->GetName(), offset, &vmt, &adr, "");
             if (!fInfo || Application->MessageBox("Field already exists", "Replace?", MB_YESNO) == IDYES)
                 recN->vmtInfo->AddField(0, 0, FIELD_PUBLIC, offset, -1, edtName->Text, edtType->Text);
+            if (fInfo && fInfo->Scope == SCOPE_TMP)
+                delete fInfo;
         }
-        else if (Op == FD_OP_DELETE)
+        if (Op == FD_OP_DELETE)
         {
             if (Application->MessageBox("Delete field?", "Confirmation", MB_YESNO) == IDYES)
                 recN->vmtInfo->RemoveField(offset);

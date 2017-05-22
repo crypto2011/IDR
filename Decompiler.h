@@ -274,7 +274,7 @@ public:
     void __fastcall FPush(PITEM val);
     void __fastcall FSet(int idx, PITEM val);
     void __fastcall FXch(int idx1, int idx2);
-    PFIELDINFO __fastcall GetArrayFieldOffset(String ATypeName, int AFromOfs, int AScale);
+    int __fastcall GetArrayFieldOffset(String ATypeName, int AFromOfs, int AScale, String& _name, String& _type);
     int __fastcall GetCmpInfo(DWORD fromAdr);
     String __fastcall GetCycleFrom();
     void __fastcall GetCycleIdx(PIDXINFO IdxInfo, DISINFO* ADisInfo);

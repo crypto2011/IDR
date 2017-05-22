@@ -22,7 +22,7 @@ __published:
     TPanel *Panel1;
     TButton *bEdit;
     TButton *bAdd;
-    TButton *bRemove;
+    TButton *bRemoveSelected;
     TPageControl *pc;
     TTabSheet *tsArgs;
     TListBox *lbArgs;
@@ -52,6 +52,7 @@ __published:
     TLabel *lArgsBytes;
     TLabeledEdit *lEndAdr;
     TLabeledEdit *lStackSize;
+    TButton *bRemoveAll;
     void __fastcall FormKeyDown(TObject *Sender, WORD &Key,
           TShiftState Shift);
     void __fastcall bEditClick(TObject *Sender);
@@ -60,7 +61,7 @@ __published:
     void __fastcall lbVarsClick(TObject *Sender);
     void __fastcall bCancelVarClick(TObject *Sender);
     void __fastcall bApplyVarClick(TObject *Sender);
-    void __fastcall bRemoveClick(TObject *Sender);
+    void __fastcall bRemoveSelectedClick(TObject *Sender);
     void __fastcall bAddClick(TObject *Sender);
     void __fastcall bApplyTypeClick(TObject *Sender);
     void __fastcall bCancelTypeClick(TObject *Sender);
@@ -68,12 +69,11 @@ __published:
     void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
     void __fastcall cbMethodClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
+    void __fastcall bRemoveAllClick(TObject *Sender);
 private:
-    //bool    ProcessMethodClick;
     bool    TypModified;
     bool    VarModified;
     int     ArgEdited;
-    int     VarEdited;
     int     VmtCandidatesNum;
     int     StackSize;
     DWORD   SFlags;

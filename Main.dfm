@@ -1,8 +1,8 @@
 object FMain_11011981: TFMain_11011981
   Left = 212
-  Top = 36
+  Top = 37
   Width = 1033
-  Height = 915
+  Height = 914
   Caption = 'Interactive Delphi Reconstructor'
   Color = clBtnFace
   DefaultMonitor = dmDesktop
@@ -26,7 +26,7 @@ object FMain_11011981: TFMain_11011981
   TextHeight = 13
   object SplitterH1: TSplitter
     Left = 0
-    Top = 707
+    Top = 706
     Width = 1017
     Height = 4
     Cursor = crVSplit
@@ -41,7 +41,7 @@ object FMain_11011981: TFMain_11011981
     Left = 250
     Top = 0
     Width = 3
-    Height = 707
+    Height = 706
     Cursor = crHSplit
     AutoSnap = False
     Beveled = True
@@ -53,7 +53,7 @@ object FMain_11011981: TFMain_11011981
     Left = 253
     Top = 0
     Width = 764
-    Height = 707
+    Height = 706
     ActivePage = tsCodeView
     Align = alClient
     TabIndex = 0
@@ -65,7 +65,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 654
+        Height = 653
         Cursor = crIBeam
         Style = lbOwnerDrawFixed
         AutoComplete = False
@@ -189,7 +189,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 654
+        Height = 653
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -215,7 +215,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 639
+        Height = 638
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -260,7 +260,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 639
+        Height = 638
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -288,7 +288,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 654
+        Height = 653
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -331,7 +331,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 654
+        Height = 653
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -379,7 +379,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 654
+        Height = 653
         AutoComplete = False
         Align = alClient
         Anchors = []
@@ -416,7 +416,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 654
+        Height = 653
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -447,7 +447,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 756
-        Height = 679
+        Height = 664
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -468,10 +468,10 @@ object FMain_11011981: TFMain_11011981
     Left = 0
     Top = 0
     Width = 250
-    Height = 707
-    ActivePage = tsUnits
+    Height = 706
+    ActivePage = tsRTTIs
     Align = alLeft
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 0
     OnChange = pcInfoChange
     object tsUnits: TTabSheet
@@ -480,7 +480,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 242
-        Height = 679
+        Height = 678
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -511,7 +511,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 242
-        Height = 679
+        Height = 678
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -535,7 +535,7 @@ object FMain_11011981: TFMain_11011981
       ImageIndex = 3
       object Splitter1: TSplitter
         Left = 0
-        Top = 505
+        Top = 504
         Width = 242
         Height = 4
         Cursor = crVSplit
@@ -571,7 +571,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 242
-        Height = 465
+        Height = 464
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -592,7 +592,7 @@ object FMain_11011981: TFMain_11011981
       end
       object Panel4: TPanel
         Left = 0
-        Top = 509
+        Top = 508
         Width = 242
         Height = 170
         Align = alBottom
@@ -678,7 +678,7 @@ object FMain_11011981: TFMain_11011981
   end
   object lbUnitItems: TListBox
     Left = 0
-    Top = 711
+    Top = 710
     Width = 1017
     Height = 146
     TabStop = False

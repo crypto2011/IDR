@@ -444,7 +444,7 @@ int __fastcall GetNearestDownInstruction(int fromPos, char* Instruction)
             curPos++;
             continue;
         }
-        if (len && !memcmp(DisInfo.Mnem, Instruction, len)) return curPos + instrLen;
+        if (len && !memcmp(DisInfo.Mnem, Instruction, len)) return curPos;
         if (DisInfo.Ret) break;
         curPos += instrLen;
     }
@@ -672,6 +672,11 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
     String      _str, _name, _typeName, _result = "";
 
     if (ARecType == "") return _result;
+
+    _pos = ARecType.Pos(".");
+    if (_pos > 1 && ARecType[_pos + 1] != ':')
+        ARecType = ARecType.SubString(_pos + 1, ARecType.Length());
+
     //File
     String _recFileName = FMain_11011981->WrkDir + "\\types.idr";
     FILE* _recFile = fopen(_recFileName.c_str(), "rt");
@@ -742,6 +747,10 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
                             _result = _name + ":" + _typeName;
                     }
                 }
+            }
+            else if (_tInfo.Decl != "")
+            {
+                _result = GetRecordFields(AOfs, _tInfo.Decl);
             }
         }
     }
@@ -1310,6 +1319,22 @@ String __fastcall GetTypeDeref(String ATypeName)
     return "";
 }
 //---------------------------------------------------------------------------
+int __fastcall GetRTTIRecordSize(DWORD adr)
+{
+    BYTE        len;
+    int         pos, kind, _ap;
+
+    _ap = Adr2Pos(adr); pos = _ap;
+    pos += 4;
+    kind = Code[pos]; pos++;
+    len = Code[pos]; pos += len + 1;
+
+    if (kind == ikRecord)
+        return *((int*)(Code + pos));
+    else
+        return 0;
+}
+//---------------------------------------------------------------------------
 BYTE __fastcall GetTypeKind(String AName, int* size)
 {
     BYTE        res;
@@ -1327,7 +1352,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
             return ikArray;
         }
 
-        pos = AName.Pos(".");
+        pos = AName.LastDelimiter(".");
         if (pos > 1 && AName[pos + 1] != ':')
             name = AName.SubString(pos + 1, AName.Length());
         else
@@ -1420,7 +1445,8 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
         PTypeRec recT = GetOwnTypeByName(name);
         if (recT)
         {
-            *size = 4;
+            *size = GetRTTIRecordSize(recT->adr);
+            if (!*size) *size = 4;
             return recT->kind;
         }
         //Scan KB
@@ -1445,16 +1471,18 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
                 *size = tInfo.Size;
                 switch (tInfo.Kind)
                 {
-                case drRangeDef://0x44
+                case drRangeDef:
                     return ikEnumeration;
-                case drPtrDef://0x45
+                case drPtrDef:
                     return ikMethod;
-                case drProcTypeDef://0x48
+                case drProcTypeDef:
                     return ikMethod;
-                case drSetDef://0x4A
+                case drSetDef:
                     return ikSet;
-                case drRecDef://0x4D
+                case drRecDef:
                     return ikRecord;
+                case drInterfaceDef:
+                    return ikInterface;
                 }
                 if (tInfo.Decl != "")
                 {
