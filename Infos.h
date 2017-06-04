@@ -88,8 +88,10 @@ public:
     void __fastcall DeleteArgs();
     PLOCALINFO __fastcall AddLocal(int Ofs, int Size, String Name, String TypeDef);
     PLOCALINFO __fastcall GetLocal(int Ofs);
+    PLOCALINFO __fastcall GetLocal(String Name);
     void __fastcall DeleteLocal(int n);
     void __fastcall DeleteLocals();
+    void __fastcall SetLocalType(int Ofs, String TypeDef);
 };
 
 typedef InfoProcInfo *PInfoProcInfo;

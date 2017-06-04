@@ -401,7 +401,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowNXrefs: TPanel
-          Left = 605
+          Left = 644
           Top = 1
           Width = 111
           Height = 23
@@ -459,6 +459,7 @@ object FMain_11011981: TFMain_11011981
         ParentFont = False
         PopupMenu = pmSourceCode
         TabOrder = 0
+        OnClick = lbSourceCodeClick
         OnDrawItem = lbSourceCodeDrawItem
         OnMouseMove = lbSourceCodeMouseMove
       end
@@ -1285,11 +1286,16 @@ object FMain_11011981: TFMain_11011981
     Top = 112
   end
   object pmSourceCode: TPopupMenu
+    OnPopup = pmSourceCodePopup
     Left = 464
     Top = 96
     object miCopySource2Clipboard: TMenuItem
       Caption = 'Copy to Clipboard'
       OnClick = miCopySource2ClipboardClick
+    end
+    object miSetlvartype: TMenuItem
+      Caption = 'Set lvar type'
+      OnClick = miSetlvartypeClick
     end
   end
 end

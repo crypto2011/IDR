@@ -16,6 +16,7 @@ extern  DWORD       *Flags;
 extern	PInfoRec	*Infos;
 extern  BYTE        *Code;
 extern  TCriticalSection* CrtSection;
+extern  MKnowledgeBase  KnowledgeBase;
 extern  char        StringBuf[MAXSTRBUFFER];
 //as some statistics for memory leaks detection (remove it when fixed)
 long stat_InfosOverride = 0;
@@ -501,6 +502,19 @@ PLOCALINFO __fastcall InfoProcInfo::GetLocal(int Ofs)
     return 0;
 }
 //---------------------------------------------------------------------------
+PLOCALINFO __fastcall InfoProcInfo::GetLocal(String Name)
+{
+    if (locals)
+    {
+        for (int n = 0; n < locals->Count; n++)
+        {
+            PLOCALINFO  locInfo = (PLOCALINFO)locals->Items[n];
+            if (SameText(locInfo->Name, Name)) return locInfo;
+        }
+    }
+    return 0;
+}
+//---------------------------------------------------------------------------
 void __fastcall InfoProcInfo::DeleteLocal(int n)
 {
     if (locals && n >= 0 && n < locals->Count) locals->Delete(n);
@@ -512,6 +526,93 @@ void __fastcall InfoProcInfo::DeleteLocals()
     {
         for (int n = 0; n < locals->Count; n++) locals->Delete(n);
         locals->Clear();
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall InfoProcInfo::SetLocalType(int Ofs, String TypeDef)
+{
+    PLOCALINFO locInfo = GetLocal(Ofs);
+    if (locInfo)
+    {
+        String  fname = locInfo->Name;
+        int pos = fname.Pos(".");
+        if (pos)
+            fname = fname.SubString(1, pos - 1);
+        locInfo->TypeDef = TypeDef;
+        int size;
+        if (TypeDef != "" && GetTypeKind(TypeDef, &size) == ikRecord)
+        {
+            String recFileName = FMain_11011981->WrkDir + "\\types.idr";
+            FILE* recFile = fopen(recFileName.c_str(), "rt");
+            if (recFile)
+            {
+                while (1)
+                {
+                    if (!fgets(StringBuf, 1024, recFile)) break;
+                    String str = String(StringBuf);
+                    if (str.Pos(TypeDef + "=") == 1)
+                    {
+                        while (1)
+                        {
+                            if (!fgets(StringBuf, 1024, recFile)) break;
+                            str = String(StringBuf);
+                            if (str.Pos("end;")) break;
+                            int pos2 = str.Pos("//");
+                            if (pos2)
+                            {
+                                String ofs = str.SubString(pos2 + 2, str.Length());
+                                int pos1 = str.Pos(":");
+                                if (pos1)
+                                {
+                                    String name = str.SubString(1, pos1 - 1);
+                                    String type = str.SubString(pos1 + 1, pos2 - pos1 - 1);
+                                    AddLocal(StrToInt("$" + ofs) + Ofs, 1, fname + "." + name, type);
+                                }
+                            }
+                        }
+                    }
+                }
+                fclose(recFile);
+            }
+            while (1)
+            {
+                //KB
+                WORD* uses = KnowledgeBase.GetTypeUses(TypeDef.c_str());
+                int idx = KnowledgeBase.GetTypeIdxByModuleIds(uses, TypeDef.c_str());
+                if (uses) delete[] uses;
+
+                if (idx == -1) break;
+
+                idx = KnowledgeBase.TypeOffsets[idx].NamId;
+                MTypeInfo tInfo;
+                if (KnowledgeBase.GetTypeInfo(idx, INFO_FIELDS, &tInfo))
+                {
+                    if (tInfo.FieldsNum)
+                    {
+                        char* p = tInfo.Fields;
+                        for (int k = 0; k < tInfo.FieldsNum; k++)
+                        {
+                            //Scope
+                            p++;
+                            int elofs = *((int*)p); p += 4;
+                            p += 4;//case
+                            //Name
+                            int len = *((WORD*)p); p += 2;
+                            String name = String((char*)p, len); p += len + 1;
+                            //Type
+                            len = *((WORD*)p); p += 2;
+                            String type = TrimTypeName(String((char*)p, len)); p += len + 1;
+                            AddLocal(Ofs + elofs, 1, fname + "." + name, type);
+                        }
+                        break;
+                    }
+                    if (tInfo.Decl != "")
+                    {
+                        TypeDef = tInfo.Decl;
+                    }
+                }
+            }
+        }
     }
 }
 //---------------------------------------------------------------------------

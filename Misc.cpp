@@ -707,54 +707,60 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
         fclose(_recFile);
     }
 
-    //KB
-    _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
-    _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
-    if (_uses) delete[] _uses;
-
-    if (_idx != -1)
+    int tries = 5;
+    while (tries-- >= 0)
     {
-        _idx = KnowledgeBase.TypeOffsets[_idx].NamId;
-        if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo))
+        //KB
+        _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
+        _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
+        if (_uses) delete[] _uses;
+
+        if (_idx != -1)
         {
-            if (_tInfo.FieldsNum)
+            _idx = KnowledgeBase.TypeOffsets[_idx].NamId;
+            if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo))
             {
-                p = _tInfo.Fields;
-                for (k = 0; k < _tInfo.FieldsNum; k++)
+                if (_tInfo.FieldsNum)
                 {
-                    //Scope
-                    p++;
-                    _offset = *((int*)p); p += 4;
-                    _case = *((int*)p); p += 4;
-                    //Name
-                    _len1 = *((WORD*)p); p += 2;
-                    _name = String((char*)p, _len1); p += _len1 + 1;
-                    //Type
-                    _len1 = *((WORD*)p); p += 2;
-                    _typeName = TrimTypeName(String((char*)p, _len1)); p += _len1 + 1;
-                    _kind = GetTypeKind(_typeName, &_size);
-                    if (_kind == ikRecord)
+                    p = _tInfo.Fields;
+                    for (k = 0; k < _tInfo.FieldsNum; k++)
                     {
-                        _size = GetRecordSize(_typeName);
-                        if (AOfs >= _offset && AOfs < _offset + _size)
-                            _result += _name + "." + GetRecordFields(AOfs - _offset, _typeName);
-                    }
-                    else if (AOfs >= _offset && AOfs < _offset + _size)
-                    {
-                        if (_size > 4)
-                            _result = _name + "+" + String(AOfs - _elOfs) + ":" + _typeName;
-                        else
-                            _result = _name + ":" + _typeName;
+                        //Scope
+                        p++;
+                        _offset = *((int*)p); p += 4;
+                        _case = *((int*)p); p += 4;
+                        //Name
+                        _len1 = *((WORD*)p); p += 2;
+                        _name = String((char*)p, _len1); p += _len1 + 1;
+                        //Type
+                        _len1 = *((WORD*)p); p += 2;
+                        _typeName = TrimTypeName(String((char*)p, _len1)); p += _len1 + 1;
+                        _kind = GetTypeKind(_typeName, &_size);
+                        if (_kind == ikRecord)
+                        {
+                            _size = GetRecordSize(_typeName);
+                            if (AOfs >= _offset && AOfs < _offset + _size)
+                                _result += _name + "." + GetRecordFields(AOfs - _offset, _typeName);
+                        }
+                        else if (AOfs >= _offset && AOfs < _offset + _size)
+                        {
+                            if (_size > 4)
+                                _result = _name + "+" + String(AOfs - _elOfs) + ":" + _typeName;
+                            else
+                                _result = _name + ":" + _typeName;
+                        }
+                        if (_result != "") return _result;
                     }
                 }
-            }
-            else if (_tInfo.Decl != "")
-            {
-                _result = GetRecordFields(AOfs, _tInfo.Decl);
+                else if (_tInfo.Decl != "")
+                {
+                    ARecType = _tInfo.Decl;
+                    //_result = GetRecordFields(AOfs, _tInfo.Decl);
+                }
             }
         }
     }
-    if (_result != "") return _result;
+    //if (_result != "") return _result;
     //RTTI
     _recT = GetOwnTypeByName(ARecType);
     if (_recT && _recT->kind == ikRecord)

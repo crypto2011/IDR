@@ -524,7 +524,7 @@ bool __fastcall TDecompiler::CheckPrototype(PInfoRec ARec)
 //---------------------------------------------------------------------------
 bool __fastcall TDecompiler::Init(DWORD fromAdr)
 {
-    BYTE        _retKind = 0, _callKind;
+    BYTE        _kind, _retKind = 0, _callKind;
     int         n, _pos, _argsNum, _ndx, _rn, _size;
     int         _fromPos;
     PInfoRec    _recN, _recN1;
@@ -569,12 +569,12 @@ bool __fastcall TDecompiler::Init(DWORD fromAdr)
             InitItem(&_item);
             _item.Flags = IF_ARG;
             if (_argInfo->Tag == 0x22) _item.Flags |= IF_VAR;
+            _kind = GetTypeKind(_argInfo->TypeDef, &_size);
             _item.Type = _argInfo->TypeDef;
             _item.Name = GetArgName(_argInfo);
             _item.Value = _item.Name;
 
-            if (_argInfo->Size > 4 ||
-                (SameText(_argInfo->TypeDef, "Single") && _argInfo->Tag != 0x22))//not var)
+            if (_kind == ikFloat)
             {
                 _size = _argInfo->Size;
                 while (_size)
@@ -582,7 +582,6 @@ bool __fastcall TDecompiler::Init(DWORD fromAdr)
                     Push(&_item);
                     _size -= 4;
                 }
-                _ndx++;
                 continue;
             }
             //eax, edx, ecx
@@ -609,7 +608,7 @@ bool __fastcall TDecompiler::Init(DWORD fromAdr)
             _item.Value = _item.Name;
 
             //eax, edx, ecx
-            if (_ndx == 0 || _ndx == 1 || _ndx == 2)
+            if (_ndx >= 0 && _ndx <= 2)
             {
                 if (_ndx)
                     _rn = 19 - _ndx;
@@ -1440,7 +1439,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x006F3F05)
+if (_curAdr == 0x00698056)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -2891,7 +2890,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                 if (_value == "")
                 {
                     Env->ErrAdr = curAdr;
-                    throw Exception("See ya later!");
+                    throw Exception("Bye!");
                 }
                 sscanf(_value.c_str(), "%lX", &_retBytes);
                 _ESP_ += _retBytes;
@@ -2906,7 +2905,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             if (_value == "")
             {
                 Env->ErrAdr = curAdr;
-                throw Exception("See ya later!");
+                throw Exception("Bye!");
             }
             sscanf(_value.c_str(), "%lX", &_retBytes);
             _ESP_ += _retBytes;
@@ -3125,10 +3124,9 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
 
                     _rn = -1; _regName = "";
                     _kind = GetTypeKind(_argInfo->TypeDef, &_size);
-                    if (_argInfo->Tag == 0x22 || _argInfo->Tag == 0x23)
-                        _size = 4;
-                    //else
-                    //    _size = _argInfo->Size;
+                    if (_argInfo->Tag == 0x22 || _argInfo->Tag == 0x23) _size = 4;
+                    if (_kind == ikFloat)
+                        _size = _argInfo->Size;
 
                     if (_callKind == 0)//fastcall
                     {
@@ -3147,7 +3145,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                                 continue;
                             }
                         }
-                        if (_size >= 8)
+                        if (_kind == ikFloat)
                         {
                             _esp -= _size;
                             _item = Env->Stack[_esp];
@@ -3585,7 +3583,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             if (_value == "")
             {
                 Env->ErrAdr = curAdr;
-                throw Exception("See ya later!");
+                throw Exception("Bye!");
             }
             sscanf(_value.c_str(), "%lX", &_retBytes);
             _ESP_ += _retBytes;
@@ -3613,7 +3611,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                 if (_value == "")
                 {
                     Env->ErrAdr = curAdr;
-                    throw Exception("See ya later!");
+                    throw Exception("Bye!");
                 }
                 sscanf(_value.c_str(), "%lX", &_retBytes);
                 _ESP_ += _retBytes;
@@ -3669,7 +3667,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                 if (_value == "")
                 {
                     Env->ErrAdr = curAdr;
-                    throw Exception("See ya later!");
+                    throw Exception("Bye!");
                 }
                 sscanf(_value.c_str(), "%lX", &_retBytes);
                 _ESP_ += _retBytes;
@@ -3685,7 +3683,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             if (_value == "")
             {
                 Env->ErrAdr = curAdr;
-                throw Exception("See ya later!");
+                throw Exception("Bye!");
             }
             sscanf(_value.c_str(), "%lX", &_retBytes);
             _ESP_ += _retBytes;
@@ -3698,11 +3696,11 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
         //GetRegItem(DisInfo.OpRegIdx[0], &_item);
         //_line = _item.Value + ";";
         Env->AddToBody("call...;");
-        _value = ManualInput(CurProcAdr, curAdr, "Input arguments number of procedure at " + Val2Str8(curAdr), "ArgsNum:");
+        _value = ManualInput(CurProcAdr, curAdr, "Input stack arguments number of procedure at " + Val2Str8(curAdr), "ArgsNum:");
         if (_value == "")
         {
             Env->ErrAdr = curAdr;
-            throw Exception("See ya later!");
+            throw Exception("Bye!");
         }
         sscanf(_value.c_str(), "%d", &_argsNum);
         _ESP_ += _argsNum * 4;
@@ -3712,11 +3710,11 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
     if (DisInfo.OpNum == 1 && DisInfo.OpType[0] == otMEM)
     {
         Env->AddToBody("call(");
-        _value = ManualInput(CurProcAdr, curAdr, "Input arguments number of procedure at " + Val2Str8(curAdr), "ArgsNum:");
+        _value = ManualInput(CurProcAdr, curAdr, "Input stack arguments number of procedure at " + Val2Str8(curAdr), "ArgsNum:");
         if (_value == "")
         {
             Env->ErrAdr = curAdr;
-            throw Exception("See ya later!");
+            throw Exception("Bye!");
         }
         sscanf(_value.c_str(), "%d", &_argsNum);
 
@@ -5466,7 +5464,6 @@ void __fastcall TDecompiler::SimulateInstr2RegMem(DWORD curAdr, BYTE Op)
             //Arg
             if (_item.Flags & IF_ARG)
             {
-                _item.Flags &= ~IF_ARG;
                 //_item.Flags &= ~IF_VAR;
                 _item.Value = _item.Name;
                 SetRegItem(_reg1Idx, &_item);
@@ -6787,6 +6784,7 @@ String __fastcall TDecompiler::GetSysCallAlias(String AName)
     if (SameText(AName, "@BlockWrite")) return "Write";
     if (SameText(AName, "@ChDir")) return "ChDir";
     if (SameText(AName, "@Close")) return "CloseFile";
+    if (SameText(AName, "@DynArrayHigh")) return "High";
     if (SameText(AName, "@EofText")) return "Eof";
     if (SameText(AName, "@FillChar")) return "FillChar";
     if (SameText(AName, "@Flush")) return "Flush";
@@ -6999,7 +6997,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         if (_typeName == "")
         {
             Env->ErrAdr = procAdr;
-            throw Exception("See ya later!");
+            throw Exception("Bye!");
         }
 
         InitItem(&_item);
@@ -7063,6 +7061,14 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
             _item = Env->Stack[_item1.IntValue];
         }
         Env->Stack[_item1.IntValue].Type = _typeName;
+        return false;
+    }
+    if (SameText(name, "@IntfCast"))
+    {
+        GetRegItem(16, &_item1);
+        GetRegItem(18, &_item2);
+        _line = "(" + _item1.Value + " as " + _item2.Value1 + ")";
+        Env->AddToBody(_line);
         return false;
     }
     if (SameText(name, "@IntfClear"))
@@ -8077,6 +8083,21 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr, int instrLen
         //op Mem
         if (DisInfo.OpType[0] == otMEM)
         {
+            //fst(p) [esp]
+            if (DisInfo.BaseReg == 20 && !DisInfo.Offset)
+            {
+                _item = Env->FStack[_TOP_];
+                if (_p) FPop();
+                _ofs = _ESP_; _sz = DisInfo.OpSize;
+                Env->Stack[_ofs] = _item; _ofs += 4; _sz -= 4;
+
+                InitItem(&_item);
+                while (_sz > 0)
+                {
+                    Env->Stack[_ofs] = _item; _ofs += 4; _sz -= 4;
+                }
+                return;
+            }
             GetMemItem(curAdr, &_itemSrc, 0);
             if (_itemSrc.Flags & IF_STACK_PTR)
             {
@@ -9381,12 +9402,12 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             //Arg
             if (_item.Flags & IF_ARG)
             {
-                Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
-                //AssignItem(Dst, &_item);
+                //Dst->Flags = IF_STACK_PTR;
+                //Dst->IntValue = _itemBase.IntValue + _offset;
+                AssignItem(Dst, &_item);
                 //Dst->Flags &= ~IF_ARG;
-                Dst->Value = _item.Name;
-                Dst->Name = _item.Name;
+                //Dst->Value = _item.Name;
+                //Dst->Name = _item.Name;
                 return;
             }
             //Var
@@ -9497,7 +9518,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 //if (_typeName == "")
                 //{
                 //    Env->ErrAdr = CurAdr;
-                //    throw Exception("See ya later!");
+                //    throw Exception("Bye!");
                 //}
             }
             if (_typeName[1] == '^')//Pointer to var
@@ -9623,7 +9644,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             //if (_typeName == "")
             //{
             //    Env->ErrAdr = CurAdr;
-            //    throw Exception("See ya later!");
+            //    throw Exception("Bye!");
             //}
         }
         if (_typeName[1] == '^') _typeName = GetTypeDeref(_typeName);
@@ -9706,7 +9727,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
-                        throw Exception("See ya later!");
+                        throw Exception("Bye!");
                     }
                 }
                 _value = _itemBase.Value + "[" + String(_k) + "]";
@@ -9734,7 +9755,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 if (_text == "")
                 {
                     Env->ErrAdr = CurAdr;
-                    throw Exception("See ya later!");
+                    throw Exception("Bye!");
                 }
                 _recN1 = GetInfoRec(_vmtAdr);
                 _recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, _offset, -1, "", _text);
@@ -9772,7 +9793,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                         if (_text == "")
                         {
                             Env->ErrAdr = CurAdr;
-                            throw Exception("See ya later!");
+                            throw Exception("Bye!");
                         }
                     }
                     if (_text.Pos(":"))
@@ -9850,7 +9871,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 //if (_text == "")
                 //{
                 //    Env->ErrAdr = CurAdr;
-                //    throw Exception("See ya later!");
+                //    throw Exception("Bye!");
                 //}
                 _typeName = _text;
                 _kind = GetTypeKind(_typeName, &_size);
@@ -9868,7 +9889,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 //if (_text == "")
                 //{
                 //    Env->ErrAdr = CurAdr;
-                //    throw Exception("See ya later!");
+                //    throw Exception("Bye!");
                 //}
                 _typeName = _text;
                 _kind = GetTypeKind(_typeName, &_size);
@@ -9883,7 +9904,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 if (_text == "")
                 {
                     Env->ErrAdr = CurAdr;
-                    throw Exception("See ya later!");
+                    throw Exception("Bye!");
                 }
                 sscanf(_text.c_str(), "%lX", &_offset);
                 _fofs = GetArrayFieldOffset(_typeName, _offset, DisInfo.Scale, _name, _type);
@@ -9979,7 +10000,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
-                        throw Exception("See ya later!");
+                        throw Exception("Bye!");
                     }
                 }
                 _value = _name + "[";
@@ -10071,7 +10092,7 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
-                        throw Exception("See ya later!");
+                        throw Exception("Bye!");
                     }
                 }
                 _value = _itemBase.Value + "[";

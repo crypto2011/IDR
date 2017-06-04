@@ -83,9 +83,6 @@ void __fastcall TFEditFunctionDlg_11011981::FormShow(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFEditFunctionDlg_11011981::bEditClick(TObject *Sender)
 {
-    String  line;
-    char    *p;
-    char    buf[256];
     if (pc->ActivePage == tsType)
     {
         cbMethod->Enabled = true;
@@ -105,25 +102,16 @@ void __fastcall TFEditFunctionDlg_11011981::bEditClick(TObject *Sender)
         edtVarName->Text = "";
         edtVarType->Text = "";
 
-        line = lbVars->Items->Strings[lbVars->ItemIndex];
-        strcpy(buf, line.c_str());
-        p = strtok(buf, " ");
-        if (!p) return;
-        //offset
-        edtVarOfs->Text = String(p);
-        //size
-        p = strtok(0, " ");
-        if (!p) return;
-        edtVarSize->Text = String(p);
-        //name
-        p = strtok(0, " :");
-        if (!p) return;
-        if (stricmp(p, "?")) edtVarName->Text = String(p);
-        //type
-        p = strtok(0, " ");
-        if (!p) return;
-        if (stricmp(p, "?")) edtVarType->Text = String(p);
-
+        PInfoRec recN = GetInfoRec(Adr);
+        PLOCALINFO locInfo = PLOCALINFO(recN->procInfo->locals->Items[lbVars->ItemIndex]);
+        if (locInfo)
+        {
+            edtVarOfs->Text = IntToHex((int)locInfo->Ofs, 0);
+            edtVarSize->Text = String(locInfo->Size);
+            edtVarName->Text = String(locInfo->Name);
+            edtVarType->Text = String(locInfo->TypeDef);
+        }
+        
         lbVars->Height = pc->Height - pnlVars->Height;
         pnlVars->Visible = true;
     }
@@ -351,8 +339,8 @@ void __fastcall TFEditFunctionDlg_11011981::bCancelTypeClick(
 //---------------------------------------------------------------------------
 void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
 {
-    int     recofs;
-    String  recname, rectype, name, type;
+    int     recofs, size;
+    String  fname, ftype, name, type;
     
     try
     {
@@ -366,7 +354,7 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
     }
     try
     {
-        int size = StrToInt("$" + edtVarSize->Text.Trim());
+        size = StrToInt("$" + edtVarSize->Text.Trim());
     }
     catch (Exception &E)
     {
@@ -379,12 +367,15 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
     PInfoRec recN = GetInfoRec(Adr);
     PLOCALINFO locInfo = PLOCALINFO(recN->procInfo->locals->Items[lbVars->ItemIndex]);
     ////////////
-    
-    recname = edtVarName->Text.Trim();
-    locInfo->Name = recname;  //ZGL add
-    rectype = edtVarType->Text.Trim();
-    locInfo->TypeDef = rectype;  //ZGL add
-    if (rectype != "")
+
+    recofs = locInfo->Ofs;
+    fname = edtVarName->Text.Trim();
+    locInfo->Name = fname;  //ZGL add
+    ftype = edtVarType->Text.Trim();
+    locInfo->TypeDef = ftype;  //ZGL add
+    recN->procInfo->SetLocalType(recofs, ftype);
+    /*
+    if (ftype != "" && GetTypeKind(ftype, &size) == ikRecord)
     {
         String recFileName = FMain_11011981->WrkDir + "\\types.idr";
         FILE* recFile = fopen(recFileName.c_str(), "rt");
@@ -394,7 +385,7 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
             {
                 if (!fgets(StringBuf, 1024, recFile)) break;
                 String str = String(StringBuf);
-                if (str.Pos(rectype + "=") == 1)
+                if (str.Pos(ftype + "=") == 1)
                 {
                     while (1)
                     {
@@ -410,7 +401,7 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
                             {
                                 name = str.SubString(1, pos1 - 1);
                                 type = str.SubString(pos1 + 1, pos2 - pos1 - 1);
-                                recN->procInfo->AddLocal(StrToInt("$" + ofs) + recofs, 1, recname + "." + name, type);
+                                recN->procInfo->AddLocal(StrToInt("$" + ofs) + recofs, 1, fname + "." + name, type);
                             }
                         }
                     }
@@ -421,8 +412,8 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
         while (1)
         {
             //KB
-            WORD* uses = KnowledgeBase.GetTypeUses(rectype.c_str());
-            int idx = KnowledgeBase.GetTypeIdxByModuleIds(uses, rectype.c_str());
+            WORD* uses = KnowledgeBase.GetTypeUses(ftype.c_str());
+            int idx = KnowledgeBase.GetTypeIdxByModuleIds(uses, ftype.c_str());
             if (uses) delete[] uses;
 
             if (idx == -1) break;
@@ -446,23 +437,24 @@ void __fastcall TFEditFunctionDlg_11011981::bApplyVarClick(TObject *Sender)
                         //Type
                         len = *((WORD*)p); p += 2;
                         type = TrimTypeName(String((char*)p, len)); p += len + 1;
-                        recN->procInfo->AddLocal(recofs + elofs, 1, recname + "." + name, type);
+                        recN->procInfo->AddLocal(recofs + elofs, 1, fname + "." + name, type);
                     }
                     break;
                 }
                 if (tInfo.Decl != "")
                 {
-                    rectype = tInfo.Decl;
+                    ftype = tInfo.Decl;
                 }
             }
         }
     }
+    */
     FillVars();
 
     pnlVars->Visible = false;
     lbVars->Enabled = true;
     lbArgs->Enabled = true;
-    
+
     bEdit->Enabled = true;
     bAdd->Enabled = false;
     bRemoveSelected->Enabled = false;
@@ -731,7 +723,7 @@ void __fastcall TFEditFunctionDlg_11011981::FillVars()
         for (n = 0; n < recN->procInfo->locals->Count; n++)
         {
             locInfo = (PLOCALINFO)recN->procInfo->locals->Items[n];
-            line = Val2Str8(locInfo->Ofs) + " " + Val2Str2(locInfo->Size) + " ";
+            line = Val2Str8(-locInfo->Ofs) + " " + Val2Str2(locInfo->Size) + " ";
             if (locInfo->Name != "")
                 line += locInfo->Name;
             else

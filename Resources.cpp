@@ -1086,7 +1086,12 @@ void __fastcall IdrDfmForm::ShowMyPopupMenu(String FormName, String ControlName,
             mi->OnClick = miPopupClick;
             evPopup->Items->Add(mi);
         }
-        if (show && evPopup->Items->Count) evPopup->Popup(Mouse->CursorPos.x, Mouse->CursorPos.y);
+        if (show && evPopup->Items->Count)
+        {
+            TPoint cursorPos;
+            GetCursorPos(&cursorPos);
+            evPopup->Popup(cursorPos.x, cursorPos.y);
+        }
         return;
     }
     //Компонента формы?
@@ -1204,7 +1209,12 @@ void __fastcall IdrDfmForm::ShowMyPopupMenu(String FormName, String ControlName,
                     mi->OnClick = miPopupClick;
                     evPopup->Items->Add(mi);
                 }
-                if (evPopup->Items->Count) evPopup->Popup(Mouse->CursorPos.x, Mouse->CursorPos.y);
+                if (evPopup->Items->Count)
+                {
+                    TPoint cursorPos;
+                    GetCursorPos(&cursorPos);
+                    evPopup->Popup(cursorPos.x, cursorPos.y);
+                }
                 return;
             }
         }

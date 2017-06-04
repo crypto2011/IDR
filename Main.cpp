@@ -140,7 +140,8 @@ int             RTTISortField = 0; //0 - by address, 1 - by initialization order
 
 DWORD           CurProcAdr;
 int				CurProcSize;
-String          SelectedAsmItem;    //Selected item in Asm Listing
+String          SelectedAsmItem = "";    //Selected item in Asm Listing
+String          SelectedSourceItem = ""; //Selected item in Source Code
 DWORD           CurUnitAdr;
 DWORD           HInstanceVarAdr;
 DWORD           LastTls;            //Last bust index Tls shows how many ThreadVars in program
@@ -4691,6 +4692,7 @@ void __fastcall TFMain_11011981::FormCreate(TObject *Sender)
     lbForms->Canvas->Font->Assign(lbForms->Font);
     lbCode->Canvas->Font->Assign(lbCode->Font);
     lbUnitItems->Canvas->Font->Assign(lbUnitItems->Font);
+    lbSourceCode->Canvas->Font->Assign(lbSourceCode->Font);
 
     lbCXrefs->Canvas->Font->Assign(lbCXrefs->Font);
     lbCXrefs->Width = lbCXrefs->Canvas->TextWidth("T")*14;
@@ -6057,9 +6059,11 @@ int __fastcall TFMain_11011981::CodeGetTargetAdr(String Line, DWORD* trgAdr)
     }
     if (!IsValidImageAdr(targetAdr))
     {
-        cursorPos = lbCode->ScreenToClient(Mouse->CursorPos);
+        GetCursorPos(&cursorPos);
+        cursorPos = lbCode->ScreenToClient(cursorPos);
         for (n = 0, wid = 0; n < strlen(s); n++)
         {
+            int cwid = canvas->TextWidth(s[n]);
             if (wid >= cursorPos.x)
             {
                 while (n >= 0)
@@ -6074,7 +6078,7 @@ int __fastcall TFMain_11011981::CodeGetTargetAdr(String Line, DWORD* trgAdr)
                 }
                 break;
             }
-            wid += canvas->TextWidth(s[n]);
+            wid += cwid;
         }
     }
     if (IsValidImageAdr(targetAdr)) *trgAdr = targetAdr;
@@ -11668,55 +11672,60 @@ int __fastcall GetRecordField(String ARecType, int AOfs, String& name, String& t
         }
         fclose(_recFile);
     }
-
-    //KB
-    _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
-    _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
-    if (_uses) delete[] _uses;
-
-    if (_idx != -1)
+    int tries = 5;
+    while (tries >= 0)
     {
-        _idx = KnowledgeBase.TypeOffsets[_idx].NamId;
-        if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo))
+        tries--;
+        //KB
+        _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
+        _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
+        if (_uses) delete[] _uses;
+
+        if (_idx != -1)
         {
-            if (_tInfo.FieldsNum)
+            _idx = KnowledgeBase.TypeOffsets[_idx].NamId;
+            if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo))
             {
-                p = _tInfo.Fields;
-                for (n = 0; n < _tInfo.FieldsNum; n++)
+                if (_tInfo.FieldsNum)
                 {
-                    ps = p;
-                    p++;//scope
-                    Ofs1 = *((int*)p); p += 4;//offset
-                    p += 4;//case
-                    _len = *((WORD*)p); p += _len + 3;//name
-                    _len = *((WORD*)p); p += _len + 3;//type
-                    if (n == _tInfo.FieldsNum - 1)
+                    p = _tInfo.Fields;
+                    for (n = 0; n < _tInfo.FieldsNum; n++)
                     {
-                        Ofs2 = 0x7FFFFFFF;
-                    }
-                    else
-                    {
-                        Ofs2 = *((int*)(p + 1));
-                    }
-                    if (AOfs >= Ofs1 && AOfs < Ofs2)
-                    {
-                        p = ps;
+                        ps = p;
                         p++;//scope
                         Ofs1 = *((int*)p); p += 4;//offset
                         p += 4;//case
-                        _len = *((WORD*)p); p += 2;
-                        name = String(p, _len); p += _len + 1;
-                        _len = *((WORD*)p); p += 2;
-                        type = String(p, _len);
-                        return Ofs1;
+                        _len = *((WORD*)p); p += _len + 3;//name
+                        _len = *((WORD*)p); p += _len + 3;//type
+                        if (n == _tInfo.FieldsNum - 1)
+                        {
+                            Ofs2 = 0x7FFFFFFF;
+                        }
+                        else
+                        {
+                            Ofs2 = *((int*)(p + 1));
+                        }
+                        if (AOfs >= Ofs1 && AOfs < Ofs2)
+                        {
+                            p = ps;
+                            p++;//scope
+                            Ofs1 = *((int*)p); p += 4;//offset
+                            p += 4;//case
+                            _len = *((WORD*)p); p += 2;
+                            name = String(p, _len); p += _len + 1;
+                            _len = *((WORD*)p); p += 2;
+                            type = String(p, _len);
+                            return Ofs1;
+                        }
                     }
                 }
-            }
-            else if (_tInfo.Decl != "")
-            {
-                Ofs = GetRecordField(_tInfo.Decl, AOfs, name, type);
-                if (Ofs >= 0)
-                    return Ofs;
+                else if (_tInfo.Decl != "")
+                {
+                    ARecType = _tInfo.Decl;
+                    //Ofs = GetRecordField(_tInfo.Decl, AOfs, name, type);
+                    //if (Ofs >= 0)
+                    //    return Ofs;
+                }
             }
         }
     }
@@ -11831,6 +11840,10 @@ int __fastcall TFMain_11011981::GetField(String TypeName, int Offset, String& na
                 Offset -= ofs;
             }
             continue;
+        }
+        if (kind == ikArray || kind == ikDynArray)
+        {
+            break;
         }
     }
     return Offset;
@@ -13218,13 +13231,16 @@ void __fastcall TFMain_11011981::lbCodeClick(TObject *Sender)
     String text = lbCode->Items->Strings[lbCode->ItemIndex];
     int textLen = text.Length();
 
-    int x = lbCode->ScreenToClient(Mouse->CursorPos).x;
+    TPoint cursorPos;
+    GetCursorPos(&cursorPos);
+    cursorPos = lbCode->ScreenToClient(cursorPos);
     for (int n = 1, wid = 0; n <= textLen; n++)
     {
-        if (wid >= x)
+        int cwid = lbCode->Canvas->TextWidth(text[n]);
+        if (wid > cursorPos.x)
         {
             char c;
-            int beg = n;
+            int beg = n - 1;
             while (beg >= 1)
             {
                 c = text[beg];
@@ -13249,7 +13265,7 @@ void __fastcall TFMain_11011981::lbCodeClick(TObject *Sender)
             SelectedAsmItem = text.SubString(beg, end - beg + 1);
             break;
         }
-        wid += lbCode->Canvas->TextWidth(text[n]);
+        wid += cwid;
     }
     if (SelectedAsmItem != prevItem) lbCode->Invalidate();
 }
@@ -13455,8 +13471,79 @@ void __fastcall TFMain_11011981::miProcessDumperClick(TObject *Sender)
     FActiveProcesses->ShowModal();
 }
 //---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::lbSourceCodeClick(TObject *Sender)
+{
+    WhereSearch = SEARCH_SOURCEVIEWER;
 
+    if (lbSourceCode->ItemIndex <= 0) return;
 
+    String prevItem = SelectedSourceItem;
+    SelectedSourceItem = "";
+    String text = lbSourceCode->Items->Strings[lbSourceCode->ItemIndex];
+    int textLen = text.Length();
 
+    TPoint cursorPos;
+    GetCursorPos(&cursorPos);
+    cursorPos = lbSourceCode->ScreenToClient(cursorPos);
 
+    for (int n = 1, wid = 0; n <= textLen; n++)
+    {
+        int cwid = lbSourceCode->Canvas->TextWidth(text[n]);
+        if (wid > cursorPos.x)
+        {
+            char c;
+            int beg = n - 1;
+            while (beg >= 1)
+            {
+                c = text[beg];
+                if (!isalpha(c) && !isdigit(c) && c != '_' && c != '.')
+                {
+                    beg++;
+                    break;
+                }
+                beg--;
+            }
+            int end = beg;
+            while (end <= textLen)
+            {
+                c = text[end];
+                if (!isalpha(c) && !isdigit(c) && c != '_' && c != '.')
+                {
+                    end--;
+                    break;
+                }
+                end++;
+            }
+            SelectedSourceItem = text.SubString(beg, end - beg + 1);
+            break;
+        }
+        wid += cwid;
+    }
+    if (SelectedSourceItem != prevItem) lbSourceCode->Invalidate();
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::miSetlvartypeClick(TObject *Sender)
+{
+    PInfoRec recN = GetInfoRec(CurProcAdr);
+    PLOCALINFO pLocInfo = recN->procInfo->GetLocal(SelectedSourceItem);
+    if (recN && recN->procInfo->locals && SelectedSourceItem != "")
+    {
+        String ftype = InputDialogExec("Enter Type of " + SelectedSourceItem, "Type", pLocInfo->TypeDef).Trim();
+        pLocInfo->TypeDef = ftype;
+        recN->procInfo->SetLocalType(pLocInfo->Ofs, ftype);
+        bDecompileClick(this);
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::pmSourceCodePopup(TObject *Sender)
+{
+    PLOCALINFO  pLocalInfo;
+
+    PInfoRec recN = GetInfoRec(CurProcAdr);
+    if (recN && recN->procInfo->locals && SelectedSourceItem != "")
+        pLocalInfo = recN->procInfo->GetLocal(SelectedSourceItem);
+
+    miSetlvartype->Enabled = (pLocalInfo);
+}
+//---------------------------------------------------------------------------
 

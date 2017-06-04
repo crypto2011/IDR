@@ -512,6 +512,7 @@ __published:	// IDE-managed Components
     TMenuItem *miacFontAll;
     TMenuItem *miDelphiXE4;
     TMenuItem *miProcessDumper;
+    TMenuItem *miSetlvartype;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -698,6 +699,9 @@ __published:	// IDE-managed Components
     void __fastcall miDelphiXE3Click(TObject *Sender);
     void __fastcall miDelphiXE4Click(TObject *Sender);
     void __fastcall miProcessDumperClick(TObject *Sender);
+    void __fastcall lbSourceCodeClick(TObject *Sender);
+    void __fastcall miSetlvartypeClick(TObject *Sender);
+    void __fastcall pmSourceCodePopup(TObject *Sender);
 private:	// User declarations
     bool            ProjectLoaded;
 

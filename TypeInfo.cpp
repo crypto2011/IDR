@@ -839,10 +839,10 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
         break;
     case ikRecord:
         Size = *((DWORD*)(Code + pos)); pos += 4;
+        result = RTTIName + " = record//size=" + Val2Str0(Size);
         elNum = *((DWORD*)(Code + pos)); pos += 4;  //FldCount
         if (elNum)
         {
-            result = RTTIName + " = record//size=" + Val2Str0(Size);
             for (i = 0; i < elNum; i++)
             {
                 typeAdr = *((DWORD*)(Code + pos)); pos += 4;
@@ -864,7 +864,6 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
 
             if (elNum)
             {
-                result = RTTIName + " = record//size=" + Val2Str0(Size);
                 for (i = 0; i < elNum; i++)
                 {
                     //TypeRef
