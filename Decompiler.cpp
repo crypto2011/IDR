@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x006EF863)
+if (_curAdr == 0x00DA40FA)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -3661,11 +3661,11 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                     return SimulateCall(curAdr, callAdr, instrLen, 0, _classAdr);
             }
             //Field
-            if (!GetField(_item.Type, DisInfo.Offset, _name, _type))
+            if (GetField(_item.Type, DisInfo.Offset, _name, _type) < 0)
             {
                 while (!_recM)
                 {
-                    _typeName = ManualInput(CurProcAdr, curAdr, "Class " + _item.Type + " has no such virtual method. Give correct class name", "Name:");
+                    _typeName = ManualInput(CurProcAdr, curAdr, "Class (" + _item.Type + ") has no such virtual method. Give correct class name", "Name:");
                     if (_typeName == "")
                     {
                         Env->ErrAdr = curAdr;
@@ -4585,7 +4585,7 @@ void __fastcall TDecompiler::SimulatePush(DWORD curAdr, bool bShowComment)
                         return;
                     }
                     //push [reg+N]
-                    if (GetField(_typeName, _offset, _name, _type))
+                    if (GetField(_typeName, _offset, _name, _type) >= 0)
                     {
                         InitItem(&_item);
 
@@ -5066,7 +5066,7 @@ void __fastcall TDecompiler::SimulateInstr2RegImm(DWORD curAdr, BYTE Op)
             }
             if (_kind == ikVMT)
             {
-                if (GetField(_item1.Type, DisInfo.Immediate, _name, _type))
+                if (GetField(_item1.Type, DisInfo.Immediate, _name, _type) >= 0)
                 {
                     InitItem(&_item);
 
