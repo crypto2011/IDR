@@ -88,16 +88,12 @@ typedef struct
     String      Name;
 } SegmentInfo, *PSegmentInfo;
 
-/*
 typedef struct
 {
-    DWORD    dwRVAFunctionNameList;
-    DWORD    dwUseless1;
-    DWORD    dwUseless2;
-    DWORD    dwRVAModuleName;
-    DWORD    dwRVAFunctionAddressList;
-} IMAGE_IMPORT_DIRECTORY;
-*/
+    int         caseno;
+    int         count;
+} CaseInfo, *PCaseInfo;
+
 #define cfUndef         0x00000000
 #define cfCode          0x00000001
 #define cfData          0x00000002
@@ -513,6 +509,8 @@ __published:	// IDE-managed Components
     TMenuItem *miDelphiXE4;
     TMenuItem *miProcessDumper;
     TMenuItem *miSetlvartype;
+    TPopupMenu *pmNames;
+    TMenuItem *miCopytoClipboardNames;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -702,6 +700,7 @@ __published:	// IDE-managed Components
     void __fastcall lbSourceCodeClick(TObject *Sender);
     void __fastcall miSetlvartypeClick(TObject *Sender);
     void __fastcall pmSourceCodePopup(TObject *Sender);
+    void __fastcall miCopytoClipboardNamesClick(TObject *Sender);
 private:	// User declarations
     bool            ProjectLoaded;
 
@@ -806,7 +805,6 @@ public:		// User declarations
     DWORD __fastcall FollowInstructions(DWORD fromAdr, DWORD toAdr);
     int __fastcall EstimateProcSize(DWORD fromAdr);
     DWORD __fastcall EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base);
-    int __fastcall GetField(String TypeName, int Offset, String& name, String& type);
     PFIELDINFO __fastcall GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr, String prefix);
     PFIELDINFO __fastcall AddField(DWORD ProcAdr, int ProcOfs, String TypeName, BYTE Scope, int Offset, int Case, String Name, String Type);
     int __fastcall GetMethodOfs(PInfoRec rec, DWORD procAdr);

@@ -603,6 +603,51 @@ int __fastcall GetProcSize(DWORD fromAdr)
 */
 }
 //---------------------------------------------------------------------------
+int __fastcall StrGetRecordSize(String str)
+{
+    int _size = 0;
+    int _bpos = str.Pos("size=");
+    int _epos = str.LastDelimiter("\n");
+    if (_bpos && _epos)
+    {
+        String _sz = str.SubString(_bpos + 5, _epos - _bpos - 5);
+        _size = StrToInt("$" + _sz);
+    }
+    return _size;
+}
+//---------------------------------------------------------------------------
+int __fastcall StrGetRecordFieldOffset(String str)
+{
+    int _offset = -1;
+    int _bpos = str.Pos("//");
+    int _epos = str.LastDelimiter("\n");
+    if (_bpos && _epos)
+    {
+        String _ofs = str.SubString(_bpos + 2, _epos - _bpos - 2);
+        _offset = StrToInt("$" + _ofs);
+    }
+    return _offset;
+}
+//---------------------------------------------------------------------------
+String __fastcall StrGetRecordFieldName(String str)
+{
+    String _name = "";
+    int _pos = str.Pos(":");
+    if (_pos)
+        _name = str.SubString(1, _pos - 1);
+    return _name;
+}
+//---------------------------------------------------------------------------
+String __fastcall StrGetRecordFieldType(String str)
+{
+    String _type = "";
+    int _epos = str.LastDelimiter(";");
+    int _bpos = str.Pos(":");
+    if (_bpos && _epos)
+        _type = str.SubString(_bpos + 1, _epos - _bpos - 1);
+    return _type;
+}
+//---------------------------------------------------------------------------
 int __fastcall GetRecordSize(String AName)
 {
     BYTE        _len;
@@ -610,7 +655,7 @@ int __fastcall GetRecordSize(String AName)
     int         _idx, _pos, _size;
     MTypeInfo   _tInfo;
     PTypeRec    _recT;
-    String      _str;
+    String      _str, _sz;
 
     //File
     String _recFileName = FMain_11011981->WrkDir + "\\types.idr";
@@ -623,13 +668,9 @@ int __fastcall GetRecordSize(String AName)
             _str = String(StringBuf);
             if (_str.Pos(AName + "=") == 1)
             {
-                _pos = _str.Pos("size=");
-                if (_pos)
-                {
-                    sscanf(StringBuf + _pos + 4, "%lX", &_size);
-                    fclose(_recFile);
-                    return _size;
-                }
+                _size = StrGetRecordSize(_str);
+                fclose(_recFile);
+                return _size;
             }
         }
         fclose(_recFile);
@@ -659,21 +700,67 @@ int __fastcall GetRecordSize(String AName)
     return 0;
 }
 //---------------------------------------------------------------------------
-String __fastcall GetRecordFields(int AOfs, String ARecType)
+PFIELDINFO __fastcall GetClassField(String TypeName, int Offset)
 {
+    int         n, Ofs1, Ofs2;
+    DWORD       classAdr, prevClassAdr = 0;
+    PInfoRec    recN;
+    PFIELDINFO	fInfo1, fInfo2;
+
+    classAdr = GetClassAdr(TypeName);
+    while (classAdr && Offset < GetClassSize(classAdr))
+    {
+        prevClassAdr = classAdr;
+        classAdr = GetParentAdr(classAdr);
+    }
+    classAdr = prevClassAdr;
+    if (classAdr)
+    {
+        recN = GetInfoRec(classAdr);
+        if (recN && recN->vmtInfo && recN->vmtInfo->fields)
+        {
+            for (n = 0; n < recN->vmtInfo->fields->Count; n++)
+            {
+                fInfo1 = (PFIELDINFO)recN->vmtInfo->fields->Items[n]; Ofs1 = fInfo1->Offset;
+                if (n == recN->vmtInfo->fields->Count - 1)
+                {
+                    Ofs2 = GetClassSize(classAdr);
+                }
+                else
+                {
+                    fInfo2 = (PFIELDINFO)recN->vmtInfo->fields->Items[n + 1];
+                    Ofs2 = fInfo2->Offset;
+                }
+                if (Offset >= Ofs1 && Offset < Ofs2)
+                {
+                    return fInfo1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+//---------------------------------------------------------------------------
+int __fastcall GetRecordField(String ARecType, int AOfs, String& name, String& type)
+{
+    bool        _brk;
     BYTE        _len, _numOps, _kind;
-    char        *p;
-    WORD        _dw, _len1;
+    char        *p, *ps;
+    WORD        _dw;
     WORD        *_uses;
-    int         i, k, _idx, _pos, _elNum, _elOfs,  _size, _case, _offset;
+    int         n, m, k, _idx, _pos, _elNum, Ofs, Ofs1, Ofs2, _case, _fieldsNum, _size;
     DWORD       _typeAdr;
     PTypeRec    _recT;
     MTypeInfo   _tInfo;
-    String      _str, _name, _typeName, _result = "";
+    String      _str, _prevstr, _name, _typeName, _ofs, _sz, _result = "";
+    int         _fieldOfsets[1024];
+    CaseInfo    _cases[256];
 
-    if (ARecType == "") return _result;
+    if (ARecType == "") return -1;
 
-    _pos = ARecType.Pos(".");
+    name = ""; type = "";
+
+    _pos = ARecType.LastDelimiter(".");
     if (_pos > 1 && ARecType[_pos + 1] != ':')
         ARecType = ARecType.SubString(_pos + 1, ARecType.Length());
 
@@ -688,28 +775,41 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
             _str = String(StringBuf);
             if (_str.Pos(ARecType + "=") == 1)
             {
+                _size = StrGetRecordSize(_str);
+
+                _prevstr = ""; _brk = false;
+                //Ofs2 = _size;
                 while (1)
                 {
                     if (!fgets(StringBuf, 1024, _recFile)) break;
                     _str = String(StringBuf);
-                    if (_str.Pos("end;")) break;
-                    if (_str.Pos("//" + Val2Str0(AOfs)))
+                    Ofs1 = StrGetRecordFieldOffset(_prevstr);
+                    if (_str.Pos("end;"))
                     {
-                        _result = _str;
-                        _pos = _result.LastDelimiter(";");
-                        if (_pos) _result.SetLength(_pos - 1);
-                        fclose(_recFile);
-                        return _result;
+                        Ofs2 = _size;
+                        _brk = true;
                     }
+                    else
+                        Ofs2 = StrGetRecordFieldOffset(_str);
+                    if (Ofs1 >= 0 && AOfs >= Ofs1 && AOfs < Ofs2)
+                    {
+                        name = StrGetRecordFieldName(_prevstr);
+                        type = StrGetRecordFieldType(_prevstr);
+                        fclose(_recFile);
+                        return Ofs1;
+                    }
+                    if (_brk) break;
+                    _prevstr = _str;
                 }
+                fclose(_recFile);
             }
         }
         fclose(_recFile);
     }
-
     int tries = 5;
-    while (tries-- >= 0)
+    while (tries >= 0)
     {
+        tries--;
         //KB
         _uses = KnowledgeBase.GetTypeUses(ARecType.c_str());
         _idx = KnowledgeBase.GetTypeIdxByModuleIds(_uses, ARecType.c_str());
@@ -722,45 +822,78 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
             {
                 if (_tInfo.FieldsNum)
                 {
+                    memset(_cases, 0, 256 * sizeof(CaseInfo));
                     p = _tInfo.Fields;
-                    for (k = 0; k < _tInfo.FieldsNum; k++)
+                    for (m = 0, n = 0; n < _tInfo.FieldsNum; n++)
                     {
-                        //Scope
-                        p++;
-                        _offset = *((int*)p); p += 4;
-                        _case = *((int*)p); p += 4;
-                        //Name
-                        _len1 = *((WORD*)p); p += 2;
-                        _name = String((char*)p, _len1); p += _len1 + 1;
-                        //Type
-                        _len1 = *((WORD*)p); p += 2;
-                        _typeName = TrimTypeName(String((char*)p, _len1)); p += _len1 + 1;
-                        _kind = GetTypeKind(_typeName, &_size);
-                        if (_kind == ikRecord)
+                        p++;//scope
+                        p += 4;//offset
+                        _case = *((int*)p); p += 4;//case
+                        if (!_cases[m].count)
                         {
-                            _size = GetRecordSize(_typeName);
-                            if (AOfs >= _offset && AOfs < _offset + _size)
-                                _result += _name + "." + GetRecordFields(AOfs - _offset, _typeName);
+                            _cases[m].caseno = _case;
                         }
-                        else if (AOfs >= _offset && AOfs < _offset + _size)
+                        else if (_cases[m].caseno != _case)
                         {
-                            if (_size > 4)
-                                _result = _name + "+" + String(AOfs - _elOfs) + ":" + _typeName;
-                            else
-                                _result = _name + ":" + _typeName;
+                            m++;
+                            _cases[m].caseno = _case;
                         }
-                        if (_result != "") return _result;
+                        _cases[m].count++;
+                        _len = *((WORD*)p); p += _len + 3;//name
+                        _len = *((WORD*)p); p += _len + 3;//type
+                    }
+
+                    for (m = 0; m < 256; m++)
+                    {
+                        if (_cases[m].count)
+                        {
+                            p = _tInfo.Fields;
+                            for (n = 0, k = 0; n < _tInfo.FieldsNum; n++)
+                            {
+                                ps = p;
+                                p++;//scope
+                                Ofs1 = *((int*)p); p += 4;//offset
+                                _case = *((int*)p); p += 4;//case
+                                _len = *((WORD*)p); p += _len + 3;//name
+                                _len = *((WORD*)p); p += _len + 3;//type
+                                if (_case == _cases[m].caseno)
+                                {
+                                    if (k == _cases[m].count - 1)
+                                    {
+                                        Ofs2 = GetRecordSize(ARecType);
+                                    }
+                                    else
+                                    {
+                                        Ofs2 = *((int*)(p + 1));
+                                    }
+                                    if (AOfs >= Ofs1 && AOfs < Ofs2)
+                                    {
+                                        p = ps;
+                                        p++;//scope
+                                        Ofs1 = *((int*)p); p += 4;//offset
+                                        p += 4;//case
+                                        _len = *((WORD*)p); p += 2;
+                                        name = String(p, _len); p += _len + 1;
+                                        _len = *((WORD*)p); p += 2;
+                                        type = String(p, _len); p += _len + 1;
+                                        return Ofs1;
+                                    }
+                                    k++;
+                                }
+                            }
+                        }
                     }
                 }
                 else if (_tInfo.Decl != "")
                 {
                     ARecType = _tInfo.Decl;
-                    //_result = GetRecordFields(AOfs, _tInfo.Decl);
+                    //Ofs = GetRecordField(_tInfo.Decl, AOfs, name, type);
+                    //if (Ofs >= 0)
+                    //    return Ofs;
                 }
             }
         }
     }
-    //if (_result != "") return _result;
     //RTTI
     _recT = GetOwnTypeByName(ARecType);
     if (_recT && _recT->kind == ikRecord)
@@ -768,72 +901,125 @@ String __fastcall GetRecordFields(int AOfs, String ARecType)
         _pos = Adr2Pos(_recT->adr);
         _pos += 4;//SelfPtr
         _pos++;//TypeKind
-        _len = Code[_pos]; _pos += _len + 1;//Name
+        _len = Code[_pos]; _pos++;
+        _name = String((char*)(Code + _pos), _len); _pos += _len;//Name
         _pos += 4;//Size
         _elNum = *((DWORD*)(Code + _pos)); _pos += 4;
-        for (i = 0; i < _elNum; i++)
+        for (n = 0; n < _elNum; n++)
         {
             _typeAdr = *((DWORD*)(Code + _pos)); _pos += 4;
-            _elOfs = *((DWORD*)(Code + _pos)); _pos += 4;
-            _typeName = GetTypeName(_typeAdr);
-            _kind = GetTypeKind(_typeName, &_size);
-            if (_kind == ikRecord)
+            Ofs1 = *((DWORD*)(Code + _pos)); _pos += 4;
+            if (n == _elNum - 1)
+                Ofs2 = 0;
+            else
+                Ofs2 = *((DWORD*)(Code + _pos + 4));
+            if (AOfs >= Ofs1 && AOfs < Ofs2)
             {
-                _size = GetRecordSize(_typeName);
-                if (AOfs >= _elOfs && AOfs < _elOfs + _size)
-                    _result = "f" + Val2Str0(_elOfs) + "." + GetRecordFields(AOfs - _elOfs, _typeName);
+                name = _name + ".f" + Val2Str0(Ofs1);
+                type = GetTypeName(_typeAdr);
+                return Ofs1;
             }
-            else if (AOfs >= _elOfs && AOfs < _elOfs + _size)
-            {
-                if (_size > 4)
-                    _result = "f" + Val2Str0(_elOfs) + "+" + String(AOfs - _elOfs) + ":" + _typeName;
-                else
-                    _result = "f" + Val2Str0(_elOfs) + ":" + _typeName;
-            }
+
         }
         if (DelphiVersion >= 2010)
         {
             //NumOps
             _numOps = Code[_pos]; _pos++;
-            for (i = 0; i < _numOps; i++)    //RecOps
+            for (n = 0; n < _numOps; n++)    //RecOps
             {
                 _pos += 4;
             }
             _elNum = *((DWORD*)(Code + _pos)); _pos += 4;  //RecFldCnt
 
-            for (i = 0; i < _elNum; i++)
+            for (n = 0; n < _elNum; n++)
             {
-                //TypeRef
                 _typeAdr = *((DWORD*)(Code + _pos)); _pos += 4;
-                //FldOffset
-                _elOfs = *((DWORD*)(Code + _pos)); _pos += 4;
-                //Flags
-                _pos++;
-                //Name
+                Ofs1 = *((DWORD*)(Code + _pos)); _pos += 4;
+                _pos++;//Flags
                 _len = Code[_pos]; _pos++;
                 _name = String((char*)(Code + _pos), _len); _pos += _len;
-                _typeName = GetTypeName(_typeAdr);
-                _kind = GetTypeKind(_typeName, &_size);
-                if (_kind == ikRecord)
-                {
-                    _size = GetRecordSize(_typeName);
-                    if (AOfs >= _elOfs && AOfs < _elOfs + _size)
-                        _result = _name + "." + GetRecordFields(AOfs - _elOfs, _typeName);
-                }
-                else if (AOfs >= _elOfs && AOfs < _elOfs + _size)
-                {
-                    if (_size > 4)
-                        _result = _name + "+" + String(AOfs - _elOfs) + ":" + _typeName;
-                    else
-                        _result = _name + ":" + _typeName;
-                }
                 //AttrData
                 _dw = *((WORD*)(Code + _pos));
                 _pos += _dw;//ATR!!
+
+                if (n == _elNum - 1)
+                    Ofs2 = 0;
+                else
+                    Ofs2 = *((DWORD*)(Code + _pos + 4));
+
+                if (AOfs >= Ofs1 && AOfs < Ofs2)
+                {
+                    if (_name != "")
+                        name = _name;
+                    else
+                        name = "f" + Val2Str0(Ofs1);
+                    type = GetTypeName(_typeAdr);
+                    return Ofs1;
+                }
             }
         }
     }
-    return _result;
+    return -1;
+}
+//---------------------------------------------------------------------------
+int __fastcall GetField(String TypeName, int Offset, String& name, String& type)
+{
+    int         size, kind, ofs;
+    PFIELDINFO	fInfo;
+    String      _fname, _ftype, _type = TypeName;
+
+    _fname = ""; _ftype = "";
+
+    while (Offset >= 0)
+    {
+        kind = GetTypeKind(_type, &size);
+        if (kind != ikVMT && kind != ikArray && kind != ikRecord && kind != ikDynArray) break;
+        
+        if (kind == ikVMT)
+        {
+            if (!Offset) return 0;
+            fInfo = GetClassField(_type, Offset);
+            if (name != "")
+                name += ".";
+            if (fInfo->Name != "")
+                name += fInfo->Name;
+            else
+                name += "f" + IntToHex((int)Offset, 0);
+            type = fInfo->Type;
+
+            _type = fInfo->Type;
+            Offset -= fInfo->Offset;
+            //if (!Offset) return fInfo->Offset;
+            continue;
+        }
+        if (kind == ikRecord)
+        {
+            ofs = GetRecordField(_type, Offset, _fname, _ftype);
+            if (ofs == -1) return -1;
+            if (name != "")
+                name += ".";
+            name += _fname;
+            type = _ftype;
+
+            _type = _ftype;
+            Offset -= ofs;
+            //if (!Offset) return ofs;
+            continue;
+        }
+        if (kind == ikArray || kind == ikDynArray)
+        {
+            break;
+        }
+    }
+    return Offset;
+}
+//---------------------------------------------------------------------------
+String __fastcall GetRecordFields(int AOfs, String ARecType)
+{
+    String      _name, _typeName;
+
+    if (ARecType == "" || GetField(ARecType, AOfs, _name, _typeName) < 0) return "";
+    return _name + ":" + _typeName;
 }
 //---------------------------------------------------------------------------
 String __fastcall GetAsmRegisterName(int Idx)
@@ -1347,7 +1533,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
     int         pos, idx = -1, kind;
     WORD*       uses;
     MTypeInfo   tInfo;
-    String      name, typeName, str;
+    String      name, typeName, str, sz;
 
     *size = 4;
     if (AName != "")
@@ -1440,6 +1626,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
                 {
                     if (str.Pos("=record"))
                     {
+                        *size = StrGetRecordSize(str);
                         fclose(recFile);
                         return ikRecord;
                     }

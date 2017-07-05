@@ -5,11 +5,12 @@
 #include "Main.h"
 //---------------------------------------------------------------------------
 //Precedence of operations
-#define     PRECEDENCE_ATOM     8
-#define     PRECEDENCE_NOT      4   //@,not
-#define     PRECEDENCE_MULT     3   //*,/,div, mod,and,shl,shr,as
-#define     PRECEDENCE_ADD      2   //+,-,or,xor
-#define     PRECEDENCE_CMP      1   //=,<>,<,>,<=,>=,in,is
+#define     PRECEDENCE_ATOM     24
+#define     PRECEDENCE_UNARY    16
+#define     PRECEDENCE_MULT     15  //*,/,div, mod,and,shl,shr,as
+#define     PRECEDENCE_ADD      14  //+,-,or,xor
+#define     PRECEDENCE_NOT      6   //@,not
+#define     PRECEDENCE_CMP      9   //=,<>,<,>,<=,>=,in,is
 #define     PRECEDENCE_NONE     0
 
 #define     TAB_SIZE            2
@@ -182,6 +183,7 @@ typedef struct
     DWORD   adr;
     REGS    gregs;  //general registers
     REGS    fregs;  //float point registers
+    REGS    fregsd; //float point registers (copy)
 } DCONTEXT, *PDCONTEXT;
 
 class TDecompiler;
@@ -297,7 +299,7 @@ public:
     void __fastcall SetRegItem(int Idx, PITEM Val);
     void __fastcall SetStop(DWORD Adr);
     bool __fastcall SimulateCall(DWORD curAdr, DWORD callAdr, int instrLen, PMethodRec recM, DWORD AClassAdr);
-    void __fastcall SimulateFloatInstruction(DWORD curAdr, int instrLen);
+    void __fastcall SimulateFloatInstruction(DWORD curAdr);
     void __fastcall SimulateFormatCall();
     void __fastcall SimulateInherited(DWORD procAdr);
     void __fastcall SimulateInstr1(DWORD curAdr, BYTE Op);
@@ -311,7 +313,7 @@ public:
     void __fastcall SimulatePop(DWORD curAdr);
     void __fastcall SimulatePush(DWORD curAdr, bool bShowComment);
     bool __fastcall SimulateSysCall(String name, DWORD procAdr, int instrLen);
-    int __fastcall AnalyzeConditions(int brType, DWORD curAdr, DWORD sAdr, DWORD jAdr, PLoopInfo loopInfo);
+    int __fastcall AnalyzeConditions(int brType, DWORD curAdr, DWORD sAdr, DWORD jAdr, PLoopInfo loopInfo, BOOL bFloat);
 };
 //---------------------------------------------------------------------------
 #endif

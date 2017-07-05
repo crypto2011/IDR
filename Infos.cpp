@@ -557,17 +557,13 @@ void __fastcall InfoProcInfo::SetLocalType(int Ofs, String TypeDef)
                             if (!fgets(StringBuf, 1024, recFile)) break;
                             str = String(StringBuf);
                             if (str.Pos("end;")) break;
-                            int pos2 = str.Pos("//");
-                            if (pos2)
+                            if (str.Pos("//"))
                             {
-                                String ofs = str.SubString(pos2 + 2, str.Length());
-                                int pos1 = str.Pos(":");
-                                if (pos1)
-                                {
-                                    String name = str.SubString(1, pos1 - 1);
-                                    String type = str.SubString(pos1 + 1, pos2 - pos1 - 1);
-                                    AddLocal(StrToInt("$" + ofs) + Ofs, 1, fname + "." + name, type);
-                                }
+                                int ofs = StrGetRecordFieldOffset(str);
+                                String name = StrGetRecordFieldName(str);
+                                String type = StrGetRecordFieldType(str);
+                                if (ofs >= 0)
+                                    AddLocal(ofs + Ofs, 1, fname + "." + name, type);
                             }
                         }
                     }

@@ -73,6 +73,10 @@ String __fastcall GetParentName(const String& ClassName);
 int __fastcall GetParentSize(DWORD Adr);
 int __fastcall GetProcRetBytes(MProcInfo* pInfo);
 int __fastcall GetProcSize(DWORD fromAdr);
+int __fastcall StrGetRecordSize(String str);
+int __fastcall StrGetRecordFieldOffset(String str);
+String __fastcall StrGetRecordFieldName(String str);
+String __fastcall StrGetRecordFieldType(String str);
 int __fastcall GetRecordSize(String AName);
 String __fastcall GetRecordFields(int AOfs, String AType);
 String __fastcall GetAsmRegisterName(int Idx);
@@ -151,5 +155,9 @@ int __fastcall IsTryBegin(DWORD fromAdr, DWORD* endAdr);
 int __fastcall IsTryBegin0(DWORD fromAdr, DWORD* endAdr);
 int __fastcall IsTryEndPush(DWORD fromAdr, DWORD* endAdr);
 int __fastcall IsTryEndJump(DWORD fromAdr, DWORD* endAdr);
+
+PFIELDINFO __fastcall GetClassField(String TypeName, int Offset);
+int __fastcall GetRecordField(String ARecType, int AOfs, String& name, String& type);
+int __fastcall GetField(String TypeName, int Offset, String& name, String& type);
 //---------------------------------------------------------------------------
 #endif

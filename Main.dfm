@@ -1,6 +1,6 @@
 object FMain_11011981: TFMain_11011981
-  Left = 212
-  Top = 37
+  Left = 203
+  Top = 77
   Width = 1033
   Height = 914
   Caption = 'Interactive Delphi Reconstructor'
@@ -54,9 +54,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 764
     Height = 706
-    ActivePage = tsCodeView
+    ActivePage = tsNames
     Align = alClient
-    TabIndex = 0
+    TabIndex = 3
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -390,6 +390,7 @@ object FMain_11011981: TFMain_11011981
         Font.Style = []
         ItemHeight = 15
         ParentFont = False
+        PopupMenu = pmNames
         TabOrder = 0
         OnClick = lbNamesClick
       end
@@ -1194,8 +1195,8 @@ object FMain_11011981: TFMain_11011981
   object pmUnitItems: TPopupMenu
     AutoHotkeys = maManual
     OnPopup = pmUnitItemsPopup
-    Left = 560
-    Top = 104
+    Left = 544
+    Top = 96
     object miSearchItem: TMenuItem
       Caption = 'Search Item'
       Enabled = False
@@ -1287,7 +1288,7 @@ object FMain_11011981: TFMain_11011981
   end
   object pmSourceCode: TPopupMenu
     OnPopup = pmSourceCodePopup
-    Left = 464
+    Left = 504
     Top = 96
     object miCopySource2Clipboard: TMenuItem
       Caption = 'Copy to Clipboard'
@@ -1296,6 +1297,14 @@ object FMain_11011981: TFMain_11011981
     object miSetlvartype: TMenuItem
       Caption = 'Set lvar type'
       OnClick = miSetlvartypeClick
+    end
+  end
+  object pmNames: TPopupMenu
+    Left = 464
+    Top = 96
+    object miCopytoClipboardNames: TMenuItem
+      Caption = 'Copy to Clipboard'
+      OnClick = miCopytoClipboardNamesClick
     end
   end
 end
