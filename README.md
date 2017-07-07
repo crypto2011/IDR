@@ -24,7 +24,7 @@ The program does not require any installation activity and does not do any recor
 **Use Embarcadero C++ Builder 10.2 Tokyo to build this project.**
 
 # Embarcadero C++ Builder 10.2 Tokyo Version
-###*State:* **Testing**
+### *State:* **Testing**
 ## Notes
 ```Bins``` directory is used for all .bin files
 ## To-Do List
