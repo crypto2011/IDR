@@ -20,4 +20,14 @@ trojans and other malware applications, those which executing is dangerous or is
 
 The program does not require any installation activity and does not do any records in Windows registry.
 
-Use Borland C++ Builder 6 to build this project.
+~~Use Borland C++ Builder 6 to build this project.~~
+**Use Embarcadero C++ Builder 10.2 Tokyo to build this project.**
+
+# Embarcadero C++ Builder 10.2 Tokyo Version
+###*State:* **Testing**
+## Notes
+```Bins``` directory is used for all .bin files
+## To-Do List
+ * Make previews of forms work
+ * Make process dumper work
+ * Test all!!
