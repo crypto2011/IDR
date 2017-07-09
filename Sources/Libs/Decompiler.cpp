@@ -3264,7 +3264,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
 										_line += "'" + String((char*)(Code + Adr2Pos(_item.IntValue))) + "'";
 										}
 										else if (_kind == ikLString)
-										_line += TransformString(Code + Adr2Pos(_item.IntValue), -1);
+										_line += TransformString((char*)(Code + Adr2Pos(_item.IntValue)), -1);
 										else
 										_line += TransformUString(CP_ACP, (wchar_t*)(Code + Adr2Pos(_item.IntValue)), -1);
 									}
@@ -6783,7 +6783,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
 				else
 					// Fix it!!!
 					// Add analyze of String type
-						CmpInfo.R = TransformString(Code + Adr2Pos(_item2.IntValue), -1);
+						CmpInfo.R = TransformString((char*)(Code + Adr2Pos(_item2.IntValue)), -1);
 			}
 		}
 		else {

@@ -18,6 +18,8 @@
 #include "Resources.h"
 #include "Infos.h"
 #include "UFileDropper.h"
+
+#include "PEHeader.h"
 // ---------------------------------------------------------------------------
 #define USER_KNOWLEDGEBASE      0x80000000
 #define SOURCE_LIBRARY          0x40000000
@@ -744,7 +746,7 @@ private: // User declarations
 
 public: // User declarations
 	String AppDir;
-    String BinsDir;
+	String BinsDir;
 	String WrkDir;
 	String SourceFile;
 	int SysProcsNum; // Number of elements in SysProcs array
@@ -787,7 +789,6 @@ public: // User declarations
 	void __fastcall ClearPassFlags();
 	DWORD __fastcall FollowInstructions(DWORD fromAdr, DWORD toAdr);
 	int __fastcall EstimateProcSize(DWORD fromAdr);
-	DWORD __fastcall EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base);
 	int __fastcall GetField(String TypeName, int Offset, String& name, String& type);
 	PFIELDINFO __fastcall GetField(String TypeName, int Offset, bool* vmt, DWORD* vmtAdr, String prefix);
 	PFIELDINFO __fastcall AddField(DWORD ProcAdr, int ProcOfs, String TypeName, BYTE Scope, int Offset, int Case, String Name, String Type);
