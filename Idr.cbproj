@@ -267,6 +267,10 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Libs\Resources.h</DependentOn>
             <BuildOrder>9</BuildOrder>
         </CppCompile>
+        <CppCompile Include="Sources\Libs\Singleton.cpp">
+            <DependentOn>Sources\Libs\Singleton.h</DependentOn>
+            <BuildOrder>30</BuildOrder>
+        </CppCompile>
         <CppCompile Include="Sources\Libs\Threads.cpp">
             <DependentOn>Sources\Libs\Threads.h</DependentOn>
             <BuildOrder>27</BuildOrder>
