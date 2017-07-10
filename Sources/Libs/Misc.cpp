@@ -720,7 +720,7 @@ String __fastcall GetRecordFields(int AOfs, String ARecType) {
 			_idx = KnowledgeBase.TypeOffsets[_idx].NamId;
 			if (KnowledgeBase.GetTypeInfo(_idx, INFO_FIELDS, &_tInfo)) {
 				if (_tInfo.FieldsNum) {
-					p = _tInfo.Fields;
+					p = (char*)_tInfo.Fields;
 					for (k = 0; k < _tInfo.FieldsNum; k++) {
 						// Scope
 						p++;
@@ -1073,7 +1073,7 @@ bool __fastcall IsInheritsByProcName(const String& Name1, const String& Name2) {
 // ---------------------------------------------------------------------------
 String __fastcall TransformString(char* str, int len) {
 	bool s = true; // true - print string, false - print #XX
-	BYTE c, *p = str;
+	BYTE c, *p = (BYTE*)str;
 	String res = "";
 
 	for (int k = 0; k < len; k++) {

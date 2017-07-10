@@ -2,7 +2,7 @@ object FMain_11011981: TFMain_11011981
   Left = 907
   Top = 55
   Caption = 'Interactive Delphi Reconstructor'
-  ClientHeight = 815
+  ClientHeight = 755
   ClientWidth = 1017
   Color = clBtnFace
   DefaultMonitor = dmDesktop
@@ -26,7 +26,7 @@ object FMain_11011981: TFMain_11011981
   TextHeight = 13
   object SplitterH1: TSplitter
     Left = 0
-    Top = 665
+    Top = 605
     Width = 1017
     Height = 4
     Cursor = crVSplit
@@ -41,7 +41,7 @@ object FMain_11011981: TFMain_11011981
   object SplitterV1: TSplitter
     Left = 250
     Top = 0
-    Height = 665
+    Height = 605
     AutoSnap = False
     Beveled = True
     Color = clGray
@@ -53,7 +53,7 @@ object FMain_11011981: TFMain_11011981
     Left = 253
     Top = 0
     Width = 764
-    Height = 665
+    Height = 605
     ActivePage = tsCodeView
     Align = alClient
     TabOrder = 1
@@ -64,7 +64,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 612
+        Height = 552
         Cursor = crIBeam
         Style = lbOwnerDrawFixed
         AutoComplete = False
@@ -187,7 +187,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 612
+        Height = 552
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -216,7 +216,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 617
+        Height = 557
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -261,7 +261,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 597
+        Height = 537
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -288,12 +288,12 @@ object FMain_11011981: TFMain_11011981
       ExplicitLeft = 0
       ExplicitTop = 0
       ExplicitWidth = 0
-      ExplicitHeight = 677
+      ExplicitHeight = 0
       object lbStrings: TListBox
         Left = 0
         Top = 25
         Width = 646
-        Height = 652
+        Height = 572
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -320,7 +320,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 806
+          Left = 644
           Top = 1
           Width = 111
           Height = 23
@@ -335,7 +335,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 612
+        Height = 552
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -363,8 +363,8 @@ object FMain_11011981: TFMain_11011981
       object sgItems: TStringGrid
         Left = 0
         Top = 0
-        Width = 657
-        Height = 363
+        Width = 756
+        Height = 597
         Align = alClient
         DefaultRowHeight = 16
         FixedCols = 0
@@ -388,12 +388,12 @@ object FMain_11011981: TFMain_11011981
       ExplicitLeft = 0
       ExplicitTop = 0
       ExplicitWidth = 0
-      ExplicitHeight = 677
+      ExplicitHeight = 0
       object lbNames: TListBox
         Left = 0
         Top = 25
         Width = 646
-        Height = 652
+        Height = 572
         AutoComplete = False
         Align = alClient
         Anchors = []
@@ -430,7 +430,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 612
+        Height = 552
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -459,12 +459,12 @@ object FMain_11011981: TFMain_11011981
       ExplicitLeft = 0
       ExplicitTop = 0
       ExplicitWidth = 0
-      ExplicitHeight = 677
+      ExplicitHeight = 0
       object lbSourceCode: TListBox
         Left = 0
         Top = 0
         Width = 756
-        Height = 664
+        Height = 589
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -486,7 +486,7 @@ object FMain_11011981: TFMain_11011981
     Left = 0
     Top = 0
     Width = 250
-    Height = 665
+    Height = 605
     ActivePage = tsRTTIs
     Align = alLeft
     TabOrder = 0
@@ -496,12 +496,12 @@ object FMain_11011981: TFMain_11011981
       ExplicitLeft = 0
       ExplicitTop = 0
       ExplicitWidth = 0
-      ExplicitHeight = 677
+      ExplicitHeight = 0
       object lbUnits: TListBox
         Left = 0
         Top = 0
         Width = 242
-        Height = 677
+        Height = 597
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -531,7 +531,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 242
-        Height = 637
+        Height = 577
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -556,10 +556,10 @@ object FMain_11011981: TFMain_11011981
       ExplicitLeft = 0
       ExplicitTop = 0
       ExplicitWidth = 0
-      ExplicitHeight = 677
+      ExplicitHeight = 0
       object Splitter1: TSplitter
         Left = 0
-        Top = 503
+        Top = 423
         Width = 242
         Height = 4
         Cursor = crVSplit
@@ -567,6 +567,7 @@ object FMain_11011981: TFMain_11011981
         Color = clGray
         MinSize = 3
         ParentColor = False
+        ExplicitTop = 503
       end
       object Panel2: TPanel
         Left = 0
@@ -595,7 +596,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 242
-        Height = 463
+        Height = 383
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -616,12 +617,12 @@ object FMain_11011981: TFMain_11011981
       end
       object Panel4: TPanel
         Left = 0
-        Top = 467
+        Top = 407
         Width = 242
         Height = 170
         Align = alBottom
         TabOrder = 2
-        ExplicitTop = 507
+        ExplicitTop = 427
         object lbAliases: TListBox
           Left = 1
           Top = 1
@@ -702,7 +703,7 @@ object FMain_11011981: TFMain_11011981
   end
   object lbUnitItems: TListBox
     Left = 0
-    Top = 669
+    Top = 609
     Width = 1017
     Height = 146
     TabStop = False

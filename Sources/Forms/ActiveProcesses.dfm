@@ -2,9 +2,9 @@ object FActiveProcesses: TFActiveProcesses
   Left = 390
   Top = 440
   BorderStyle = bsSingle
-  Caption = 'Active Processes'
+  Caption = 'Active Processes (x86)'
   ClientHeight = 310
-  ClientWidth = 792
+  ClientWidth = 640
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,60 +16,59 @@ object FActiveProcesses: TFActiveProcesses
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object btnDump: TButton
-    Left = 171
-    Top = 286
-    Width = 61
-    Height = 20
-    Caption = 'Dump'
-    TabOrder = 1
-    OnClick = btnDumpClick
-  end
-  object btnCancel: TButton
-    Left = 561
-    Top = 286
-    Width = 61
-    Height = 20
-    Caption = 'Cancel'
-    TabOrder = 2
-    OnClick = btnCancelClick
-  end
-  object lvProcesses: TListView
+  object ListViewProcesses: TListView
     Left = 0
     Top = 0
-    Width = 792
-    Height = 280
-    Align = alTop
+    Width = 640
+    Height = 310
+    Align = alClient
+    BorderStyle = bsNone
     Columns = <
       item
         Caption = 'PID'
-        Width = 65
       end
       item
         Caption = 'Name'
-        Width = 325
+        Width = 200
       end
       item
         Caption = 'Image Size'
-        Width = 122
+        Width = 120
       end
       item
-        Caption = 'EP'
-        Width = 122
+        Caption = 'Entry Point'
+        Width = 120
       end
       item
-        Caption = 'Base'
-        Width = 122
+        Caption = 'Base Address'
+        Width = 120
       end>
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -12
     Font.Name = 'Courier New'
     Font.Style = []
+    ReadOnly = True
     RowSelect = True
     ParentFont = False
+    PopupMenu = PMProcess
     TabOrder = 0
     ViewStyle = vsReport
-    OnClick = lvProcessesClick
+  end
+  object PMProcess: TPopupMenu
+    OnPopup = PMProcessPopup
+    Left = 40
+    Top = 40
+    object PMProcessDump: TMenuItem
+      Caption = 'Dump'
+      OnClick = PMProcessDumpClick
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object PMProcessRefresh: TMenuItem
+      Caption = 'Refresh'
+      OnClick = PMProcessRefreshClick
+    end
   end
 end

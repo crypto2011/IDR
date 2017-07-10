@@ -66,8 +66,8 @@
         <SanitizedProjectName>Idr</SanitizedProjectName>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
-        <IncludePath>Sources\;$(IncludePath)</IncludePath>
-        <ILINK_LibraryPath>Sources\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+        <IncludePath>Sources\Libs\;Sources\Forms\;Sources\;$(IncludePath)</IncludePath>
+        <ILINK_LibraryPath>Sources\Libs\;Sources\Forms\;Sources\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <DynamicRTL>true</DynamicRTL>
         <PostBuildEvent><![CDATA[XCOPY /Y /E /H "$(PROJECTDIR)\Dll" "$(OUTPUTDIR)"
 $(PostBuildEvent)]]></PostBuildEvent>
@@ -141,14 +141,6 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Forms\ActiveProcesses.h</DependentOn>
             <BuildOrder>24</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Sources\Libs\Decompiler.cpp">
-            <DependentOn>Sources\Libs\Decompiler.h</DependentOn>
-            <BuildOrder>5</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="Sources\Libs\Disasm.cpp">
-            <DependentOn>Sources\Libs\Disasm.h</DependentOn>
-            <BuildOrder>6</BuildOrder>
-        </CppCompile>
         <CppCompile Include="Sources\Forms\EditFieldsDlg.cpp">
             <Form>FEditFieldsDlg_11011981</Form>
             <FormType>dfm</FormType>
@@ -179,19 +171,11 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Forms\Hex2Double.h</DependentOn>
             <BuildOrder>22</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Sources\Libs\IDCGen.cpp">
-            <DependentOn>Sources\Libs\IDCGen.h</DependentOn>
-            <BuildOrder>20</BuildOrder>
-        </CppCompile>
         <CppCompile Include="Sources\Forms\IdcSplitSize.cpp">
             <Form>FIdcSplitSize</Form>
             <FormType>dfm</FormType>
             <DependentOn>Sources\Forms\IdcSplitSize.h</DependentOn>
             <BuildOrder>21</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="Sources\Libs\Infos.cpp">
-            <DependentOn>Sources\Libs\Infos.h</DependentOn>
-            <BuildOrder>7</BuildOrder>
         </CppCompile>
         <CppCompile Include="Sources\Forms\InputDlg.cpp">
             <Form>FInputDlg_11011981</Form>
@@ -205,10 +189,6 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Forms\KBViewer.h</DependentOn>
             <BuildOrder>16</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Sources\Libs\KnowledgeBase.cpp">
-            <DependentOn>Sources\Libs\KnowledgeBase.h</DependentOn>
-            <BuildOrder>8</BuildOrder>
-        </CppCompile>
         <CppCompile Include="Sources\Forms\Legend.cpp">
             <Form>FLegend_11011981</Form>
             <FormType>dfm</FormType>
@@ -220,10 +200,6 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <FormType>dfm</FormType>
             <DependentOn>Sources\Forms\Main.h</DependentOn>
             <BuildOrder>25</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="Sources\Libs\Misc.cpp">
-            <DependentOn>Sources\Libs\Misc.h</DependentOn>
-            <BuildOrder>4</BuildOrder>
         </CppCompile>
         <CppCompile Include="Sources\Forms\Plugins.cpp">
             <Form>FPlugins</Form>
@@ -237,19 +213,11 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Forms\ProgressBar.h</DependentOn>
             <BuildOrder>28</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Sources\Libs\Resources.cpp">
-            <DependentOn>Sources\Libs\Resources.h</DependentOn>
-            <BuildOrder>9</BuildOrder>
-        </CppCompile>
         <CppCompile Include="Sources\Forms\StringInfo.cpp">
             <Form>FStringInfo_11011981</Form>
             <FormType>dfm</FormType>
             <DependentOn>Sources\Forms\StringInfo.h</DependentOn>
             <BuildOrder>13</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="Sources\Libs\Threads.cpp">
-            <DependentOn>Sources\Libs\Threads.h</DependentOn>
-            <BuildOrder>27</BuildOrder>
         </CppCompile>
         <CppCompile Include="Sources\Forms\TypeInfo2.cpp">
             <Form>FTypeInfo_11011981</Form>
@@ -257,33 +225,77 @@ $(PostBuildEvent)]]></PostBuildEvent>
             <DependentOn>Sources\Forms\TypeInfo2.h</DependentOn>
             <BuildOrder>26</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Sources\Libs\UFileDropper.cpp">
-            <DependentOn>Sources\Libs\UFileDropper.h</DependentOn>
-            <BuildOrder>11</BuildOrder>
-        </CppCompile>
         <CppCompile Include="Sources\Forms\UfrmFormTree.cpp">
             <Form>IdrDfmFormTree_11011981</Form>
             <FormType>dfm</FormType>
             <DependentOn>Sources\Forms\UfrmFormTree.h</DependentOn>
             <BuildOrder>10</BuildOrder>
         </CppCompile>
-        <FormResources Include="Sources\Forms\Main.dfm"/>
-        <FormResources Include="Sources\Forms\Plugins.dfm"/>
-        <FormResources Include="Sources\Forms\Legend.dfm"/>
-        <FormResources Include="Sources\Forms\InputDlg.dfm"/>
-        <FormResources Include="Sources\Forms\KBViewer.dfm"/>
-        <FormResources Include="Sources\Forms\TypeInfo2.dfm"/>
+        <CppCompile Include="Sources\Libs\Decompiler.cpp">
+            <DependentOn>Sources\Libs\Decompiler.h</DependentOn>
+            <BuildOrder>5</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Disasm.cpp">
+            <DependentOn>Sources\Libs\Disasm.h</DependentOn>
+            <BuildOrder>6</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\IDCGen.cpp">
+            <DependentOn>Sources\Libs\IDCGen.h</DependentOn>
+            <BuildOrder>20</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Infos.cpp">
+            <DependentOn>Sources\Libs\Infos.h</DependentOn>
+            <BuildOrder>7</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\KnowledgeBase.cpp">
+            <DependentOn>Sources\Libs\KnowledgeBase.h</DependentOn>
+            <BuildOrder>8</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Misc.cpp">
+            <DependentOn>Sources\Libs\Misc.h</DependentOn>
+            <BuildOrder>4</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\PEHeader.cpp">
+            <DependentOn>Sources\Libs\PEHeader.h</DependentOn>
+            <BuildOrder>29</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\ProcessManager.cpp">
+            <DependentOn>Sources\Libs\ProcessManager.h</DependentOn>
+            <BuildOrder>28</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Resources.cpp">
+            <DependentOn>Sources\Libs\Resources.h</DependentOn>
+            <BuildOrder>9</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Singleton.cpp">
+            <DependentOn>Sources\Libs\Singleton.h</DependentOn>
+            <BuildOrder>30</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\Threads.cpp">
+            <DependentOn>Sources\Libs\Threads.h</DependentOn>
+            <BuildOrder>27</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="Sources\Libs\UFileDropper.cpp">
+            <DependentOn>Sources\Libs\UFileDropper.h</DependentOn>
+            <BuildOrder>11</BuildOrder>
+        </CppCompile>
         <FormResources Include="Sources\Forms\UfrmFormTree.dfm"/>
         <FormResources Include="Sources\Forms\ProgressBar.dfm"/>
         <FormResources Include="Sources\Forms\StringInfo.dfm"/>
+        <FormResources Include="Sources\Forms\TypeInfo2.dfm"/>
         <FormResources Include="Sources\Forms\EditFieldsDlg.dfm"/>
-        <FormResources Include="Sources\Forms\ActiveProcesses.dfm"/>
-        <FormResources Include="Sources\Forms\AboutDlg.dfm"/>
-        <FormResources Include="Sources\Forms\IdcSplitSize.dfm"/>
-        <FormResources Include="Sources\Forms\Hex2Double.dfm"/>
         <FormResources Include="Sources\Forms\EditFunctionDlg.dfm"/>
         <FormResources Include="Sources\Forms\Explorer.dfm"/>
+        <FormResources Include="Sources\Forms\ActiveProcesses.dfm"/>
+        <FormResources Include="Sources\Forms\AboutDlg.dfm"/>
         <FormResources Include="Sources\Forms\FindDlg.dfm"/>
+        <FormResources Include="Sources\Forms\Legend.dfm"/>
+        <FormResources Include="Sources\Forms\Main.dfm"/>
+        <FormResources Include="Sources\Forms\Plugins.dfm"/>
+        <FormResources Include="Sources\Forms\KBViewer.dfm"/>
+        <FormResources Include="Sources\Forms\Hex2Double.dfm"/>
+        <FormResources Include="Sources\Forms\IdcSplitSize.dfm"/>
+        <FormResources Include="Sources\Forms\InputDlg.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -318,11 +330,6 @@ $(PostBuildEvent)]]></PostBuildEvent>
                 </Excluded_Packages>
             </CPlusPlusBuilder.Personality>
             <Deployment Version="3">
-                <DeployFile Condition="'$(DynamicRTL)'=='true' And '$(Multithreaded)'=='true'" LocalName="$(BDS)\bin\cc32250mt.dll" Class="DependencyModule">
-                    <Platform Name="Win32">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
                 <DeployFile Condition="'$(DynamicRTL)'=='true' And '$(Multithreaded)'=='true'" LocalName="$(BDS)\bin\cc32c250mt.dll" Class="DependencyModule">
                     <Platform Name="Win32">
                         <Overwrite>true</Overwrite>
@@ -338,6 +345,12 @@ $(PostBuildEvent)]]></PostBuildEvent>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName=".\Win32\Debug\Bin\Idr.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>Idr.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile Condition="'$(UsingDelphiRTL)'=='true'" LocalName="$(BDS)\bin64\borlndmm.dll" Class="DependencyModule">
                     <Platform Name="Win64">
                         <Overwrite>true</Overwrite>
@@ -348,7 +361,7 @@ $(PostBuildEvent)]]></PostBuildEvent>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName=".\Win32\Debug\Idr.tds" Configuration="Debug" Class="DebugSymbols">
+                <DeployFile LocalName=".\Win32\Debug\Bin\Idr.tds" Configuration="Debug" Class="DebugSymbols">
                     <Platform Name="Win32">
                         <RemoteName>Idr.tds</RemoteName>
                         <Overwrite>true</Overwrite>
@@ -364,6 +377,11 @@ $(PostBuildEvent)]]></PostBuildEvent>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile Condition="'$(DynamicRTL)'=='true' And '$(Multithreaded)'=='true'" LocalName="$(BDS)\bin\cc32250mt.dll" Class="DependencyModule">
+                    <Platform Name="Win32">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile Condition="'$(DynamicRTL)'=='true' And '$(Multithreaded)'!='true'" LocalName="$(BDS)\bin64\cc64250.dll" Class="DependencyModule">
                     <Platform Name="Win64">
                         <Overwrite>true</Overwrite>
@@ -371,12 +389,6 @@ $(PostBuildEvent)]]></PostBuildEvent>
                 </DeployFile>
                 <DeployFile Condition="'$(DynamicRTL)'=='true' And '$(Multithreaded)'=='true'" LocalName="$(BDS)\bin64\cc64250mt.dll" Class="DependencyModule">
                     <Platform Name="Win64">
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName=".\Win32\Debug\Idr.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win32">
-                        <RemoteName>Idr.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

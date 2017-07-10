@@ -16,7 +16,6 @@ __fastcall TFAboutDlg_11011981::TFAboutDlg_11011981(TComponent* AOwner) : TForm(
 // ---------------------------------------------------------------------
 void __fastcall TFAboutDlg_11011981::FormCreate(TObject *Sender) {
 	lVer->Caption = "Version: " + IDRVersion;
-	ScaleForm(this);
 }
 
 // ---------------------------------------------------------------------------
@@ -34,3 +33,4 @@ void __fastcall TFAboutDlg_11011981::bDonateClick(TObject *Sender) {
 	ShellExecute(Handle, _T("open"), _T("http://kpnc.org/idr32/en/donation.htm"), 0, 0, 1);
 }
 // ---------------------------------------------------------------------------
+

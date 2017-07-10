@@ -29,8 +29,10 @@ public:
 	String value;
 };
 
+// ---------------------------------------------------------------------------
 typedef InfoResStringInfo *PInfoResStringInfo;
 
+// ---------------------------------------------------------------------------
 class InfoVmtInfo {
 public:
 	TStringList *interfaces;
@@ -45,8 +47,9 @@ public:
 	void __fastcall RemoveField(int Offset);
 };
 
+// ---------------------------------------------------------------------------
 typedef InfoVmtInfo *PInfoVmtInfo;
-
+// ---------------------------------------------------------------------------
 // procflags
 #define     PF_MAYBEEMBED   0x80000000
 #define     PF_EMBED        0x40000000
@@ -62,8 +65,9 @@ typedef InfoVmtInfo *PInfoVmtInfo;
 #define     PF_PUBLISHED    0x00100000  //published
 
 #define     PF_ALLMETHODS   (PF_METHOD | PF_VIRTUAL | PF_DYNAMIC | PF_EVENT)
-// first 3 bits - call kind (1, 2, 3, 4)
 
+// first 3 bits - call kind (1, 2, 3, 4)
+// ---------------------------------------------------------------------------
 class InfoProcInfo {
 public:
 	DWORD flags;
@@ -90,11 +94,12 @@ public:
 	void __fastcall SetLocalType(int Ofs, String TypeDef);
 };
 
+// ---------------------------------------------------------------------------
 typedef InfoProcInfo *PInfoProcInfo;
-
+// ---------------------------------------------------------------------------
 #define		OP_COMMENT	0x10
 #define		OP_CALL		0x11
-
+// ---------------------------------------------------------------------------
 typedef struct {
 	BYTE Op; // Operation
 	union {
@@ -104,6 +109,7 @@ typedef struct {
 	String Name; // Type name
 } PICODE, *PPICODE;
 
+// ---------------------------------------------------------------------------
 class InfoRec {
 public:
 	BYTE counter;
@@ -141,6 +147,7 @@ public:
 	bool __fastcall MakeArgsManually();
 };
 
+// ---------------------------------------------------------------------------
 typedef InfoRec *PInfoRec;
 // ---------------------------------------------------------------------------
 #endif
