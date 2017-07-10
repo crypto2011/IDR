@@ -279,19 +279,19 @@ $(PostBuildEvent)]]></PostBuildEvent>
         <FormResources Include="Sources\Forms\ProgressBar.dfm"/>
         <FormResources Include="Sources\Forms\StringInfo.dfm"/>
         <FormResources Include="Sources\Forms\TypeInfo2.dfm"/>
-        <FormResources Include="Sources\Forms\Plugins.dfm"/>
         <FormResources Include="Sources\Forms\EditFieldsDlg.dfm"/>
         <FormResources Include="Sources\Forms\EditFunctionDlg.dfm"/>
         <FormResources Include="Sources\Forms\Explorer.dfm"/>
         <FormResources Include="Sources\Forms\ActiveProcesses.dfm"/>
         <FormResources Include="Sources\Forms\AboutDlg.dfm"/>
-        <FormResources Include="Sources\Forms\KBViewer.dfm"/>
+        <FormResources Include="Sources\Forms\FindDlg.dfm"/>
         <FormResources Include="Sources\Forms\Legend.dfm"/>
         <FormResources Include="Sources\Forms\Main.dfm"/>
-        <FormResources Include="Sources\Forms\InputDlg.dfm"/>
-        <FormResources Include="Sources\Forms\FindDlg.dfm"/>
+        <FormResources Include="Sources\Forms\Plugins.dfm"/>
+        <FormResources Include="Sources\Forms\KBViewer.dfm"/>
         <FormResources Include="Sources\Forms\Hex2Double.dfm"/>
         <FormResources Include="Sources\Forms\IdcSplitSize.dfm"/>
+        <FormResources Include="Sources\Forms\InputDlg.dfm"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -24,7 +24,8 @@ USEFORM("Sources\Forms\InputDlg.cpp", FInputDlg_11011981);
 USEFORM("Sources\Forms\FindDlg.cpp", FindDlg_11011981);
 USEFORM("Sources\Forms\Hex2Double.cpp", FHex2DoubleDlg_11011981);
 USEFORM("Sources\Forms\IdcSplitSize.cpp", FIdcSplitSize);
-//---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int) {
 	try {
 		Application->Initialize();
