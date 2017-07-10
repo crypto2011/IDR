@@ -2,7 +2,7 @@ object FActiveProcesses: TFActiveProcesses
   Left = 390
   Top = 440
   BorderStyle = bsSingle
-  Caption = 'Active Processes'
+  Caption = 'Active Processes (x86)'
   ClientHeight = 310
   ClientWidth = 640
   Color = clBtnFace
@@ -36,11 +36,11 @@ object FActiveProcesses: TFActiveProcesses
         Width = 120
       end
       item
-        Caption = 'EP'
+        Caption = 'Entry Point'
         Width = 120
       end
       item
-        Caption = 'Base'
+        Caption = 'Base Address'
         Width = 120
       end>
     Font.Charset = RUSSIAN_CHARSET
@@ -54,8 +54,6 @@ object FActiveProcesses: TFActiveProcesses
     PopupMenu = PMProcess
     TabOrder = 0
     ViewStyle = vsReport
-    ExplicitWidth = 609
-    ExplicitHeight = 300
   end
   object PMProcess: TPopupMenu
     OnPopup = PMProcessPopup
