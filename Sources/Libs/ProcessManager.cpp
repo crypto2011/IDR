@@ -3,143 +3,79 @@
 #pragma hdrstop
 
 #include "ProcessManager.h"
+
+#include <TlHelp32.h>
+#include <Psapi.h>
 // ---------------------------------------------------------------------------
 #pragma package(smart_init)
 
-TProcessManager::TProcessManager() {
-	InstPSAPI = 0;
-	lpEnumProcesses = 0;
-	lpEnumProcessModules = 0;
-
-	InstKernel32 = 0;
-	lpCreateToolhelp32Snapshot = 0;
-	lpProcess32First = 0;
-	lpProcess32Next = 0;
-	lpModule32First = 0;
-	lpModule32Next = 0;
-
-	// Load PSAPI
-	if (IsWindows2000OrHigher()) {
-		// Supported starting from Windows XP/Server 2003
-		InstPSAPI = LoadLibrary("PSAPI.DLL");
-		if (InstPSAPI) {
-			lpEnumProcesses = (TEnumProcesses)GetProcAddress(InstPSAPI, "EnumProcesses");
-			lpEnumProcessModules = (TEnumProcessModules)GetProcAddress(InstPSAPI, "EnumProcessModules");
-			lpGetModuleFileNameEx = (TGetModuleFileNameEx)GetProcAddress(InstPSAPI, "GetModuleFileNameExA");
-			lpGetModuleInformation = (TGetModuleInformation)GetProcAddress(InstPSAPI, "GetModuleInformation");
-		}
-	}
-	else {
-		InstKernel32 = LoadLibrary("kernel32.dll");
-		if (InstKernel32) {
-			lpCreateToolhelp32Snapshot = (TCreateToolhelp32Snapshot)GetProcAddress(InstKernel32, "CreateToolhelp32Snapshot");
-			lpProcess32First = (TProcess32First)GetProcAddress(InstKernel32, "Process32First");
-			lpProcess32Next = (TProcess32Next)GetProcAddress(InstKernel32, "Process32Next");
-			lpModule32First = (TModule32First)GetProcAddress(InstKernel32, "Module32First");
-			lpModule32Next = (TModule32Next)GetProcAddress(InstKernel32, "Module32Next");
-		}
-	}
-}
-
-TProcessManager::~TProcessManager() {
-	if (InstPSAPI)
-		FreeLibrary(InstPSAPI);
-	if (InstKernel32)
-		FreeLibrary(InstKernel32);
-}
-
+// ---------------------------------------------------------------------------
 bool TProcessManager::GenerateProcessList() {
 
+	// Clear current process list
 	this->FList.clear();
 
-	if (!IsWindows2000OrHigher())
-		ShowProcesses95();
-	else
-		ShowProcessesNT();
+	// Get the list of process identifiers.
+	DWORD aProcesses[1024], cbNeeded, cProcesses;
+	unsigned int i;
 
-	// TProcess Process = {1, 2, 3, 4, "Myprocess.exe"};
-	// this->FList.push_back(Process);
-	return true;
-}
-
-bool TProcessManager::IsWindows2000OrHigher() {
-	OSVERSIONINFO osvi = {0};
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	GetVersionEx(&osvi);
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/ms724834%28v=vs.85%29.aspx
-	return (osvi.dwMajorVersion >= 5); // win XP+
-}
-
-void TProcessManager::ShowProcesses95() {
-	HANDLE _hSnapshot, _hSnapshotM;
-	PROCESSENTRY32 _ppe = {0};
-	MODULEENTRY32 _pme = {0};
-
-	_hSnapshot = lpCreateToolhelp32Snapshot(TH32CS_SNAPALL, GetCurrentProcessId());
-	if (_hSnapshot != INVALID_HANDLE_VALUE) {
-		_ppe.dwSize = sizeof(PROCESSENTRY32);
-		_pme.dwSize = sizeof(MODULEENTRY32);
-		lpProcess32First(_hSnapshot, &_ppe);
-		do {
-			_hSnapshotM = lpCreateToolhelp32Snapshot(TH32CS_SNAPMODULE, _ppe.th32ProcessID);
-			if (_hSnapshotM == INVALID_HANDLE_VALUE)
-				continue;
-
-			if (lpModule32First(_hSnapshotM, &_pme)) {
-
-				TProcess Process = {_ppe.th32ProcessID, _pme.modBaseSize, 0, (int)_pme.modBaseAddr, ExtractFileName(String(_ppe.szExeFile))};
-				this->FList.push_back(Process);
-			}
-			CloseHandle(_hSnapshotM);
-		}
-		while (lpProcess32Next(_hSnapshot, &_ppe));
-
-		CloseHandle(_hSnapshot);
-	}
-}
-
-bool TProcessManager::ShowProcessesNT() {
-	int i, _len, _pos;
-	String _moduleName;
-	HANDLE _hProcess;
-	HMODULE hMod;
-	MODULEINFO _moduleInfo;
-	char _buf[512];
-
-	if (!lpEnumProcesses(ProcessIds, sizeof(ProcessIds), &ProcessesNum)) {
+	if (!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)) {
 		return false;
 	}
 
-	ProcessesNum /= sizeof(DWORD);
+	// Calculate how many process identifiers were returned.
+	cProcesses = cbNeeded / sizeof(DWORD);
 
-	for (i = 0; i < ProcessesNum; i++) {
+	// Print the name and process identifier for each process.
+	for (i = 0; i < cProcesses; i++) {
+		if (aProcesses[i] != 0) {
 
-		if (ProcessIds[i] != 0) {
-			_hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, ProcessIds[i]);
+			// Get a handle to the process.
+			HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, aProcesses[i]);
 
-			if (_hProcess != NULL) {
+			// Get the process name.
+			if (NULL != hProcess) {
+				HMODULE hModule;
+				DWORD cbNeeded;
 
-				if (lpEnumProcessModules(_hProcess, &hMod, sizeof(hMod), &ModulesNum) != 0) {
+				// Get modules list (for this case, only the first module)
+				if (EnumProcessModules(hProcess, &hModule, sizeof(hModule), &cbNeeded)) {
+					HANDLE hSnapshot;
+					MODULEENTRY32 me = {};
+					me.dwSize = sizeof(MODULEENTRY32);
+					// Get name and base
+					hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, aProcesses[i]);
+					if (hSnapshot != INVALID_HANDLE_VALUE) {
+						// Get module info
+						Module32First(hSnapshot, &me);
+						// Release the handle to the process.
+						CloseHandle(hSnapshot);
 
-					_len = lpGetModuleFileNameEx(_hProcess, hMod, _buf, sizeof(_buf));
-					_moduleName = String(_buf, _len);
-					lpGetModuleInformation(_hProcess, hMod, &_moduleInfo, sizeof(_moduleInfo));
-					if (_moduleName != "") {
-						_pos = _moduleName.LastDelimiter("\\");
-						if (_pos)
-							_moduleName = _moduleName.SubString(_pos + 1, _moduleName.Length());
-
-						TProcess Process = {ProcessIds[i], _moduleInfo.SizeOfImage, (DWORD)_moduleInfo.EntryPoint, 0, _moduleName};
-						this->FList.push_back(Process);
+						MODULEINFO modinfo = {};
+						if (GetModuleInformation(hProcess, hModule, &modinfo, sizeof(modinfo))) {
+							// Save process info
+							TProcess Process = {};
+							Process.Pid = aProcesses[i];
+							Process.ImageSize = modinfo.SizeOfImage;
+							Process.EntryPoint = (DWORD) modinfo.EntryPoint;
+							Process.BaseAddress = (DWORD) me.modBaseAddr;
+							Process.Name = ExtractFileName(String(me.szExePath));
+							this->FList.push_back(Process);
+						}
 					}
 				}
-				CloseHandle(_hProcess);
 			}
+
+			// Release the handle to the process.
+			CloseHandle(hProcess);
 		}
 	}
+
+	return true;
 }
 
-void TProcessManager::EnumSections(HANDLE HProcess, BYTE* PProcessBase, IMAGE_SECTION_HEADER* Buffer, DWORD* Secnum) {
+// ---------------------------------------------------------------------------
+void TProcessManager::EnumSections(HANDLE HProcess, BYTE * PProcessBase, IMAGE_SECTION_HEADER * Buffer, DWORD * Secnum) {
 	int i;
 	BYTE *_pBuf, *_pSection;
 	DWORD _peHdrOffset, _sz;
@@ -166,7 +102,8 @@ void TProcessManager::EnumSections(HANDLE HProcess, BYTE* PProcessBase, IMAGE_SE
 	}
 }
 
-void TProcessManager::DumpProcess(DWORD PID, TMemoryStream* MemStream, DWORD* BoC, DWORD* PoC, DWORD* ImB) {
+// ---------------------------------------------------------------------------
+void TProcessManager::DumpProcess(DWORD PID, TMemoryStream * MemStream, DWORD * BoC, DWORD * PoC, DWORD * ImB) {
 	WORD _secNum;
 	DWORD _peHdrOffset, _sz, _sizeOfCode;
 	DWORD _resPhys, _dd;
@@ -179,32 +116,14 @@ void TProcessManager::DumpProcess(DWORD PID, TMemoryStream* MemStream, DWORD* Bo
 	MODULEENTRY32 _pme;
 	IMAGE_SECTION_HEADER _sections[64];
 	HMODULE hMod;
+	DWORD ModulesNum;
 
 	_hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, PID); // 0x1F0FFF
 	if (_hProcess) {
-		// If Win9x
-		if (!IsWindows2000OrHigher()) {
-			_hSnapshot = lpCreateToolhelp32Snapshot(TH32CS_SNAPALL, GetCurrentProcessId());
-			if (_hSnapshot != INVALID_HANDLE_VALUE) {
-				_ppe.dwSize = sizeof(PROCESSENTRY32);
-				_pme.dwSize = sizeof(MODULEENTRY32);
-				memset(&_ppe.szExeFile, 0, 259);
-				lpProcess32First(_hSnapshot, &_ppe);
-				lpModule32First(_hSnapshot, &_pme);
-				while (lpProcess32Next(_hSnapshot, &_ppe)) {
-					lpModule32Next(_hSnapshot, &_pme);
-					if (_ppe.th32ProcessID == PID) {
-						_moduleInfo.lpBaseOfDll = _pme.modBaseAddr;
-						_moduleInfo.lpBaseOfDll = (BYTE*)0x400000;
-					}
-				}
-				CloseHandle(_hSnapshot);
-			}
-		}
-		else {
-			lpEnumProcessModules(_hProcess, &hMod, sizeof(hMod), &ModulesNum);
-			lpGetModuleInformation(_hProcess, hMod, &_moduleInfo, sizeof(_moduleInfo));
-		}
+
+		EnumProcessModules(_hProcess, &hMod, sizeof(hMod), &ModulesNum);
+		GetModuleInformation(_hProcess, hMod, &_moduleInfo, sizeof(_moduleInfo));
+
 		if (!_moduleInfo.lpBaseOfDll) {
 			throw Exception("Invalid process, PID: " + IntToStr((int)PID));
 		}
@@ -391,8 +310,10 @@ void TProcessManager::DumpProcess(DWORD PID, TMemoryStream* MemStream, DWORD* Bo
 		 _dd = _ntHdr.OptionalHeader.DataDirectory[2].Size;
 		 MemStream->WriteBuffer(&_dd, 4);//VIRTUAL_SIZE
 		 */
+
 		TPEHeader::EvaluateInitTable((BYTE*)MemStream->Memory, MemStream->Size, _ntHdr.OptionalHeader.ImageBase + _ntHdr.OptionalHeader.SizeOfHeaders);
 
 		CloseHandle(_hProcess);
 	}
 }
+// ---------------------------------------------------------------------------// ---------------------------------------------------------------------------

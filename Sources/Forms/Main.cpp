@@ -12660,7 +12660,6 @@ void __fastcall TFMain_11011981::cfTry1Click(TObject *Sender) {
  //---------------------------------------------------------------------------
  */
 void __fastcall TFMain_11011981::miProcessDumperClick(TObject *Sender) {
-	FActiveProcesses->ShowProcesses();
 	FActiveProcesses->ShowModal();
 }
 

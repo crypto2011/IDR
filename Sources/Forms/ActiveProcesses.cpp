@@ -17,19 +17,19 @@ __fastcall TFActiveProcesses::TFActiveProcesses(TComponent* AOwner) : TForm(AOwn
 }
 
 // ---------------------------------------------------------------------------
-void TFActiveProcesses::ShowProcesses() {
-	lvProcesses->Items->BeginUpdate();
-	lvProcesses->Clear();
+void TFActiveProcesses::GenerateProcessList() {
+	ListViewProcesses->Items->BeginUpdate();
+	ListViewProcesses->Clear();
 
 	TProcessManager PM;
 
 	if (!PM.GenerateProcessList()) {
-		Application->MessageBoxA(L"Error", L"Error", 0);
+		ShowMessage("Error getting the list of processes");
 		return;
 	}
 
 	for (std::vector<TProcess>::iterator it = PM.ProcessList.begin(); it != PM.ProcessList.end(); ++it) {
-		TListItem *ListItem = lvProcesses->Items->Add();
+		TListItem *ListItem = ListViewProcesses->Items->Add();
 		ListItem->Caption = IntToHex((int)it->Pid, 4);
 		ListItem->SubItems->Add(it->Name);
 		ListItem->SubItems->Add(IntToHex((int)it->ImageSize, 8));
@@ -37,26 +37,18 @@ void TFActiveProcesses::ShowProcesses() {
 		ListItem->SubItems->Add(IntToHex((int)it->BaseAddress, 8));
 	}
 
-	lvProcesses->Items->EndUpdate();
-}
-
-// ---------------------------------------------------------------------------
-void __fastcall TFActiveProcesses::btnCancelClick(TObject *Sender) {
-	Close();
+	ListViewProcesses->Items->EndUpdate();
+	ListViewProcesses->Repaint();
+	ListViewProcesses->Refresh();
 }
 
 // ---------------------------------------------------------------------------
 void __fastcall TFActiveProcesses::FormShow(TObject *Sender) {
-	btnDump->Enabled = (lvProcesses->Selected);
+	GenerateProcessList();
 }
 
 // ---------------------------------------------------------------------------
-void __fastcall TFActiveProcesses::lvProcessesClick(TObject *Sender) {
-	btnDump->Enabled = (lvProcesses->Selected);
-}
-
-// ---------------------------------------------------------------------------
-void __fastcall TFActiveProcesses::btnDumpClick(TObject *Sender) {
+void __fastcall TFActiveProcesses::PMProcessDumpClick(TObject *Sender) {
 	DWORD _pid, _boc, _poc, _imb;
 	TListItem *_li;
 	TMemoryStream *_stream;
@@ -64,25 +56,34 @@ void __fastcall TFActiveProcesses::btnDumpClick(TObject *Sender) {
 	String _item;
 	TProcessManager PM;
 
-	if (lvProcesses->Selected) {
-		try {
-			_li = lvProcesses->Selected;
-			_pid = StrToInt("0x" + _li->Caption);
-			_stream = new TMemoryStream;
-			PM.DumpProcess(_pid, _stream, &_boc, &_poc, &_imb);
-			if (!_stream->Size) {
-				delete _stream;
-				return;
-			}
-			_stream->SaveToFile("__idrtmp__.exe");
+	try {
+		_li = ListViewProcesses->Selected;
+		_pid = StrToInt("0x" + _li->Caption);
+		_stream = new TMemoryStream;
+		PM.DumpProcess(_pid, _stream, &_boc, &_poc, &_imb);
+		if (!_stream->Size) {
 			delete _stream;
-			FMain_11011981->DoOpenDelphiFile(DELHPI_VERSION_AUTO, "__idrtmp__.exe", false, false);
+			return;
 		}
-		catch (const Exception &ex) {
-			ShowMessage("Dumper failed: " + ex.Message);
-		}
+		_stream->SaveToFile("__idrtmp__.exe");
+		delete _stream;
+		FMain_11011981->DoOpenDelphiFile(DELHPI_VERSION_AUTO, "__idrtmp__.exe", false, false);
 	}
+	catch (const Exception &ex) {
+		ShowMessage("Dumper failed: " + ex.Message);
+	}
+
 	Close();
+}
+// ---------------------------------------------------------------------------
+
+void __fastcall TFActiveProcesses::PMProcessPopup(TObject *Sender) {
+	PMProcessDump->Enabled = (ListViewProcesses->Selected);
+}
+// ---------------------------------------------------------------------------
+
+void __fastcall TFActiveProcesses::PMProcessRefreshClick(TObject *Sender) {
+	GenerateProcessList();
 }
 // ---------------------------------------------------------------------------
 

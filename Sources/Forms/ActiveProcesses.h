@@ -7,24 +7,27 @@
 #include <Vcl.ComCtrls.hpp>
 #include <Vcl.Controls.hpp>
 #include <Vcl.StdCtrls.hpp>
+#include <Vcl.Menus.hpp>
 #include <vector>
 #include "ProcessManager.h"
 
 // ---------------------------------------------------------------------------
 class TFActiveProcesses : public TForm {
 __published:
-	TButton *btnDump;
-	TButton *btnCancel;
-	TListView *lvProcesses;
-
-	void __fastcall btnCancelClick(TObject *Sender);
+	TListView *ListViewProcesses;
+	TPopupMenu *PMProcess;
+	TMenuItem *PMProcessDump;
+	TMenuItem *N1;
+	TMenuItem *PMProcessRefresh;
 	void __fastcall FormShow(TObject *Sender);
-	void __fastcall btnDumpClick(TObject *Sender);
-	void __fastcall lvProcessesClick(TObject *Sender);
+	void __fastcall PMProcessDumpClick(TObject *Sender);
+	void __fastcall PMProcessPopup(TObject *Sender);
+	void __fastcall PMProcessRefreshClick(TObject *Sender);
 
 private:
+	void GenerateProcessList();
+
 public:
-	void ShowProcesses();
 
 	virtual __fastcall TFActiveProcesses(TComponent* AOwner);
 };

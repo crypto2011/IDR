@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 #pragma package(smart_init)
 
+// ---------------------------------------------------------------------------
 DWORD TPEHeader::EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base) {
 	int i, num, pos, unitsPos = 0, n;
 	DWORD initTable, result, iniAdr, finAdr, maxAdr = 0;
@@ -106,3 +107,4 @@ DWORD TPEHeader::EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base) {
 
 	return 0;
 }
+// ---------------------------------------------------------------------------
