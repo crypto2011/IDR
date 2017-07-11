@@ -282,6 +282,7 @@ public:
     void __fastcall GetCycleIdx(PIDXINFO IdxInfo, DISINFO* ADisInfo);
     String __fastcall GetCycleTo();
     void __fastcall GetFloatItemFromStack(int Esp, PITEM Dst, int FloatType);
+    void __fastcall GetInt64ItemFromStack(int Esp, PITEM Dst);
     String __fastcall GetStringArgument(PITEM item);
     PLoopInfo __fastcall GetLoopInfo(int fromAdr);
     void __fastcall GetMemItem(int CurAdr, PITEM Dst, BYTE Op);

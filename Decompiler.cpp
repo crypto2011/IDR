@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00DA40FA)
+if (_curAdr == 0x00E99C19)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -2173,7 +2173,7 @@ _curAdr = _curAdr;
                 }
 
                 _cmpRes = GetCmpInfo(_curAdr);
-                //SimulateFloatInstruction(_sAdr);
+                SimulateFloatInstruction(_sAdr);
 
                 if (flags & CF_BJL)
                 {
@@ -3109,21 +3109,38 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
 
         if (_methodKind == ikFunc)
         {
-            while (1)
+            if (SameText(_name, "TList.Get"))
             {
-                if (_retType == "")
-                    _retKind = 0;
-                else
+                while (1)
                 {
-                    if (_retType[1] == '^') _retType = GetTypeDeref(_retType);
+                    _retType = ManualInput(Env->StartAdr, curAdr, "Define type of function at " + IntToHex((int)curAdr, 8), "Type:");
+                    if (_retType == "")
+                    {
+                        Env->ErrAdr = curAdr;
+                        throw Exception("You need to define type of function later");
+                    }
+                    if (_retType[1] == '^')
+                        _retType = GetTypeDeref(_retType);
                     _retKind = GetTypeKind(_retType, &_size);
+                    if (_retKind) break;
                 }
-                if (_retKind) break;
-                _retType = ManualInput(Env->StartAdr, curAdr, "Define type of function at " + IntToHex((int)curAdr, 8), "Type:");
-                if (_retType == "")
+            }
+            else
+            {
+                while (1)
                 {
-                    Env->ErrAdr = curAdr;
-                    throw Exception("You need to define type of function later");
+                    if (_retType[1] == '^')
+                        _retType = GetTypeDeref(_retType);
+
+                    _retKind = GetTypeKind(_retType, &_size);
+                    if (_retKind) break;
+                    
+                    _retType = ManualInput(Env->StartAdr, curAdr, "Define type of function at " + IntToHex((int)curAdr, 8), "Type:");
+                    if (_retType == "")
+                    {
+                        Env->ErrAdr = curAdr;
+                        throw Exception("You need to define type of function later");
+                    }
                 }
             }
         }
@@ -3150,7 +3167,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
 
                     _rn = -1; _regName = "";
                     _kind = GetTypeKind(_argInfo->TypeDef, &_size);
-                    if (_kind == ikFloat)
+                    if (_kind == ikFloat || _kind == ikInt64)
                         _size = _argInfo->Size;
                     else
                         _size = 4;
@@ -3173,7 +3190,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                                 continue;
                             }
                         }
-                        if (_kind == ikFloat && _argInfo->Tag != 0x22)
+                        if ((_kind == ikFloat || _kind == ikInt64) && _argInfo->Tag != 0x22)
                         {
                             _esp -= _size;
                             _item = Env->Stack[_esp];
@@ -3407,6 +3424,17 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                             _line += _item.Value;
                         continue;
                     }
+                    if (_kind == ikInt64)
+                    {
+                        if (_item.Flags & IF_INTVAL)
+                        {
+                            GetInt64ItemFromStack(_esp, &_item);
+                            _line += _item.Value;
+                        }
+                        else
+                            _line += _item.Value;
+                        continue;
+                    }
                     if (_kind == ikClassRef)
                     {
                         _line += _item.Type;
@@ -3523,6 +3551,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                             _line = Env->GetLvarName(_item.IntValue, _retType) + " := " + _line;
                         if (_retKind == ikRecord)
                         {
+                            /*
                             _size = GetRecordSize(_retType);
                             for (int r = 0; r < _size; r++)
                             {
@@ -3538,6 +3567,7 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                                 if (r == 0) _item1.Type = _retType;
                                 Env->Stack[_item.IntValue + r] = _item1;
                             }
+                            */
                         }
                         Env->Stack[_item.IntValue].Flags = 0;
                         Env->Stack[_item.IntValue].Type = _retType;
@@ -5823,7 +5853,7 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
     PInfoRec    _recN, _recN1;
     PLOCALINFO  _locInfo;
     PFIELDINFO  _fInfo;
-    String      _name, _value, _typeName, _line, _comment, _imm, _iname, _fname, _key, _type;
+    String      _name, _value, _typeName, _line, _comment, _imm, _iname, _fname, _key, _type, _op;
 
      _imm = GetImmString(DisInfo.Immediate);
     GetMemItem(curAdr, &_itemDst, Op);
@@ -5850,41 +5880,6 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
             CmpInfo.R = GetImmString(_item.Type, DisInfo.Immediate);
             return;
         }
-        if (Op == OP_ADD)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " + " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
-        if (Op == OP_SUB)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " - " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
-        if (Op == OP_AND)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " And " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
-        if (Op == OP_OR)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " Or " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
-        if (Op == OP_XOR)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " Xor " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
         if (Op == OP_TEST)
         {
             _typeName = TrimTypeName(Env->Stack[_itemDst.IntValue].Type);
@@ -5902,17 +5897,29 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
             CmpInfo.R = "0";
             return;
         }
-        if (Op == OP_SHR)
+        if (Op == OP_ADD || Op == OP_SUB || Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
         {
+            if (Op == OP_ADD)
+                _op = " + ";
+            else if (Op == OP_SUB)
+                _op = " - ";
+            else if (Op == OP_MUL || Op == OP_IMUL)
+                _op = " * ";
+            else if (Op == OP_AND)
+                _op = " And ";
+            else if (Op == OP_OR)
+                _op = " Or ";
+            else if (Op == OP_XOR)
+                _op = " Xor ";
+            else if (Op == OP_SHL)
+                _op = " Shl ";
+            else if (Op == OP_SHR)
+                _op = " Shr ";
+            else
+                _op = " ? ";
+
             Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " Shr " + _imm + ";";
-            Env->AddToBody(_line);
-            return;
-        }
-        if (Op == OP_SHL)
-        {
-            Env->Stack[_itemDst.IntValue].Value = _name;
-            _line = _name + " := " + _name + " Shl " + _imm + ";";
+            _line = _name + " := " + _name + _op + _imm + ";";
             Env->AddToBody(_line);
             return;
         }
@@ -6065,18 +6072,6 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
         CmpInfo.R = GetImmString(_typeName, DisInfo.Immediate);
         return;
     }
-    if (Op == OP_ADD)
-    {
-        _line = _name + " := " + _name + " + " + GetImmString(_typeName, DisInfo.Immediate) + ";";
-        Env->AddToBody(_line);
-        return;
-    }
-    if (Op == OP_SUB)
-    {
-        _line = _name + " := " + _name + " - " + GetImmString(_typeName, DisInfo.Immediate) + ";";
-        Env->AddToBody(_line);
-        return;
-    }
     if (Op == OP_TEST)
     {
         if (_kind == ikSet)
@@ -6097,6 +6092,32 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
         Env->AddToBody(_line);
         return;
     }
+    if (Op == OP_ADD || Op == OP_SUB || Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
+    {
+        if (Op == OP_ADD)
+            _op = " + ";
+        else if (Op == OP_SUB)
+            _op = " - ";
+        else if (Op == OP_MUL || Op == OP_IMUL)
+            _op = " * ";
+        else if (Op == OP_AND)
+            _op = " And ";
+        else if (Op == OP_OR)
+            _op = " Or ";
+        else if (Op == OP_XOR)
+            _op = " Xor ";
+        else if (Op == OP_SHL)
+            _op = " Shl ";
+        else if (Op == OP_SHR)
+            _op = " Shr ";
+        else
+            _op = " ? ";
+
+        _line = _name + " := " + _name + _op + GetImmString(_typeName, DisInfo.Immediate) + ";";
+        Env->AddToBody(_line);
+        return;
+    }
+
     Env->ErrAdr = curAdr;
     throw Exception("Under construction");
 }
@@ -9236,6 +9257,23 @@ int __fastcall TDecompiler::GetArrayFieldOffset(String ATypeName, int AFromOfs, 
     return -1;
 }
 //---------------------------------------------------------------------------
+void __fastcall TDecompiler::GetInt64ItemFromStack(int Esp, PITEM Dst) 
+{
+    BYTE        _binData[8];
+    __int64     _int64Val;
+    ITEM       _item;
+
+    InitItem(Dst);
+    memset((void*)_binData, 0, 8);
+    _item = Env->Stack[Esp];
+    memmove((void*)_binData, (void*)&_item.IntValue, 4);
+    _item = Env->Stack[Esp + 4];
+    memmove((void*)(_binData + 4), (void*)&_item.IntValue, 4);
+    memmove((void*)&_int64Val, _binData, 8);
+    Dst->Value = IntToStr(_int64Val);
+    Dst->Type = "Single";
+}
+//---------------------------------------------------------------------------
 void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int FloatType)
 {
     BYTE        _binData[16];
@@ -9259,14 +9297,14 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
     memmove((void*)_binData, (void*)&_item.IntValue, 4);
     if (FloatType == FT_SINGLE)
     {
-        _singleVal = 0; memmove((void*)&_singleVal, _binData, 4);
+        memmove((void*)&_singleVal, _binData, 4);
         Dst->Value = FloatToStr(_singleVal);
         Dst->Type = "Single";
         return;
     }
     if (FloatType == FT_REAL)
     {
-        _realVal = 0; memmove((void*)&_realVal, _binData, 4);
+        memmove((void*)&_realVal, _binData, 4);
         Dst->Value = FloatToStr(_realVal);
         Dst->Type = "Real";
         return;
@@ -9275,21 +9313,21 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
     memmove((void*)(_binData + 4), (void*)&_item.IntValue, 4);
     if (FloatType == FT_DOUBLE)
     {
-        _doubleVal = 0; memmove((void*)&_doubleVal, _binData, 8);
+        memmove((void*)&_doubleVal, _binData, 8);
         Dst->Value = FloatToStr(_doubleVal);
         Dst->Type = "Double";
         return;
     }
     if (FloatType == FT_COMP)
     {
-        _compVal = 0; memmove((void*)&_compVal, _binData, 8);
+        memmove((void*)&_compVal, _binData, 8);
         Dst->Value = FloatToStr(_compVal);
         Dst->Type = "Comp";
         return;
     }
     if (FloatType == FT_CURRENCY)
     {
-        _currVal = 0; memmove((void*)&_currVal.Val, _binData, 8);
+        memmove((void*)&_currVal.Val, _binData, 8);
         Dst->Value = _currVal.operator AnsiString();
         Dst->Type = "Currency";
         return;
@@ -9298,7 +9336,7 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
     memmove((void*)(_binData + 8), (void*)&_item.IntValue, 4);
     if (FloatType == FT_EXTENDED)
     {
-        _extendedVal = 0; memmove((void*)&_extendedVal, _binData, 10);
+        memmove((void*)&_extendedVal, _binData, 10);
         try
         {
             Dst->Value = FloatToStr(_extendedVal);

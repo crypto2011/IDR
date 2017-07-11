@@ -12495,9 +12495,9 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
                     recN = GetInfoRec(recM->address);
                     procName = recN->MakePrototype(recM->address, true, false, false, false, false);
                     if (!procName.Pos(":?"))
-                        len = sprintf(StringBuf, "    %s", procName);
+                        len = sprintf(StringBuf, "    %s//%08lX", procName, recM->address);
                     else
-                        len = sprintf(StringBuf, "    //%s", procName);
+                        len = sprintf(StringBuf, "    //%s//%08lX", procName, recM->address);
                     publishedList->Add(String(StringBuf, len));
                 }
 
@@ -12535,9 +12535,9 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
                         procName += " dynamic;";
 
                     if (!procName.Pos(":?"))
-                        len = sprintf(StringBuf, "    %s", procName.c_str());
+                        len = sprintf(StringBuf, "    %s//%08lX", procName.c_str(), recM->address);
                     else
-                        len = sprintf(StringBuf, "    //%s", procName.c_str());
+                        len = sprintf(StringBuf, "    //%s//%08lX", procName.c_str(), recM->address);
                     publicList->Add(String(StringBuf, len));
                 }
 
@@ -12575,9 +12575,9 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
                     {
                         procName = recN->MakePrototype(adr1, true, false, false, false, false);
                         if (!procName.Pos(":?"))
-                            len = sprintf(StringBuf, "    %s", procName.c_str());
+                            len = sprintf(StringBuf, "    %s//%08lX", procName.c_str(), adr1);
                         else
-                            len = sprintf(StringBuf, "    //%s", procName.c_str());
+                            len = sprintf(StringBuf, "    //%s//%08lX", procName.c_str(), adr1);
                         if (intBodyLines->IndexOf(String(StringBuf, len)) == -1)
                             intBodyLines->Add(String(StringBuf, len));
                     }
@@ -12619,9 +12619,9 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
 
             procName = recN->MakePrototype(adr, true, false, false, false, false);
             if (!procName.Pos(":?"))
-                len = sprintf(StringBuf, "    %s", procName.c_str());
+                len = sprintf(StringBuf, "    %s//%08lX", procName.c_str(), adr);
             else
-                len = sprintf(StringBuf, "    //%s", procName.c_str());
+                len = sprintf(StringBuf, "    //%s//%08lX", procName.c_str(), adr);
 
             if (intBodyLines->IndexOf(String(StringBuf, len)) != -1) continue;
 
