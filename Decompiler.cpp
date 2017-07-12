@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00E99C19)
+if (_curAdr == 0x00EA4BC3)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -3119,8 +3119,8 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         Env->ErrAdr = curAdr;
                         throw Exception("You need to define type of function later");
                     }
-                    if (_retType[1] == '^')
-                        _retType = GetTypeDeref(_retType);
+                    //if (_retType[1] == '^')
+                    //    _retType = GetTypeDeref(_retType);
                     _retKind = GetTypeKind(_retType, &_size);
                     if (_retKind) break;
                 }
@@ -4881,7 +4881,7 @@ void __fastcall TDecompiler::SimulateInstr1(DWORD curAdr, BYTE Op)
 //---------------------------------------------------------------------------
 void __fastcall TDecompiler::SimulateInstr2RegImm(DWORD curAdr, BYTE Op)
 {
-    bool        _vmt;
+    bool        _vmt, _ptr;
     BYTE        _kind, _kind1, _kind2;
     char        *_tmpBuf;
     int         _reg1Idx, _reg2Idx, _offset, _foffset, _pow2, _mod, _size;
@@ -5061,38 +5061,31 @@ void __fastcall TDecompiler::SimulateInstr2RegImm(DWORD curAdr, BYTE Op)
         if (_item1.Type != "")
         {
             _typeName = _item1.Type;
-            if (_item1.Type[1] == '^') _typeName = GetTypeDeref(_item1.Type);
+            _ptr = (_item1.Type[1] == '^');
+            if (_ptr) _typeName = GetTypeDeref(_item1.Type);
             _kind = GetTypeKind(_typeName, &_size);
             if (_kind == ikRecord)
             {
-                _value = _item1.Value;
                 InitItem(&_item);
+                _value = _item1.Value;
 
-                _item.Flags = IF_RECORD_FOFS;
-                _item.Value = _value;
-                _item.Type = _typeName;
-                _item.Offset = (int)DisInfo.Immediate;
-                SetRegItem(_reg1Idx, &_item);
-                return;
-                /*
-                _text = GetRecordFields(DisInfo.Immediate, _typeName);
-                if (_text.Pos(":"))
+                if (_ptr) _value += "^";
+                if (GetField(_typeName, DisInfo.Immediate, _name, _type) >= 0)
                 {
-                    _value += "." + ExtractName(_text);
-                    _typeName = ExtractType(_text);
+                    _value += "." + _name;
+                    _typeName = _type;
                 }
                 else
                 {
                     _value += ".f" + Val2Str0(DisInfo.Immediate);
-                    _typeName = _text;
+                    _typeName = _type;
                 }
                 _item.Value = _value;
                 _item.Type = _typeName;
                 SetRegItem(_reg1Idx, &_item);
-                _line = GetDecompilerRegisterName(_reg1Idx) + " := ^" + _item.Value;
+                _line = GetDecompilerRegisterName(_reg1Idx) + " := " + _item.Value;
                 Env->AddToBody(_line);
                 return;
-                */
             }
             if (_kind == ikVMT)
             {
@@ -6517,7 +6510,7 @@ DWORD __fastcall TDecompiler::DecompileTry(DWORD fromAdr, DWORD flags, PLoopInfo
         de->SetStop(endTryAdr);
         try
         {
-            endAdr = de->Decompile(fromAdr + 14, 0, loopInfo);
+            endAdr = de->Decompile(fromAdr + skipNum, 0, loopInfo);
         }
         catch(Exception &exception)
         {

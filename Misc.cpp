@@ -1550,6 +1550,9 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
         else
             name = AName;
 
+        if (name[1] == '^' || SameText(name, "Pointer"))
+            return ikPointer;
+
         if (SameText(name, "Boolean") ||
             SameText(name, "ByteBool") ||
             SameText(name, "WordBool") ||
@@ -1611,7 +1614,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
         if (SameText(name, "PChar") || SameText(name, "PAnsiChar")) return ikCString;
         if (SameText(name, "PWideChar")) return ikWCString;
         if (SameText(name, "Variant")) return ikVariant;
-        if (SameText(name, "Pointer")) return ikPointer;
+        //if (SameText(name, "Pointer")) return ikPointer;
 
         //File
         String recFileName = FMain_11011981->WrkDir + "\\types.idr";
