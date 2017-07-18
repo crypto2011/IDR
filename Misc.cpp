@@ -984,7 +984,7 @@ int __fastcall GetField(String TypeName, int Offset, String& name, String& type)
             if (fInfo->Name != "")
                 name += fInfo->Name;
             else
-                name += "f" + IntToHex((int)Offset, 0);
+                name += "f" + IntToHex((int)fInfo->Offset, 0);
             type = fInfo->Type;
 
             _type = fInfo->Type;
