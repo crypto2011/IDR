@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00687F0D)
+if (_curAdr == 0x006882EF)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -1815,6 +1815,9 @@ _curAdr = _curAdr;
                     //check Exit
                     if (IsExit(DisInfo.Immediate))
                         Env->AddToBody("Exit;");
+                    //if jmp BreakAdr
+                    if (loopInfo && loopInfo->BreakAdr == DisInfo.Immediate)
+                        Env->AddToBody("Break;");
                     _curPos += _instrLen; _curAdr += _instrLen;
                     break;
                 }
