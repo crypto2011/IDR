@@ -1446,8 +1446,8 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0068CFA5)
-_curAdr = _curAdr;
+//if (_curAdr == 0x0068CFA5)
+//_curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
         {
