@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x006882EF)
+if (_curAdr == 0x0068CFA5)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -10277,11 +10277,13 @@ int __fastcall TDecompiler::AnalyzeConditions(int brType, DWORD curAdr, DWORD sA
     //simple if
     if (brType == 0)
     {
-        if (bFloat) SimulateFloatInstruction(sAdr);
+        //if (bFloat) SimulateFloatInstruction(sAdr);
         if (CmpInfo.O == 'R')//not in
             _line = "if (not (" + CmpInfo.L + " in " + CmpInfo.R + ")) then";
         else
             _line = "if (" + CmpInfo.L + " " + GetInvertCondition(CmpInfo.O) + " " + CmpInfo.R + ") then";
+        if (bFloat) SimulateFloatInstruction(sAdr);
+        
         Env->AddToBody(_line);
         _begAdr = _curAdr;
         Env->SaveContext(_begAdr);
