@@ -1008,6 +1008,7 @@ int __fastcall GetField(String TypeName, int Offset, String& name, String& type)
         }
         if (kind == ikArray || kind == ikDynArray)
         {
+            //name += "[]";
             break;
         }
     }

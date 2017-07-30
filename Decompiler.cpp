@@ -1446,8 +1446,8 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x0068CFA5)
-_curAdr = _curAdr;
+//if (_curAdr == 0x006919B9)
+//_curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
         {
@@ -9240,6 +9240,9 @@ int __fastcall TDecompiler::GetArrayFieldOffset(String ATypeName, int AFromOfs, 
     {
         if (_offset >= _classSize) break;
         _fofs = GetField(ATypeName, _offset, name, type);
+        if (_fofs >= 0)
+            return _offset;
+        /*
         if (_fofs >= 0 && GetTypeKind(type, &_size) == ikArray && GetArrayIndexes(type, 1, &_lIdx, &_hIdx))
         {
             _size = GetArrayElementTypeSize(type);
@@ -9249,6 +9252,7 @@ int __fastcall TDecompiler::GetArrayFieldOffset(String ATypeName, int AFromOfs, 
         }
         //Try next offset
         _offset++;
+        */
     }
     return -1;
 }
