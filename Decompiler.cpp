@@ -1446,8 +1446,8 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-//if (_curAdr == 0x006919B9)
-//_curAdr = _curAdr;
+if (_curAdr == 0x00D8E233)
+_curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
         {
@@ -4680,7 +4680,8 @@ void __fastcall TDecompiler::SimulatePop(DWORD curAdr)
             Env->AddToBody("//pop " + _regname);
         }
         _item->Precedence = PRECEDENCE_NONE;
-        _item->Value = _regname;
+        if (!_item->Value.Pos(_regname))
+            _item->Value += "{" + _regname + "}";
         SetRegItem(DisInfo.OpRegIdx[0], _item);
         return;
     }
