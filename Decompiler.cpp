@@ -1446,7 +1446,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00D8E233)
+if (_curAdr == 0x00D90E32)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -6985,6 +6985,7 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
     }
     if (SameText(name, "@DynArraySetLength"))//stdcall
     {
+        _line = "SetLength(";
         //eax - dst
         GetRegItem(16, &_item1); _item = _item1;
         //edx - type of DynArray
@@ -6995,11 +6996,15 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
             if (Env->Stack[_item1.IntValue].Value == "") Env->Stack[_item1.IntValue].Value = Env->GetLvarName(_item1.IntValue, _typeName);
             _item = Env->Stack[_item1.IntValue];
             Env->Stack[_item1.IntValue].Type = _typeName;
-            _line = "SetLength(" + _item.Value;
+            _line += _item.Value;
         }
         else if (_item1.Flags & IF_INTVAL)
         {
-            _line = "SetLength(" + MakeGvarName(_item1.IntValue);
+            _line += MakeGvarName(_item1.IntValue);
+        }
+        else
+        {
+            _line += _item.Value;
         }
         //ecx - dims cnt
         GetRegItem(17, &_item3); _cnt = _item3.IntValue;
