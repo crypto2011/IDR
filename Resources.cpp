@@ -579,7 +579,7 @@ void __fastcall TResourceInfo::InitAliases()
             String alias = "";
             try
             {
-                //TMetaClass *componentClass = FindClass(className);
+                TMetaClass *componentClass = FindClass(className);
             }
             catch (Exception& e)
             {

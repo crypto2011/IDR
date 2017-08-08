@@ -1445,7 +1445,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00DEA14E)
+if (_curAdr == 0x006980FD)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -9489,12 +9489,12 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             //Arg
             if (_item.Flags & IF_ARG)
             {
-                Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
-                //AssignItem(Dst, &_item);
-                //Dst->Flags &= ~IF_ARG;
-                Dst->Value = _item.Name;
-                Dst->Name = _item.Name;
+                //Dst->Flags = IF_STACK_PTR;
+                //Dst->IntValue = _itemBase.IntValue + _offset;
+                AssignItem(Dst, &_item);
+                Dst->Flags &= ~IF_ARG;
+                //Dst->Value = _item.Name;
+                //Dst->Name = _item.Name;
                 return;
             }
             //Var
