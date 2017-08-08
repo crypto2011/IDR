@@ -5896,7 +5896,8 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
             CmpInfo.R = "0";
             return;
         }
-        if (Op == OP_ADD || Op == OP_SUB || Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
+        if (Op == OP_ADD || Op == OP_SUB || Op == OP_MUL || Op == OP_IMUL ||
+            Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
         {
             if (Op == OP_ADD)
                 _op = " + ";
@@ -6091,7 +6092,8 @@ void __fastcall TDecompiler::SimulateInstr2MemImm(DWORD curAdr, BYTE Op)
         Env->AddToBody(_line);
         return;
     }
-    if (Op == OP_ADD || Op == OP_SUB || Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
+    if (Op == OP_ADD || Op == OP_SUB || Op == OP_MUL || Op == OP_IMUL ||
+        Op == OP_AND || Op == OP_OR || Op == OP_XOR || Op == OP_SHL || Op == OP_SHR)
     {
         if (Op == OP_ADD)
             _op = " + ";
@@ -9279,7 +9281,7 @@ void __fastcall TDecompiler::GetInt64ItemFromStack(int Esp, PITEM Dst)
     memmove((void*)(_binData + 4), (void*)&_item.IntValue, 4);
     memmove((void*)&_int64Val, _binData, 8);
     Dst->Value = IntToStr(_int64Val);
-    Dst->Type = "Single";
+    Dst->Type = "Int64";
 }
 //---------------------------------------------------------------------------
 void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int FloatType)
