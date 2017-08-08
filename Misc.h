@@ -104,6 +104,7 @@ bool __fastcall IsInheritsByClassName(const String& Name1, const String& Name2);
 bool __fastcall IsInheritsByProcName(const String& Name1, const String& Name2);
 int __fastcall IsInitStackViaLoop(DWORD fromAdr, DWORD toAdr);
 bool __fastcall IsSameRegister(int Idx1, int Idx2);
+int __fastcall IsCopyDynArrayToStack(DWORD fromAdr);
 bool __fastcall IsValidCodeAdr(DWORD Adr);
 bool __fastcall IsValidCString(int pos);
 bool __fastcall IsValidImageAdr(DWORD Adr);

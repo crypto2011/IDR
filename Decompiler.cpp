@@ -733,7 +733,6 @@ void __fastcall TDecompileEnv::DecompileProc()
     TDecompiler* De = new TDecompiler(this);
     if (!De->Init(StartAdr))
     {
-        De->Env->ErrAdr = StartAdr;
         delete De;
         throw Exception("Prototype is not completed");
     }
@@ -1446,7 +1445,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00D90E32)
+if (_curAdr == 0x00DEA14E)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -2276,6 +2275,13 @@ _curAdr = _curAdr;
                 _line = GetDecompilerRegisterName(DisInfo.OpRegIdx[0]) + " := " + _item.Value + ";";
                 Env->AddToBody(_line);
 
+                _curPos += _bytesToSkip; _curAdr += _bytesToSkip;
+                continue;
+            }
+            _bytesToSkip = IsCopyDynArrayToStack(_curAdr);
+            if (_bytesToSkip)
+            {
+                Env->AddToBody("//Copy dynamic array to stack");
                 _curPos += _bytesToSkip; _curAdr += _bytesToSkip;
                 continue;
             }
@@ -3421,10 +3427,8 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         if (_item.Flags & IF_INTVAL)
                         {
                             GetFloatItemFromStack(_esp, &_item, FloatNameToFloatType(_argInfo->TypeDef));
-                            _line += _item.Value;
                         }
-                        else
-                            _line += _item.Value;
+                        _line += _item.Value;
                         continue;
                     }
                     if (_kind == ikInt64)
@@ -3432,10 +3436,8 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                         if (_item.Flags & IF_INTVAL)
                         {
                             GetInt64ItemFromStack(_esp, &_item);
-                            _line += _item.Value;
                         }
-                        else
-                            _line += _item.Value;
+                        _line += _item.Value;
                         continue;
                     }
                     if (_kind == ikClassRef)

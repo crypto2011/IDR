@@ -2923,8 +2923,8 @@ int _fastcall IsIntOver(DWORD fromAdr)
 //mov reg, [reg]
 int __fastcall IsInlineLengthTest(DWORD fromAdr)
 {
-    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx = -1;
-    DWORD       _dd, _adr = 0, _curAdr = fromAdr;
+    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx;
+    DWORD       _dd, _adr, _curAdr = fromAdr;
     DISINFO     _disInfo;
 
     _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
@@ -2988,9 +2988,9 @@ int __fastcall IsInlineLengthTest(DWORD fromAdr)
 int __fastcall IsInlineLengthCmp(DWORD fromAdr)
 {
     BYTE        _op;
-    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx = -1;
+    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx;
     int         _baseReg, _offset;
-    DWORD       _dd, _adr = 0, _curAdr = fromAdr;
+    DWORD       _dd, _adr, _curAdr = fromAdr;
     DISINFO     _disInfo;
 
     _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
@@ -3067,7 +3067,7 @@ int __fastcall IsInlineLengthCmp(DWORD fromAdr)
 int __fastcall IsInlineDiv(DWORD fromAdr, int* div)
 {
     BYTE        _op;
-    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx = -1;
+    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx;
     DWORD       _dd, _adr, _curAdr = fromAdr, _imm;
     DISINFO     _disInfo;
 
@@ -3123,8 +3123,8 @@ int __fastcall IsInlineDiv(DWORD fromAdr, int* div)
 int __fastcall IsInlineMod(DWORD fromAdr, int* mod)
 {
     BYTE        _op;
-    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx = -1;
-    DWORD       _dd, _adr = 0, _curAdr = fromAdr, _imm;
+    int         _curPos = Adr2Pos(fromAdr), _instrLen, _regIdx;
+    DWORD       _dd, _adr, _curAdr = fromAdr, _imm;
     DISINFO     _disInfo;
 
     _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
@@ -3169,6 +3169,82 @@ int __fastcall IsInlineMod(DWORD fromAdr, int* mod)
                         {
                             *mod = _imm + 1;
                             return (_curAdr + _instrLen) - fromAdr;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+//---------------------------------------------------------------------------
+//test reg1, reg1
+//js @1
+//@2:mov reg2, [reg3+reg1...]
+//dec reg1
+//push reg2
+//jns @2
+//@1:mov reg4, esp
+int __fastcall IsCopyDynArrayToStack(DWORD fromAdr)
+{
+    BYTE        _op;
+    int         _curPos = Adr2Pos(fromAdr), _instrLen, _reg1Idx, _reg2Idx;
+    DWORD       _dd, _adr1, _adr2, _curAdr = fromAdr, _imm;
+    DISINFO     _disInfo;
+
+    _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+    _op = Disasm.GetOp(_disInfo.Mnem);
+    if (_op == OP_TEST &&
+        _disInfo.OpType[0] == otREG &&
+        _disInfo.OpType[1] == otREG &&
+        _disInfo.OpRegIdx[0] == _disInfo.OpRegIdx[1])
+    {
+        _reg1Idx = _disInfo.OpRegIdx[0];
+        _curPos += _instrLen; _curAdr += _instrLen;
+        _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+        _dd = *((DWORD*)_disInfo.Mnem);
+        if (_dd == 'sj')
+        {
+            _adr1 = _disInfo.Immediate;
+            _curPos += _instrLen; _curAdr += _instrLen;
+            _adr2 = _curAdr;
+            _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+            _op = Disasm.GetOp(_disInfo.Mnem);
+            if (_op == OP_MOV &&
+                _disInfo.OpType[0] == otREG &&
+                _disInfo.OpType[1] == otMEM)
+            {
+                _reg2Idx = _disInfo.OpRegIdx[0];
+                _curPos += _instrLen; _curAdr += _instrLen;
+                _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+                _op = Disasm.GetOp(_disInfo.Mnem);
+                if (_op == OP_DEC &&
+                    _disInfo.OpType[0] == otREG &&
+                    _disInfo.OpRegIdx[0] == _reg1Idx)
+                {
+                    _curPos += _instrLen; _curAdr += _instrLen;
+                    _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+                    _op = Disasm.GetOp(_disInfo.Mnem);
+                    if (_op == OP_PUSH &&
+                        _disInfo.OpType[0] == otREG &&
+                        _disInfo.OpRegIdx[0] == _reg2Idx)
+                    {
+                        _curPos += _instrLen; _curAdr += _instrLen;
+                        _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+                        _dd = *((DWORD*)_disInfo.Mnem);
+                        if (_dd == 'snj' && _disInfo.Immediate == _adr2)
+                        {
+                            _curPos += _instrLen; _curAdr += _instrLen;
+                            _instrLen = Disasm.Disassemble(Code + _curPos, (__int64)_curAdr, &_disInfo, 0);
+                            _op = Disasm.GetOp(_disInfo.Mnem);
+                            if (_adr1 == _curAdr &&
+                                _op == OP_MOV &&
+                                _disInfo.OpType[0] == otREG &&
+                                _disInfo.OpType[1] == otREG &&
+                                _disInfo.OpRegIdx[1] == 20)//esp
+                            {
+                                return (_curAdr + _instrLen) - fromAdr;
+                            }
                         }
                     }
                 }
