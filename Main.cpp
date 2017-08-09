@@ -102,6 +102,7 @@ bool            ClassTreeDone;
 bool            ProjectModified = false;
 bool            UserKnowledgeBase = false;
 bool            SplitIDC = false;
+bool            BCB = false;
 int             SplitSize = 0;
 //Common variables
 String          IDPFile;
@@ -2659,8 +2660,11 @@ bool __fastcall TFMain_11011981::IsExtendedInitTab(DWORD* unitsTab)
 //---------------------------------------------------------------------------
 DWORD __fastcall TFMain_11011981::EvaluateInitTable(BYTE* Data, DWORD Size, DWORD Base)
 {
-    int     i, num, pos, unitsPos = 0, n;
-    DWORD   initTable, result, iniAdr, finAdr, maxAdr = 0;
+    int         i, num, pos, unitsPos = 0, n;
+    int         curPos, instrLen;
+    DWORD       initTable, result, iniAdr, finAdr, maxAdr = 0;
+    DWORD       endAdr, curAdr, dd, modTable;
+    DISINFO     disInfo;
 
     for (i = 0; i < ((Size - 4) & (-4)); i += 4)
     {
@@ -2723,7 +2727,7 @@ DWORD __fastcall TFMain_11011981::EvaluateInitTable(BYTE* Data, DWORD Size, DWOR
                 iniAdr = *((DWORD*)(Data + pos));
                 if (iniAdr)
                 {
-                    if (iniAdr < Base || iniAdr >= Base + Size)//!IsValidImageAdr(iniAdr))
+                    if (iniAdr < Base || iniAdr >= Base + Size)
                     {
                         unitsPos = 0;
                         break;
@@ -2736,7 +2740,7 @@ DWORD __fastcall TFMain_11011981::EvaluateInitTable(BYTE* Data, DWORD Size, DWOR
                 finAdr = *((DWORD*)(Data + pos + 4));
                 if (finAdr)
                 {
-                    if (finAdr < Base || finAdr >= Base + Size)//!IsValidImageAdr(finAdr))
+                    if (finAdr < Base || finAdr >= Base + Size)
                     {
                         unitsPos = 0;
                         break;
@@ -2755,6 +2759,43 @@ DWORD __fastcall TFMain_11011981::EvaluateInitTable(BYTE* Data, DWORD Size, DWOR
 
     if (unitsPos) return initTable - 24;
 
+    //May be BCB
+    curAdr = EP; curPos = Adr2Pos(curAdr);
+    instrLen = Disasm.Disassemble(Code + curPos, (__int64)curAdr, &disInfo, 0);
+    dd = *((DWORD*)disInfo.Mnem);
+    if (dd == 'pmj')
+    {
+        curAdr = disInfo.Immediate; curPos = Adr2Pos(curAdr);
+        while (1)
+        {
+            instrLen = Disasm.Disassemble(Code + curPos, (__int64)curAdr, &disInfo, 0);
+            dd = *((DWORD*)disInfo.Mnem);
+            if (dd == 'pmj') break;
+            if (dd == 'hsup' && disInfo.OpType[0] == otIMM && disInfo.Immediate)
+            {
+                modTable = disInfo.Immediate;
+                if (IsValidImageAdr(modTable))
+                {
+                    pos = unitsPos = Adr2Pos(modTable);
+                    iniAdr = initTable = *((DWORD*)(Image + pos));
+                    if (iniAdr < Base || iniAdr >= Base + Size) unitsPos = 0;
+                    endAdr = *((DWORD*)(Image + pos + 4));//ini table and
+                    if (endAdr < Base || endAdr >= Base + Size) unitsPos = 0;
+                    finAdr = *((DWORD*)(Image + pos + 8));
+                    if (finAdr < Base || finAdr >= Base + Size) unitsPos = 0;
+                    endAdr = *((DWORD*)(Image + pos + 12));//fin table end
+                    if (endAdr < Base || endAdr >= Base + Size) unitsPos = 0;
+                    break;
+                }
+            }
+            curAdr += instrLen; curPos += instrLen;
+        }
+        if (unitsPos)
+        {
+            BCB = true;
+            return initTable;
+        }
+    }
     return 0;
 }
 //---------------------------------------------------------------------------
@@ -8372,19 +8413,9 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
     dprName = ExtractFileName(FileName);
     pos = dprName.Pos(".");
     if (pos) dprName.SetLength(pos - 1);
-    
-    if (DelphiVersion == 2)
-        UnitsNum = GetUnits2(dprName);
-    else
-        UnitsNum = GetUnits(dprName);
 
-    if (UnitsNum > 0)
+    if (BCB)
     {
-        ShowUnits(false);
-    }
-    else
-    {
-        //May be BCB file?
         UnitsNum = GetBCBUnits(dprName);
         if (!UnitsNum)
         {
@@ -8392,6 +8423,18 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
             ShowMessage("Cannot find table of initialization and finalization procedures");
             CleanProject();
             return;
+        }
+    }
+    else
+    {
+        if (DelphiVersion == 2)
+            UnitsNum = GetUnits2(dprName);
+        else
+            UnitsNum = GetUnits(dprName);
+
+        if (UnitsNum > 0)
+        {
+            ShowUnits(false);
         }
     }
 
@@ -8624,6 +8667,8 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
     CodeStart = 0;
     Code = Image + CodeStart;
     CodeBase = ImageBase + SectionHeaders[0].VirtualAddress;
+    EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;//temporary assignment to evaluate BCB ini and fin tables
+    BCB = false;
 
     DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
     if (!evalInitTable)
