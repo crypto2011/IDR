@@ -28,12 +28,12 @@ extern  int         DelphiVersion;
 extern  TList       *SegmentList;
 extern  TList       *OwnTypeList;
 extern  TList       *VmtList;
-extern  int         VmtSelfPtr;
-extern  int         VmtIntfTable;
-extern  int         VmtInitTable;
-extern  int         VmtParent;
-extern  int         VmtClassName;
-extern  int         VmtInstanceSize;
+extern  int         cVmtSelfPtr;
+extern  int         cVmtIntfTable;
+extern  int         cVmtInitTable;
+extern  int         cVmtParent;
+extern  int         cVmtClassName;
+extern  int         cVmtInstanceSize;
 extern  char*       Reg8Tab[8];
 extern  char*       Reg16Tab[8];
 extern  char*       Reg32Tab[8];
@@ -1106,13 +1106,13 @@ DWORD __fastcall GetParentAdr(DWORD Adr)
 {
     if (!IsValidImageAdr(Adr)) return 0;
 
-    DWORD vmtAdr = Adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtParent;
+    DWORD vmtAdr = Adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtParent;
     DWORD adr = *((DWORD*)(Code + pos));
     if (IsValidImageAdr(adr) && IsFlagSet(cfImport, Adr2Pos(adr)))
         return 0;
 
-    if (DelphiVersion == 2 && adr) adr += VmtSelfPtr;
+    if (DelphiVersion == 2 && adr) adr += cVmtSelfPtr;
     return adr;
 }
 //---------------------------------------------------------------------------
@@ -1132,8 +1132,8 @@ int __fastcall GetClassSize(DWORD adr)
 {
     if (!IsValidImageAdr(adr)) return 0;
 
-    DWORD vmtAdr = adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtInstanceSize;
+    DWORD vmtAdr = adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtInstanceSize;
     int size = *((int*)(Code + pos));
     if (DelphiVersion >= 2009) return size - 4;
     return size;
@@ -1143,11 +1143,11 @@ String __fastcall GetClsName(DWORD adr)
 {
     if (!IsValidImageAdr(adr)) return "";
 
-    DWORD vmtAdr = adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtClassName;
+    DWORD vmtAdr = adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtClassName;
     if (IsFlagSet(cfImport, pos))
     {
-        PInfoRec recN = GetInfoRec(vmtAdr + VmtClassName);
+        PInfoRec recN = GetInfoRec(vmtAdr + cVmtClassName);
         return recN->GetName();
     }
     DWORD nameAdr = *((DWORD*)(Code + pos));
@@ -1304,8 +1304,8 @@ DWORD __fastcall GetStopAt(DWORD VmtAdr)
 
     if (DelphiVersion != 2)
     {
-        pos = Adr2Pos(VmtAdr) + VmtIntfTable;
-        for (m = VmtIntfTable; m != VmtInstanceSize; m += 4, pos += 4)
+        pos = Adr2Pos(VmtAdr) + cVmtIntfTable;
+        for (m = cVmtIntfTable; m != cVmtInstanceSize; m += 4, pos += 4)
         {
             pointer = *((DWORD*)(Code + pos));
             if (pointer >= VmtAdr && pointer < stopAt) stopAt = pointer;
@@ -1313,8 +1313,8 @@ DWORD __fastcall GetStopAt(DWORD VmtAdr)
     }
     else
     {
-        pos = Adr2Pos(VmtAdr) + VmtInitTable;
-        for (m = VmtInitTable; m != VmtInstanceSize; m += 4, pos += 4)
+        pos = Adr2Pos(VmtAdr) + cVmtInitTable;
+        for (m = cVmtInitTable; m != cVmtInstanceSize; m += 4, pos += 4)
         {
             if (Adr2Pos(VmtAdr) < 0)
                 return 0;

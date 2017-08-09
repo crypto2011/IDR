@@ -21,7 +21,7 @@ extern  BYTE        *Code;
 extern  PInfoRec    *Infos;
 extern  TStringList *BSSInfos;
 extern  DWORD       *Flags;
-extern  int         VmtSelfPtr;
+extern  int         cVmtSelfPtr;
 extern  char        StringBuf[MAXSTRBUFFER];
 extern  MKnowledgeBase  KnowledgeBase;
 //---------------------------------------------------------------------------
@@ -3684,11 +3684,11 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             _recM = FMain_11011981->GetMethodInfo(_classAdr, 'V', DisInfo.Offset);
             if (_recM)
             {
-                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - VmtSelfPtr + DisInfo.Offset));
+                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
                 if (_recM->abstract)
                 {
                     _classAdr = GetChildAdr(_classAdr);
-                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - VmtSelfPtr + DisInfo.Offset));
+                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
                 }
                 if (_recM->name != "")
                     return SimulateCall(curAdr, callAdr, instrLen, _recM, _classAdr);
@@ -3709,11 +3709,11 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                     _classAdr = GetClassAdr(_typeName);
                     _recM = FMain_11011981->GetMethodInfo(_classAdr, 'V', DisInfo.Offset);
                 }
-                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - VmtSelfPtr + DisInfo.Offset));
+                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
                 if (_recM->abstract)
                 {
                     _classAdr = GetChildAdr(_classAdr);
-                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - VmtSelfPtr + DisInfo.Offset));
+                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
                 }
                 if (_recM->name != "")
                     return SimulateCall(curAdr, callAdr, instrLen, _recM, _classAdr);

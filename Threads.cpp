@@ -27,18 +27,11 @@ extern  DWORD       CodeBase;
 extern  DWORD       TotalSize;
 extern  PInfoRec    *Infos;
 extern  TList       *OwnTypeList;
-extern  int         VmtSelfPtr;
-extern  int         VmtInitTable;
-extern  int         VmtInstanceSize;
-extern  int         VmtParent;
-extern  int         VmtClassName;
-extern  int         VmtIntfTable;
-extern  int         VmtAutoTable;
-extern  int         VmtFieldTable;
-extern  int         VmtMethodTable;
-extern  int         VmtDynamicTable;
-extern  int         VmtTypeInfo;
-extern  int         VmtDestroy;
+extern  int         cVmtSelfPtr;
+extern  int         cVmtParent;
+extern  int         cVmtIntfTable;
+extern  int         cVmtTypeInfo;
+extern  int         cVmtDestroy;
 extern  int         UnitsNum;
 extern  TList       *ExpFuncList;
 extern  TList       *VmtList;
@@ -1092,11 +1085,11 @@ void __fastcall TAnalyzeThread::FindVMTs2()
         DWORD destroyAdr = *((DWORD*)(Code + i + 0x30));
         if (destroyAdr && !IsValidImageAdr(destroyAdr)) continue;
 
-        DWORD classVMT = Pos2Adr(i) - VmtSelfPtr;
+        DWORD classVMT = Pos2Adr(i) - cVmtSelfPtr;
         if (Adr2Pos(classVMT) < 0) continue;
 
         int StopAt = GetStopAt(classVMT);
-        if (i + StopAt - classVMT - VmtSelfPtr >= CodeSize) continue;
+        if (i + StopAt - classVMT - cVmtSelfPtr >= CodeSize) continue;
 
         _ap = Adr2Pos(classNameAdr);
         if (_ap <= 0) continue;
@@ -1195,7 +1188,7 @@ void __fastcall TAnalyzeThread::FindVMTs2()
 
         //DWORD StopAt = GetStopAt(classVMT);
         //Использовали виртуальную таблицу
-        SetFlags(cfData, i, StopAt - classVMT - VmtSelfPtr);
+        SetFlags(cfData, i, StopAt - classVMT - cVmtSelfPtr);
 
         PUnitRec recU = mainForm->GetUnit(classVMT);
         if (recU)
@@ -1233,12 +1226,12 @@ void __fastcall TAnalyzeThread::FindVMTs()
     {
         if ((i & stepMask) == 0) UpdateProgress();
         if (IsFlagSet(cfCode | cfData, i)) continue;
-        DWORD adr = *((DWORD*)(Code + i));  //Points to vmt0 (VmtSelfPtr)
-        if (IsValidImageAdr(adr) && Pos2Adr(i) == adr + VmtSelfPtr)
+        DWORD adr = *((DWORD*)(Code + i));  //Points to vmt0 (cVmtSelfPtr)
+        if (IsValidImageAdr(adr) && Pos2Adr(i) == adr + cVmtSelfPtr)
         {
             DWORD classVMT = adr;
             DWORD StopAt = GetStopAt(classVMT);
-            //if (i + StopAt - classVMT - VmtSelfPtr >= CodeSize) continue;
+            //if (i + StopAt - classVMT - cVmtSelfPtr >= CodeSize) continue;
 
             DWORD intfTableAdr = *((DWORD*)(Code + i + 4));
             if (intfTableAdr)
@@ -1547,12 +1540,12 @@ void __fastcall TAnalyzeThread::FindVMTs()
 
             //DWORD StopAt = GetStopAt(classVMT);
             //Use Virtual Table
-            SetFlags(cfData, i, StopAt - classVMT - VmtSelfPtr);
+            SetFlags(cfData, i, StopAt - classVMT - cVmtSelfPtr);
 
             PUnitRec recU = mainForm->GetUnit(classVMT);
             if (recU)
             {
-                adr = *((DWORD*)(Code + i - VmtSelfPtr + VmtTypeInfo));
+                adr = *((DWORD*)(Code + i - cVmtSelfPtr + cVmtTypeInfo));
                 if (adr && IsValidImageAdr(adr))
                 {
                     //Extract unit name
@@ -1619,7 +1612,7 @@ void __fastcall TAnalyzeThread::FindTypeFields()
         PInfoRec recN = GetInfoRec(Pos2Adr(i));
     	if (recN && recN->kind == ikVMT)
         {
-            DWORD vmtAdr = Pos2Adr(i) - VmtSelfPtr;
+            DWORD vmtAdr = Pos2Adr(i) - cVmtSelfPtr;
             PUnitRec recU = mainForm->GetUnit(vmtAdr);
             if (recU)
             {
@@ -2890,7 +2883,7 @@ void __fastcall TAnalyzeThread::ScanGetSetStoredProcs()
             n += len;
 
             DWORD classVMT = *((DWORD*)(Code + n)); n += 4;
-            PInfoRec recN1 = GetInfoRec(classVMT + VmtSelfPtr);
+            PInfoRec recN1 = GetInfoRec(classVMT + cVmtSelfPtr);
             /*DWORD parentAdr = *((DWORD*)(Code + n));*/ n += 4;
             WORD propCount = *((WORD*)(Code + n)); n += 2;
             //Skip unit name
@@ -3165,7 +3158,7 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         if ((getProc & 0xFF000000) == 0xFF000000)
                         {
                             fieldOfs = getProc & 0x00FFFFFF;
-                            recN1 = GetInfoRec(classVMT + VmtSelfPtr);
+                            recN1 = GetInfoRec(classVMT + cVmtSelfPtr);
                             if (recN1 && recN1->vmtInfo)
                                 recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
@@ -3211,7 +3204,7 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         if ((setProc & 0xFF000000) == 0xFF000000)
                         {
                             fieldOfs = setProc & 0x00FFFFFF;
-                            recN1 = GetInfoRec(classVMT + VmtSelfPtr);
+                            recN1 = GetInfoRec(classVMT + cVmtSelfPtr);
                             if (recN1 && recN1->vmtInfo)
                                 recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
@@ -3257,7 +3250,7 @@ void __fastcall TAnalyzeThread::PropagateClassProps()
                         if ((storedProc & 0xFF000000) == 0xFF000000)
                         {
                             fieldOfs = storedProc & 0x00FFFFFF;
-                            recN1 = GetInfoRec(classVMT + VmtSelfPtr);
+                            recN1 = GetInfoRec(classVMT + cVmtSelfPtr);
                             if (recN1 && recN1->vmtInfo)
                                 recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, name, typeName);
                         }
@@ -3363,7 +3356,7 @@ void __fastcall TAnalyzeThread::AnalyzeDC()
         UpdateStatusBar(className);
 
         //Destructor
-        pos = Adr2Pos(vmtAdr) - VmtSelfPtr + VmtDestroy;
+        pos = Adr2Pos(vmtAdr) - cVmtSelfPtr + cVmtDestroy;
         adr = *((DWORD*)(Code + pos));
         if (IsValidImageAdr(adr))
         {
@@ -3402,14 +3395,14 @@ void __fastcall TAnalyzeThread::AnalyzeDC()
         if ((n & stepMask) == 0) UpdateProgress();
         recV = (PVmtListRec)VmtList->Items[n];
         vmtAdr = recV->vmtAdr;
-        stopAt = GetStopAt(vmtAdr - VmtSelfPtr);
+        stopAt = GetStopAt(vmtAdr - cVmtSelfPtr);
         if (vmtAdr == stopAt) continue;
 
         className = GetClsName(vmtAdr);
         UpdateStatusBar(className);
-        pos = Adr2Pos(vmtAdr) - VmtSelfPtr + VmtParent + 4;
+        pos = Adr2Pos(vmtAdr) - cVmtSelfPtr + cVmtParent + 4;
 
-        for (m = VmtParent + 4;; m += 4, pos += 4)
+        for (m = cVmtParent + 4;; m += 4, pos += 4)
         {
             if (Pos2Adr(pos) == stopAt) break;
             procAdr = *((DWORD*)(Code + pos));

@@ -1247,7 +1247,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                                 if (reset)
                                                 {
                                                     SetRegisterType(registers, reg1Idx, recN->GetName());
-                                                    SetRegisterValue(registers, reg1Idx, Adr - VmtSelfPtr);
+                                                    SetRegisterValue(registers, reg1Idx, Adr - cVmtSelfPtr);
                                                 }
                                             }
                                             else
@@ -1584,7 +1584,7 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
                                                         if (recN->kind == ikVMT)
                                                         {
                                                             SetRegisterType(registers, reg1Idx, recN->GetName());
-                                                            SetRegisterValue(registers, reg1Idx, Adr - VmtSelfPtr);
+                                                            SetRegisterValue(registers, reg1Idx, Adr - cVmtSelfPtr);
                                                         }
                                                         else
                                                         {
@@ -2308,7 +2308,7 @@ String __fastcall TFMain_11011981::AnalyzeTypes(DWORD parentAdr, int callPos, DW
         }
         if (recN->SameName("TApplication.CreateForm"))
         {
-            DWORD vmtAdr = registers[18].value + VmtSelfPtr; //edx
+            DWORD vmtAdr = registers[18].value + cVmtSelfPtr; //edx
 
             DWORD refAdr = registers[17].value;        //ecx
             if (IsValidImageAdr(refAdr))

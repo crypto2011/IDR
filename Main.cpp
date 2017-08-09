@@ -150,28 +150,28 @@ int             Reserved;
 int             LastResStrNo = 0;   //Last ResourceStringNo
 DWORD			CtdRegAdr;			//Procedure CtdRegAdr address
 
-int             VmtSelfPtr			 = 0;
-int             VmtIntfTable		 = 0;
-int             VmtAutoTable		 = 0;
-int             VmtInitTable		 = 0;
-int             VmtTypeInfo			 = 0;
-int             VmtFieldTable		 = 0;
-int             VmtMethodTable		 = 0;
-int             VmtDynamicTable		 = 0;
-int             VmtClassName		 = 0;
-int             VmtInstanceSize		 = 0;
-int             VmtParent			 = 0;
-int             VmtEquals			 = 0;
-int             VmtGetHashCode		 = 0;
-int             VmtToString			 = 0;
-int             VmtSafeCallException = 0;
-int             VmtAfterConstruction = 0;
-int             VmtBeforeDestruction = 0;
-int             VmtDispatch			 = 0;
-int             VmtDefaultHandler	 = 0;
-int             VmtNewInstance		 = 0;
-int             VmtFreeInstance		 = 0;
-int             VmtDestroy			 = 0;
+int             cVmtSelfPtr			  = 0;
+int             cVmtIntfTable		  = 0;
+int             cVmtAutoTable		  = 0;
+int             cVmtInitTable		  = 0;
+int             cVmtTypeInfo		  = 0;
+int             cVmtFieldTable		  = 0;
+int             cVmtMethodTable		  = 0;
+int             cVmtDynamicTable	  = 0;
+int             cVmtClassName		  = 0;
+int             cVmtInstanceSize	  = 0;
+int             cVmtParent			  = 0;
+int             cVmtEquals			  = 0;
+int             cVmtGetHashCode		  = 0;
+int             cVmtToString		  = 0;
+int             cVmtSafeCallException = 0;
+int             cVmtAfterConstruction = 0;
+int             cVmtBeforeDestruction = 0;
+int             cVmtDispatch		  = 0;
+int             cVmtDefaultHandler	  = 0;
+int             cVmtNewInstance		  = 0;
+int             cVmtFreeInstance	  = 0;
+int             cVmtDestroy			 = 0;
 
 //as
 //class addresses cache
@@ -622,7 +622,7 @@ void __fastcall TFMain_11011981::StrapVMT(int pos, int ConstId, MConstInfo* Cons
 
     SetFlags(cfData , pos - 4, ConstInfo->DumpSz + 4);
 
-    int Idx, Pos, VMTOffset = VmtSelfPtr + 4;
+    int Idx, Pos, VMTOffset = cVmtSelfPtr + 4;
     //"Strap" fixups
     //Get used modules array
     WORD *uses = KnowledgeBase.GetModuleUses(ConstInfo->ModuleID);
@@ -641,9 +641,9 @@ void __fastcall TFMain_11011981::StrapVMT(int pos, int ConstId, MConstInfo* Cons
         //In VMT all fixups has type 'A'
         DWORD Adr = *((DWORD*)(Code + pos + fixupInfo.Ofs));
 
-        VMTOffset = VmtSelfPtr + 4 + fixupInfo.Ofs;
+        VMTOffset = cVmtSelfPtr + 4 + fixupInfo.Ofs;
 
-        if (VMTOffset == VmtIntfTable)
+        if (VMTOffset == cVmtIntfTable)
         {
             if (IsValidCodeAdr(Adr) && !Infos[Adr2Pos(Adr)])
             {
@@ -663,48 +663,48 @@ void __fastcall TFMain_11011981::StrapVMT(int pos, int ConstId, MConstInfo* Cons
             }
             continue;
         }
-        if (VMTOffset == VmtAutoTable)
+        if (VMTOffset == cVmtAutoTable)
         {
             //Strap AutoTable
             //Unknown - no examples
             continue;
         }
-        if (VMTOffset == VmtInitTable)
+        if (VMTOffset == cVmtInitTable)
         {
             //InitTable представл€ет собой ссылки на типы, которые встрет€тс€ позже
             continue;
         }
-        if (VMTOffset == VmtTypeInfo)
+        if (VMTOffset == cVmtTypeInfo)
         {
             //»нформаци€ о типе уже обработана, пропускаем
             continue;
         }
-        if (VMTOffset == VmtFieldTable)
+        if (VMTOffset == cVmtFieldTable)
         {
             //ѕропускаем, поскольку будем обрабатывать информацию о пол€х позднее
             continue;
         }
-        if (VMTOffset == VmtMethodTable)
+        if (VMTOffset == cVmtMethodTable)
         {
             //ѕропускаем, поскольку методы будут обработаны среди прочих фиксапов
             continue;
         }
-        if (VMTOffset == VmtDynamicTable)
+        if (VMTOffset == cVmtDynamicTable)
         {
             //ѕропускаем, поскольку динамические вызовы будут обработаны среди прочих фиксапов
             continue;
         }
-        if (VMTOffset == VmtClassName)
+        if (VMTOffset == cVmtClassName)
         {
             //ClassName не обрабатываем
             continue;
         }
-        if (VMTOffset == VmtParent)
+        if (VMTOffset == cVmtParent)
         {
             //”казывает на родительский класс, не обрабатываем, поскольку он все-равно встретитс€ отдельно
             continue;
         }
-        if (VMTOffset >= VmtParent + 4 && VMTOffset <= VmtDestroy)
+        if (VMTOffset >= cVmtParent + 4 && VMTOffset <= cVmtDestroy)
         {
             if (IsValidCodeAdr(Adr) && !Infos[Adr2Pos(Adr)])
             {
@@ -1750,31 +1750,31 @@ int __fastcall TFMain_11011981::GetDelphiVersion()
     version = -1;
     for (int n = 0; n < CodeSize; n += 4)
     {
-        vmtAdr = *((DWORD*)(Code + n));  //Points to vmt0 (VmtSelfPtr)
-        //VmtSelfPtr
+        vmtAdr = *((DWORD*)(Code + n));  //Points to vmt0 (cVmtSelfPtr)
+        //cVmtSelfPtr
         if (IsValidCodeAdr(vmtAdr))
         {
             if (Pos2Adr(n) == vmtAdr - 0x34)
             {
-                //VmtInitTable
+                //cVmtInitTable
                 adr = *((DWORD*)(Code + n + 4));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtTypeInfo
+                //cVmtTypeInfo
                 adr = *((DWORD*)(Code + n + 8));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtFieldTable
+                //cVmtFieldTable
                 adr = *((DWORD*)(Code + n + 12));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtMethodTable
+                //cVmtMethodTable
                 adr = *((DWORD*)(Code + n + 16));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtDynamicTable
+                //cVmtDynamicTable
                 adr = *((DWORD*)(Code + n + 20));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtClassName
+                //cVmtClassName
                 adr = *((DWORD*)(Code + n + 24));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtInstanceSize
+                //cVmtInstanceSize
                 adr = *((DWORD*)(Code + n + 28));
                 if (!adr || IsValidCodeAdr(adr)) continue;
                 version = Pos2Adr(n) - vmtAdr;
@@ -1782,31 +1782,31 @@ int __fastcall TFMain_11011981::GetDelphiVersion()
             }
             else if (Pos2Adr(n) == vmtAdr - 0x40 || Pos2Adr(n) == vmtAdr - 0x4C || Pos2Adr(n) == vmtAdr - 0x58)
             {
-                //VmtIntfTable
+                //cVmtIntfTable
                 adr = *((DWORD*)(Code + n + 4));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtAutoTable
+                //cVmtAutoTable
                 adr = *((DWORD*)(Code + n + 8));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtInitTable
+                //cVmtInitTable
                 adr = *((DWORD*)(Code + n + 12));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtTypeInfo
+                //cVmtTypeInfo
                 adr = *((DWORD*)(Code + n + 16));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtFieldTable
+                //cVmtFieldTable
                 adr = *((DWORD*)(Code + n + 20));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtMethodTable
+                //cVmtMethodTable
                 adr = *((DWORD*)(Code + n + 24));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtDynamicTable
+                //cVmtDynamicTable
                 adr = *((DWORD*)(Code + n + 28));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtClassName
+                //cVmtClassName
                 adr = *((DWORD*)(Code + n + 32));
                 if (adr && !IsValidCodeAdr(adr)) continue;
-                //VmtInstanceSize
+                //cVmtInstanceSize
                 adr = *((DWORD*)(Code + n + 36));
                 if (!adr || IsValidCodeAdr(adr)) continue;
                 version = Pos2Adr(n) - vmtAdr;
@@ -1998,37 +1998,37 @@ void __fastcall TFMain_11011981::SetVmtConsts(int version)
     switch (version)
     {
     case 2:
-        VmtSelfPtr			 = -0x34;     //??? (=0???)
-        VmtInitTable		 = -0x30;
-        VmtTypeInfo			 = -0x2C;
-        VmtFieldTable		 = -0x28;
-        VmtMethodTable		 = -0x24;
-        VmtDynamicTable		 = -0x20;
-        VmtClassName		 = -0x1C;
-        VmtInstanceSize		 = -0x18;
-        VmtParent			 = -0x14;
-        VmtDefaultHandler	 = -0x10;
-        VmtNewInstance		 = -0xC;
-        VmtFreeInstance		 = -8;
-        VmtDestroy			 = -4;
+        cVmtSelfPtr			 = -0x34;     //??? (=0???)
+        cVmtInitTable		 = -0x30;
+        cVmtTypeInfo			 = -0x2C;
+        cVmtFieldTable		 = -0x28;
+        cVmtMethodTable		 = -0x24;
+        cVmtDynamicTable		 = -0x20;
+        cVmtClassName		 = -0x1C;
+        cVmtInstanceSize		 = -0x18;
+        cVmtParent			 = -0x14;
+        cVmtDefaultHandler	 = -0x10;
+        cVmtNewInstance		 = -0xC;
+        cVmtFreeInstance		 = -8;
+        cVmtDestroy			 = -4;
         break;
     case 3:
-        VmtSelfPtr			 = -0x40;
-        VmtIntfTable		 = -0x3C;
-        VmtAutoTable		 = -0x38;
-        VmtInitTable		 = -0x34;
-        VmtTypeInfo			 = -0x30;
-        VmtFieldTable		 = -0x2C;
-        VmtMethodTable		 = -0x28;
-        VmtDynamicTable		 = -0x24;
-        VmtClassName		 = -0x20;
-        VmtInstanceSize		 = -0x1C;
-        VmtParent			 = -0x18;
-        VmtSafeCallException = -0x14;
-        VmtDefaultHandler	 = -0x10;
-        VmtNewInstance		 = -0xC;
-        VmtFreeInstance		 = -8;
-        VmtDestroy			 = -4;
+        cVmtSelfPtr			 = -0x40;
+        cVmtIntfTable		 = -0x3C;
+        cVmtAutoTable		 = -0x38;
+        cVmtInitTable		 = -0x34;
+        cVmtTypeInfo			 = -0x30;
+        cVmtFieldTable		 = -0x2C;
+        cVmtMethodTable		 = -0x28;
+        cVmtDynamicTable		 = -0x24;
+        cVmtClassName		 = -0x20;
+        cVmtInstanceSize		 = -0x1C;
+        cVmtParent			 = -0x18;
+        cVmtSafeCallException = -0x14;
+        cVmtDefaultHandler	 = -0x10;
+        cVmtNewInstance		 = -0xC;
+        cVmtFreeInstance		 = -8;
+        cVmtDestroy			 = -4;
         break;
     case 4:
     case 5:
@@ -2037,77 +2037,77 @@ void __fastcall TFMain_11011981::SetVmtConsts(int version)
     case 2005:
     case 2006:
     case 2007:
-        VmtSelfPtr			 = -0x4C;
-        VmtIntfTable 		 = -0x48;
-        VmtAutoTable 		 = -0x44;
-        VmtInitTable 		 = -0x40;
-        VmtTypeInfo 		 = -0x3C;
-        VmtFieldTable 		 = -0x38;
-        VmtMethodTable 		 = -0x34;
-        VmtDynamicTable 	 = -0x30;
-        VmtClassName 		 = -0x2C;
-        VmtInstanceSize 	 = -0x28;
-        VmtParent 			 = -0x24;
-        VmtSafeCallException = -0x20;
-        VmtAfterConstruction = -0x1C;
-        VmtBeforeDestruction = -0x18;
-        VmtDispatch 		 = -0x14;
-        VmtDefaultHandler 	 = -0x10;
-        VmtNewInstance 		 = -0xC;
-        VmtFreeInstance 	 = -8;
-        VmtDestroy 			 = -4;
+        cVmtSelfPtr			 = -0x4C;
+        cVmtIntfTable 		 = -0x48;
+        cVmtAutoTable 		 = -0x44;
+        cVmtInitTable 		 = -0x40;
+        cVmtTypeInfo 		 = -0x3C;
+        cVmtFieldTable 		 = -0x38;
+        cVmtMethodTable 		 = -0x34;
+        cVmtDynamicTable 	 = -0x30;
+        cVmtClassName 		 = -0x2C;
+        cVmtInstanceSize 	 = -0x28;
+        cVmtParent 			 = -0x24;
+        cVmtSafeCallException = -0x20;
+        cVmtAfterConstruction = -0x1C;
+        cVmtBeforeDestruction = -0x18;
+        cVmtDispatch 		 = -0x14;
+        cVmtDefaultHandler 	 = -0x10;
+        cVmtNewInstance 		 = -0xC;
+        cVmtFreeInstance 	 = -8;
+        cVmtDestroy 			 = -4;
         break;
 	case 2009:
     case 2010:
-        VmtSelfPtr           = -0x58;
-        VmtIntfTable         = -0x54;
-        VmtAutoTable         = -0x50;
-        VmtInitTable         = -0x4C;
-        VmtTypeInfo          = -0x48;
-        VmtFieldTable        = -0x44;
-        VmtMethodTable       = -0x40;
-        VmtDynamicTable      = -0x3C;
-        VmtClassName         = -0x38;
-        VmtInstanceSize      = -0x34;
-        VmtParent            = -0x30;
-        VmtEquals            = -0x2C;
-        VmtGetHashCode       = -0x28;
-        VmtToString          = -0x24;
-        VmtSafeCallException = -0x20;
-        VmtAfterConstruction = -0x1C;
-        VmtBeforeDestruction = -0x18;
-        VmtDispatch          = -0x14;
-        VmtDefaultHandler    = -0x10;
-        VmtNewInstance       = -0xC;
-        VmtFreeInstance      = -8;
-        VmtDestroy           = -4;
+        cVmtSelfPtr           = -0x58;
+        cVmtIntfTable         = -0x54;
+        cVmtAutoTable         = -0x50;
+        cVmtInitTable         = -0x4C;
+        cVmtTypeInfo          = -0x48;
+        cVmtFieldTable        = -0x44;
+        cVmtMethodTable       = -0x40;
+        cVmtDynamicTable      = -0x3C;
+        cVmtClassName         = -0x38;
+        cVmtInstanceSize      = -0x34;
+        cVmtParent            = -0x30;
+        cVmtEquals            = -0x2C;
+        cVmtGetHashCode       = -0x28;
+        cVmtToString          = -0x24;
+        cVmtSafeCallException = -0x20;
+        cVmtAfterConstruction = -0x1C;
+        cVmtBeforeDestruction = -0x18;
+        cVmtDispatch          = -0x14;
+        cVmtDefaultHandler    = -0x10;
+        cVmtNewInstance       = -0xC;
+        cVmtFreeInstance      = -8;
+        cVmtDestroy           = -4;
         break;
     case 2011:
     case 2012:
     case 2013:
     case 2014:
-        VmtSelfPtr           = -0x58;
-        VmtIntfTable         = -0x54;
-        VmtAutoTable         = -0x50;
-        VmtInitTable         = -0x4C;
-        VmtTypeInfo          = -0x48;
-        VmtFieldTable        = -0x44;
-        VmtMethodTable       = -0x40;
-        VmtDynamicTable      = -0x3C;
-        VmtClassName         = -0x38;
-        VmtInstanceSize      = -0x34;
-        VmtParent            = -0x30;
-        VmtEquals            = -0x2C;
-        VmtGetHashCode       = -0x28;
-        VmtToString          = -0x24;
-        VmtSafeCallException = -0x20;
-        VmtAfterConstruction = -0x1C;
-        VmtBeforeDestruction = -0x18;
-        VmtDispatch          = -0x14;
-        VmtDefaultHandler    = -0x10;
-        VmtNewInstance       = -0xC;
-        VmtFreeInstance      = -8;
-        VmtDestroy           = -4;
+        cVmtSelfPtr           = -0x58;
+        cVmtIntfTable         = -0x54;
+        cVmtAutoTable         = -0x50;
+        cVmtInitTable         = -0x4C;
+        cVmtTypeInfo          = -0x48;
+        cVmtFieldTable        = -0x44;
+        cVmtMethodTable       = -0x40;
+        cVmtDynamicTable      = -0x3C;
+        cVmtClassName         = -0x38;
+        cVmtInstanceSize      = -0x34;
+        cVmtParent            = -0x30;
+        cVmtEquals            = -0x2C;
+        cVmtGetHashCode       = -0x28;
+        cVmtToString          = -0x24;
+        cVmtSafeCallException = -0x20;
+        cVmtAfterConstruction = -0x1C;
+        cVmtBeforeDestruction = -0x18;
+        cVmtDispatch          = -0x14;
+        cVmtDefaultHandler    = -0x10;
+        cVmtNewInstance       = -0xC;
+        cVmtFreeInstance      = -8;
+        cVmtDestroy           = -4;
         //VmtQueryInterface    = 0;
         //VmtAddRef            = 4;
         //VmtRelease           = 8;
@@ -3564,8 +3564,8 @@ void __fastcall TFMain_11011981::ScanIntfTable(DWORD adr)
 
     className = GetClsName(adr);
     recN = GetInfoRec(adr);
-    vmtAdr = adr - VmtSelfPtr;
-    pos = Adr2Pos(vmtAdr) + VmtIntfTable;
+    vmtAdr = adr - cVmtSelfPtr;
+    pos = Adr2Pos(vmtAdr) + cVmtIntfTable;
     intfAdr = *((DWORD*)(Code + pos));
     if (!intfAdr) return;
 
@@ -3729,8 +3729,8 @@ void __fastcall TFMain_11011981::ScanAutoTable(DWORD Adr)
 {
     if (!IsValidImageAdr(Adr)) return;
 
-    DWORD vmtAdr = Adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtAutoTable;
+    DWORD vmtAdr = Adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtAutoTable;
     DWORD autoAdr = *((DWORD*)(Code + pos));
     if (!autoAdr) return;
 
@@ -3840,8 +3840,8 @@ void __fastcall TFMain_11011981::ScanInitTable(DWORD Adr)
     if (!IsValidImageAdr(Adr)) return;
 
     PInfoRec recN = GetInfoRec(Adr);
-    DWORD vmtAdr = Adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtInitTable;
+    DWORD vmtAdr = Adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtInitTable;
     DWORD initAdr = *((DWORD*)(Code + pos));
     if (!initAdr) return;
 
@@ -3887,8 +3887,8 @@ void __fastcall TFMain_11011981::ScanFieldTable(DWORD Adr)
     if (!IsValidImageAdr(Adr)) return;
 
     PInfoRec recN = GetInfoRec(Adr);
-    DWORD vmtAdr = Adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtFieldTable;
+    DWORD vmtAdr = Adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtFieldTable;
     DWORD fieldAdr = *((DWORD*)(Code + pos));
     if (!fieldAdr) return;
 
@@ -3912,7 +3912,7 @@ void __fastcall TFMain_11011981::ScanFieldTable(DWORD Adr)
         }
         else
         {
-            if (DelphiVersion == 2) classAdr += VmtSelfPtr;
+            if (DelphiVersion == 2) classAdr += cVmtSelfPtr;
             recN->vmtInfo->AddField(0, 0, FIELD_PUBLISHED, fieldOfs, -1, name, GetClsName(classAdr));
         }
     }
@@ -3942,8 +3942,8 @@ void __fastcall TFMain_11011981::ScanMethodTable(DWORD adr, String className)
 
     if (!IsValidImageAdr(adr)) return;
 
-    DWORD vmtAdr = adr - VmtSelfPtr;
-    DWORD methodAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + VmtMethodTable));
+    DWORD vmtAdr = adr - cVmtSelfPtr;
+    DWORD methodAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + cVmtMethodTable));
     if (!methodAdr) return;
 
     pos = Adr2Pos(methodAdr);
@@ -4322,8 +4322,8 @@ void __fastcall TFMain_11011981::ScanDynamicTable(DWORD adr)
 
     if (!recN) return;
 
-    DWORD vmtAdr = adr - VmtSelfPtr;
-    DWORD pos = Adr2Pos(vmtAdr) + VmtDynamicTable;
+    DWORD vmtAdr = adr - cVmtSelfPtr;
+    DWORD pos = Adr2Pos(vmtAdr) + cVmtDynamicTable;
     DWORD dynamicAdr = *((DWORD*)(Code + pos));
     if (!dynamicAdr) return;
 
@@ -4368,8 +4368,8 @@ void __fastcall TFMain_11011981::ScanDynamicTable(DWORD adr)
                     recN2 = GetInfoRec(parentAdr);
                     if (recN2)
                     {
-                        DWORD vmtAdr1 = parentAdr - VmtSelfPtr;
-                        DWORD pos1 = Adr2Pos(vmtAdr1) + VmtDynamicTable;
+                        DWORD vmtAdr1 = parentAdr - cVmtSelfPtr;
+                        DWORD pos1 = Adr2Pos(vmtAdr1) + cVmtDynamicTable;
                         dynamicAdr = *((DWORD*)(Code + pos1));
                         if (dynamicAdr)
                         {
@@ -4416,12 +4416,12 @@ bool __fastcall IsOwnVirtualMethod(DWORD vmtAdr, DWORD procAdr)
 {
     DWORD parentAdr = GetParentAdr(vmtAdr);
     if (!parentAdr) return true;
-    DWORD stopAt = GetStopAt(parentAdr - VmtSelfPtr);
+    DWORD stopAt = GetStopAt(parentAdr - cVmtSelfPtr);
     if (vmtAdr == stopAt) return false;
 
-    int pos = Adr2Pos(parentAdr) + VmtParent + 4;
+    int pos = Adr2Pos(parentAdr) + cVmtParent + 4;
 
-    for (int m = VmtParent + 4;; m += 4, pos += 4)
+    for (int m = cVmtParent + 4;; m += 4, pos += 4)
     {
         if (Pos2Adr(pos) == stopAt) break;
 
@@ -4443,14 +4443,14 @@ void __fastcall TFMain_11011981::ScanVirtualTable(DWORD adr)
 
     if (!IsValidImageAdr(adr)) return;
     clsName = GetClsName(adr);
-    vmtAdr = adr - VmtSelfPtr;
+    vmtAdr = adr - cVmtSelfPtr;
     stopAt = GetStopAt(vmtAdr);
     if (vmtAdr == stopAt) return;
 
-    pos = Adr2Pos(vmtAdr) + VmtParent + 4;
-    recN = GetInfoRec(vmtAdr + VmtSelfPtr);
+    pos = Adr2Pos(vmtAdr) + cVmtParent + 4;
+    recN = GetInfoRec(vmtAdr + cVmtSelfPtr);
 
-    for (m = VmtParent + 4;; m += 4, pos += 4)
+    for (m = cVmtParent + 4;; m += 4, pos += 4)
     {
         if (Pos2Adr(pos) == stopAt) break;
 
@@ -4476,32 +4476,32 @@ void __fastcall TFMain_11011981::ScanVirtualTable(DWORD adr)
         else
         {
             recM.name = "";
-            if (m == VmtFreeInstance)
+            if (m == cVmtFreeInstance)
                 recM.name = clsName + "." + "FreeInstance";
-            else if (m == VmtNewInstance)
+            else if (m == cVmtNewInstance)
                 recM.name = clsName + "." + "NewInstance";
-            else if (m == VmtDefaultHandler)
+            else if (m == cVmtDefaultHandler)
                 recM.name = clsName + "." + "DefaultHandler";
-            if (DelphiVersion == 3 && m == VmtSafeCallException)
+            if (DelphiVersion == 3 && m == cVmtSafeCallException)
                     recM.name = clsName + "." + "SafeCallException";
             if (DelphiVersion >= 4)
             {
-                if (m == VmtSafeCallException)
+                if (m == cVmtSafeCallException)
                     recM.name = clsName + "." + "SafeCallException";
-                else if (m == VmtAfterConstruction)
+                else if (m == cVmtAfterConstruction)
                     recM.name = clsName + "." + "AfterConstruction";
-                else if (m == VmtBeforeDestruction)
+                else if (m == cVmtBeforeDestruction)
                     recM.name = clsName + "." + "BeforeDestruction";
-                else if (m == VmtDispatch)
+                else if (m == cVmtDispatch)
                     recM.name = clsName + "." + "Dispatch";
             }
             if (DelphiVersion >= 2009)
             {
-                if (m == VmtEquals)
+                if (m == cVmtEquals)
                     recM.name = clsName + "." + "Equals";
-                else if (m == VmtGetHashCode)
+                else if (m == cVmtGetHashCode)
                     recM.name = clsName + "." + "GetHashCode";
-                else if (m == VmtToString)
+                else if (m == cVmtToString)
                     recM.name = clsName + "." + "ToString";
             }
             if (recM.name != "" && KnowledgeBase.GetKBProcInfo(recM.name, pInfo, &idx))
@@ -4530,12 +4530,12 @@ void __fastcall TFMain_11011981::PropagateVMTNames(DWORD adr)
     String  className = GetClsName(adr);
     PInfoRec recN = GetInfoRec(adr);
 
-    DWORD vmtAdr = adr - VmtSelfPtr;
+    DWORD vmtAdr = adr - cVmtSelfPtr;
     DWORD stopAt = GetStopAt(vmtAdr);
     if (vmtAdr == stopAt) return;
 
-    int pos = Adr2Pos(vmtAdr) + VmtParent + 4;
-    for (int m = VmtParent + 4;; m += 4, pos += 4)
+    int pos = Adr2Pos(vmtAdr) + cVmtParent + 4;
+    for (int m = cVmtParent + 4;; m += 4, pos += 4)
     {
         if (Pos2Adr(pos) == stopAt) break;
 
@@ -5493,7 +5493,7 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
                 //For Delphi2 pointers to VMT are distinct
                 else if (DelphiVersion == 2)
                 {
-                    recN = GetInfoRec(targetAdr + VmtSelfPtr);
+                    recN = GetInfoRec(targetAdr + cVmtSelfPtr);
                     if (recN && recN->kind == ikVMT && recN->HasName())
                     {
                         name = recN->GetName();
@@ -5595,8 +5595,8 @@ void __fastcall TFMain_11011981::AnalyzeMethodTable(int Pass, DWORD Adr, const b
     DWORD       procAdr, paramType, resultType;
     PInfoRec    recN;
     String      paramName, methodName;
-    DWORD vmtAdr = Adr - VmtSelfPtr;
-    DWORD methodAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + VmtMethodTable));
+    DWORD vmtAdr = Adr - cVmtSelfPtr;
+    DWORD methodAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + cVmtMethodTable));
 
     if (!methodAdr) return;
 
@@ -5730,8 +5730,8 @@ void __fastcall TFMain_11011981::AnalyzeMethodTable(int Pass, DWORD Adr, const b
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::AnalyzeDynamicTable(int Pass, DWORD Adr, const bool* Terminated)
 {
-    DWORD   vmtAdr = Adr - VmtSelfPtr;
-    DWORD   DynamicAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + VmtDynamicTable));
+    DWORD   vmtAdr = Adr - cVmtSelfPtr;
+    DWORD   DynamicAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr) + cVmtDynamicTable));
     if (!DynamicAdr) return;
 
 	String clsName = GetClsName(Adr);
@@ -5766,12 +5766,12 @@ void __fastcall TFMain_11011981::AnalyzeDynamicTable(int Pass, DWORD Adr, const 
 void __fastcall TFMain_11011981::AnalyzeVirtualTable(int Pass, DWORD Adr, const bool* Terminated)
 {
     DWORD   parentAdr = GetParentAdr(Adr);
-    DWORD   vmtAdr = Adr - VmtSelfPtr;
+    DWORD   vmtAdr = Adr - cVmtSelfPtr;
     DWORD   stopAt = GetStopAt(vmtAdr);
     if (vmtAdr == stopAt) return;
     
-    int pos = Adr2Pos(vmtAdr) + VmtParent + 4;
-    for (int n = VmtParent + 4; !*Terminated; n += 4, pos += 4)
+    int pos = Adr2Pos(vmtAdr) + cVmtParent + 4;
+    for (int n = cVmtParent + 4; !*Terminated; n += 4, pos += 4)
     {
         if (Pos2Adr(pos) == stopAt) break;
         DWORD procAdr = *((DWORD*)(Code + pos));
@@ -6765,7 +6765,7 @@ void __fastcall TFMain_11011981::ShowClassViewer(DWORD VmtAdr)
                                         else
                                         {
                                             vmtProc = true;
-                                            iAdr = *((DWORD*)(Code + Adr2Pos(VmtAdr - VmtSelfPtr + vmtOfs)));
+                                            iAdr = *((DWORD*)(Code + Adr2Pos(VmtAdr - cVmtSelfPtr + vmtOfs)));
                                             recM = GetMethodInfo(VmtAdr, 'V', vmtOfs);
                                             if (recM) name = recM->name;
                                         }
@@ -6774,7 +6774,7 @@ void __fastcall TFMain_11011981::ShowClassViewer(DWORD VmtAdr)
                                     else if (disInfo.Ret)
                                     {
                                         vmtProc = true;
-                                        iAdr = *((DWORD*)(Code + Adr2Pos(VmtAdr - VmtSelfPtr + vmtOfs)));
+                                        iAdr = *((DWORD*)(Code + Adr2Pos(VmtAdr - cVmtSelfPtr + vmtOfs)));
                                         recM = GetMethodInfo(VmtAdr, 'V', vmtOfs);
                                         if (recM) name = recM->name;
                                         break;
@@ -11390,7 +11390,7 @@ void __fastcall TFMain_11011981::OutputCode(FILE* outF, DWORD fromAdr, String pr
                 //For Delphi2 pointers to VMT are distinct
                 else if (DelphiVersion == 2)
                 {
-                    recN = GetInfoRec(targetAdr + VmtSelfPtr);
+                    recN = GetInfoRec(targetAdr + cVmtSelfPtr);
                     if (recN && recN->kind == ikVMT && recN->HasName())
                     {
                         name = recN->GetName();
@@ -12237,7 +12237,7 @@ void __fastcall TFMain_11011981::FillClassViewerOne(int n, TStringList* tmpList,
                                 else
                                 {
                                     vmtProc = true;
-                                    iAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr - VmtSelfPtr + vmtOfs)));
+                                    iAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr - cVmtSelfPtr + vmtOfs)));
                                     recM = GetMethodInfo(vmtAdr, 'V', vmtOfs);
                                     if (recM) name = recM->name;
                                 }
@@ -12246,7 +12246,7 @@ void __fastcall TFMain_11011981::FillClassViewerOne(int n, TStringList* tmpList,
                             else if (disInfo.Ret)
                             {
                                 vmtProc = true;
-                                iAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr - VmtSelfPtr + vmtOfs)));
+                                iAdr = *((DWORD*)(Code + Adr2Pos(vmtAdr - cVmtSelfPtr + vmtOfs)));
                                 recM = GetMethodInfo(vmtAdr, 'V', vmtOfs);
                                 if (recM) name = recM->name;
                                 break;
