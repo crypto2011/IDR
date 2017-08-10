@@ -1445,7 +1445,7 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x006980FD)
+if (_curAdr == 0x00698A8D)
 _curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
@@ -6169,7 +6169,7 @@ void __fastcall TDecompiler::SimulateInstr2MemReg(DWORD curAdr, BYTE Op)
             {
                 if (!(_itemSrc.Flags & IF_ARG))
                     _itemSrc.Name = Env->GetLvarName(_itemDst.IntValue, "");
-                if (_itemSrc.Value != "")
+                if (_itemSrc.Value == "")
                     _itemSrc.Value = Env->GetLvarName(_itemDst.IntValue, "");
             }
 
@@ -9445,15 +9445,22 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
         //Embedded procedures
         if (Env->Embedded)
         {
-            //[ebp+8] - set flag IF_EXTERN_VAR and exit
-            if (DisInfo.BaseReg == 21 && _offset == 8)
+            if (_itemBase.Flags & IF_STACK_PTR)
             {
-                Dst->Flags = IF_EXTERN_VAR;
-                return;
+                _item = Env->Stack[_itemBase.IntValue + _offset];
+                //Set flag IF_EXTERN_VAR and exit
+                if (SameText(_item.Name, "extebp"))
+                {
+                    Dst->Flags = IF_EXTERN_VAR;
+                    return;
+                }
             }
             if (_itemBase.Flags & IF_EXTERN_VAR)
             {
-                Dst->Value = "extlvar_" + Val2Str0(-_offset);
+                if (_offset < 0)
+                    Dst->Value = "extlvar_" + Val2Str0(-_offset);
+                if (_offset > 0)
+                    Dst->Value = "extlarg_" + Val2Str0(_offset);
                 return;
             }
         }
@@ -9915,9 +9922,9 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             if (_itemBase.Flags & IF_STACK_PTR) Dst->Flags |= IF_STACK_PTR;
             Dst->Value = GetDecompilerRegisterName(DisInfo.BaseReg) + " + " + GetDecompilerRegisterName(DisInfo.IndxReg) + " * " + String(DisInfo.Scale);
             if (_offset > 0)
-                Dst->Value += String(_offset);
+                Dst->Value += " + " + String(_offset);
             else if (_offset < 0)
-                Dst->Value += String(-_offset);
+                Dst->Value += " - " + String(-_offset);
             return;
         }
         _typeName = _itemBase.Type;
