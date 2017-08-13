@@ -1445,8 +1445,8 @@ DWORD __fastcall TDecompiler::Decompile(DWORD fromAdr, DWORD flags, PLoopInfo lo
     while (1)
     {
 //!!!
-if (_curAdr == 0x00698A8D)
-_curAdr = _curAdr;
+//if (_curAdr == 0x0069ADE0)
+//_curAdr = _curAdr;
         //End of decompilation
         if (DeFlags[_curAdr - Env->StartAdr] == 1)
         {
@@ -8110,7 +8110,7 @@ void __fastcall TDecompiler::SimulateFloatInstruction(DWORD curAdr)
                     if (_itemSrc.Name != "")
                         _item.Value = _itemSrc.Name;
                 }
-                _item.Precedence = PRECEDENCE_NONE;
+                //_item.Precedence = PRECEDENCE_NONE;
                 FPush(&_item);
                 return;
             }
