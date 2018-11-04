@@ -7594,15 +7594,11 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         GetRegItem(18, &_item2);
         _varName1 = _item1.Name;
         if (_item1.Flags & IF_STACK_PTR)
-        {
             _varName1 = Env->GetLvarName(_item1.IntValue, "Variant");
-            _item1 = Env->Stack[_item1.IntValue];
-        }
+
         if (_item2.Flags & IF_STACK_PTR)
-        {
             _varName2 = Env->GetLvarName(_item2.IntValue, "Variant");
-            _item2 = Env->Stack[_item2.IntValue];
-        }
+
         _line = _varName1 + " := " + _varName1 + " " + _op + " " + _varName2 + ";";
         Env->AddToBody(_line);
         return false;
