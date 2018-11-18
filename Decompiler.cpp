@@ -7766,6 +7766,35 @@ bool __fastcall TDecompiler::SimulateSysCall(String name, DWORD procAdr, int ins
         Env->AddToBody(_line);
         return false;
     }
+    if (SameText(name, "@VarToWStr"))
+    {
+        //edx=Variant, eax=String
+        GetRegItem(18, &_item1);
+        GetRegItem(16, &_item2);
+
+        if (_item2.Flags & IF_INTVAL)//!!!Use it for other cases!!!
+        {
+            _line = MakeGvarName(_item2.IntValue);
+        }
+        else if (_item2.Flags & IF_STACK_PTR)
+        {
+            _line = Env->GetLvarName(_item2.IntValue, "WideString");
+            Env->Stack[_item2.IntValue].Type = "WideString";
+        }
+        else
+        {
+            _line = _item2.Value;
+        }
+
+        if (_item1.Flags & IF_STACK_PTR)
+            Env->Stack[_item1.IntValue].Type = "Variant";
+        InitItem(&_item);
+        _item.Value = "WideString(" + _item1.Value + ")";
+        SetRegItem(16, &_item);
+        _line += " := " + _item.Value + ";";
+        Env->AddToBody(_line);
+        return false;
+    }
     if (SameText(name, "@VarToReal"))
     {
         //eax=Variant
