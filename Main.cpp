@@ -406,6 +406,7 @@ void __fastcall TFMain_11011981::Init()
     miMapGenerator->Enabled = false;
     miCommentsGenerator->Enabled = false;
     miIDCGenerator->Enabled = false;
+    miHiewGenerator->Enabled = false;
     miLister->Enabled = false;
     miClassTreeBuilder->Enabled = false;
     miKBTypeInfo->Enabled = false;
@@ -7966,6 +7967,7 @@ void __fastcall TFMain_11011981::miClassTreeBuilderClick(TObject *Sender)
     miMapGenerator->Enabled = false;
     miCommentsGenerator->Enabled = false;
     miIDCGenerator->Enabled = false;
+    miHiewGenerator->Enabled = false;
     miLister->Enabled = false;
     miClassTreeBuilder->Enabled = false;
     miKBTypeInfo->Enabled = false;
@@ -8499,6 +8501,7 @@ void __fastcall TFMain_11011981::AnalyzeThreadDone(TObject* Sender)
     miMapGenerator->Enabled = true;
     miCommentsGenerator->Enabled = true;
     miIDCGenerator->Enabled = true;
+    miHiewGenerator->Enabled = true;
     miLister->Enabled = true;
     miKBTypeInfo->Enabled = true;
     miCtdPassword->Enabled = IsValidCodeAdr(CtdRegAdr);
@@ -9480,6 +9483,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     miMapGenerator->Enabled = true;
     miCommentsGenerator->Enabled = true;
     miIDCGenerator->Enabled = true;
+    miHiewGenerator->Enabled = true;
     miLister->Enabled = true;
     miKBTypeInfo->Enabled = true;
     miCtdPassword->Enabled = IsValidCodeAdr(CtdRegAdr);
@@ -10199,11 +10203,14 @@ void __fastcall TFMain_11011981::miEditFunctionCClick(TObject *Sender)
 	EditFunction(CurProcAdr);
 }
 //---------------------------------------------------------------------------
+//Modified by TerminatorX 30.12.2018
 void __fastcall TFMain_11011981::miMapGeneratorClick(TObject *Sender)
 {
+    int     _posMap;
     String  procName;
 
     String  mapName = "";
+    String  SourceFileMap = "";
     if (SourceFile != "") mapName = ChangeFileExt(SourceFile, ".map");
     if (IDPFile != "") mapName = ChangeFileExt(IDPFile, ".map");
 
@@ -10223,12 +10230,17 @@ void __fastcall TFMain_11011981::miMapGeneratorClick(TObject *Sender)
     FILE *fMap = fopen(mapName.c_str(), "wt+");
     if (!fMap)
     {
-        ShowMessage("Cannot open map file");
+        MessageDlg("Cannot open map file", mtWarning, TMsgDlgButtons() << mbOK, 0);
         return;
     }
-    fprintf(fMap, "\n Start         Length     Name                   Class\n");
-    fprintf(fMap, " 0001:00000000 %09XH CODE                   CODE\n", CodeSize);
-    fprintf(fMap, "\n\n  Address         Publics by Value\n\n");
+    SourceFileMap = SourceFile;
+    _posMap = SourceFileMap.LastDelimiter("\\");
+    if (_posMap) SourceFileMap = SourceFileMap.SubString(_posMap + 1, SourceFileMap.Length());
+
+    fprintf(fMap, "\n Name: %s EP: %08X : Size: %08X\n", SourceFileMap, EP - CodeBase, CodeSize);
+    fprintf(fMap, "\n Start Length Name Class\n");
+    fprintf(fMap, " 0001:00000000 %09XH CODE CODE\n", CodeSize);
+    fprintf(fMap, "\n\n Address Publics by Value _ RVA+Base\n\n");
 
     for (int n = 0; n < CodeSize; n++)
     {
@@ -10251,21 +10263,17 @@ void __fastcall TFMain_11011981::miMapGeneratorClick(TObject *Sender)
                         else
                             procName = recN->MakeMapName(adr);
 
-                        fprintf(fMap, " 0001:%08X       %s.%s\n", n, moduleName.c_str(), procName.c_str());
+                        fprintf(fMap, " 0001:%08X %s.%s_%08X\n", n, moduleName.c_str(), procName.c_str(), adr);
                     }
                     else
                     {
                         procName = recN->MakeMapName(adr);
-                        fprintf(fMap, " 0001:%08X       %s\n", n, procName.c_str());
+                        fprintf(fMap, " 0001:%08X %s_%08X\n", n, procName.c_str(), adr);
                     }
-                    //if (!IsFlagSet(cfImport, n))
-                    //{
-                    //    fprintf(fMap, "%lX %s\n", adr, recN->MakePrototype(adr, true, true, false, true, false).c_str());
-                    //}
                 }
                 else
                 {
-                    fprintf(fMap, " 0001:%08X       EntryPoint\n", n);
+                    fprintf(fMap, " 0001:%08X EntryPoint_%08X\n", n, adr);
                 }
             }
         }
@@ -13324,4 +13332,74 @@ void __fastcall TFMain_11011981::miCopytoClipboardNamesClick(
     Copy2Clipboard(lbNames->Items, 0, false);
 }
 //---------------------------------------------------------------------------
+//Added by TerminatorX 30.12.2018
+//TerminatorX code BEGIN
+void __fastcall TFMain_11011981::miHiewGeneratorClick(TObject *Sender)
+{
+    int     _posNamet;
+    String  procName;
+    String  nametName = "";
+    String  SourceFileNamet = "";
+    if (SourceFile != "") nametName = ChangeFileExt(SourceFile, ".namet");
+    if (IDPFile != "") nametName = ChangeFileExt(IDPFile, ".namet");
 
+    SaveDlg->InitialDir = WrkDir;
+    SaveDlg->Filter = "NAMET|*.namet";
+    SaveDlg->FileName = nametName;
+
+    if (!SaveDlg->Execute()) return;
+    nametName = SaveDlg->FileName;
+    if (FileExists(nametName))
+    {
+        if (Application->MessageBox("File already exists. Overwrite?", "Warning", MB_YESNO+MB_ICONWARNING) == IDNO) return;
+    }
+    Screen->Cursor = crHourGlass;
+    FILE *fNamet = fopen(nametName.c_str(), "wt+");
+    if (!fNamet)
+    {
+        MessageDlg("Cannot open namet file", mtWarning, TMsgDlgButtons() << mbOK, 0);
+        return;
+    }
+    SourceFileNamet = SourceFile;
+    _posNamet = SourceFileNamet.LastDelimiter("");
+    if (_posNamet) SourceFileNamet = SourceFileNamet.SubString(_posNamet + 1, SourceFileNamet.Length());
+    for (int n = 0; n < CodeSize; n++)
+    {
+        if (IsFlagSet(cfProcStart, n) && !IsFlagSet(cfEmbedded, n))
+        {
+            int adr = Pos2Adr(n);
+            PInfoRec recN = GetInfoRec(adr);
+            if (recN)
+            {
+                if (adr != EP)
+                {
+                    PUnitRec recU = GetUnit(adr);
+                    if (recU)
+                    {
+                        String moduleName = GetUnitName(recU);
+                        if (adr == recU->iniadr)
+                            procName = "Initialization";
+                        else if (adr == recU->finadr)
+                            procName = "Finalization";
+                        else
+                            procName = recN->MakeMapName(adr);
+                        fprintf(fNamet, ".%08X %s.%s_%08X\n", adr, moduleName.c_str(), procName.c_str(), adr);
+                    }
+                    else
+                    {
+                        procName = recN->MakeMapName(adr);
+                        fprintf(fNamet, ".%08X %s_%08X\n", adr, procName.c_str(), adr);
+                    }
+                }
+                else
+                {
+                    fprintf(fNamet, ".%08X Entry Point_%08X\n", adr, adr);
+                }
+            }
+        }
+    }
+    fclose(fNamet);
+    Screen->Cursor = crDefault;
+}
+//---------------------------------------------------------------------------
+//TerminatorX code END

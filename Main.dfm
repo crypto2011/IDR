@@ -54,9 +54,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 764
     Height = 706
-    ActivePage = tsNames
+    ActivePage = tsClassView
     Align = alClient
-    TabIndex = 3
+    TabIndex = 1
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -649,7 +649,7 @@ object FMain_11011981: TFMain_11011981
             Font.Height = -12
             Font.Name = 'Courier New'
             Font.Style = []
-            ItemHeight = 0
+            ItemHeight = 15
             ParentFont = False
             Sorted = True
             TabOrder = 0
@@ -896,6 +896,10 @@ object FMain_11011981: TFMain_11011981
       object miIDCGenerator: TMenuItem
         Caption = '&IDC Generator'
         OnClick = miIDCGeneratorClick
+      end
+      object miHiewGenerator: TMenuItem
+        Caption = 'HIEW Generator'
+        OnClick = miHiewGeneratorClick
       end
       object miLister: TMenuItem
         Caption = 'Lister'
