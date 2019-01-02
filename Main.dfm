@@ -649,7 +649,7 @@ object FMain_11011981: TFMain_11011981
             Font.Height = -12
             Font.Name = 'Courier New'
             Font.Style = []
-            ItemHeight = 15
+            ItemHeight = 0
             ParentFont = False
             Sorted = True
             TabOrder = 0
@@ -998,6 +998,10 @@ object FMain_11011981: TFMain_11011981
         object miacFontAll: TMenuItem
           Action = acFontAll
           Caption = 'Fonts'
+        end
+        object mniShellIntegration1: TMenuItem
+          Caption = 'Shell Integration'
+          OnClick = mniShellIntegration1Click
         end
       end
     end

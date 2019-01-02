@@ -512,6 +512,7 @@ __published:	// IDE-managed Components
     TPopupMenu *pmNames;
     TMenuItem *miCopytoClipboardNames;
     TMenuItem *miHiewGenerator;
+    TMenuItem *mniShellIntegration1;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -703,6 +704,7 @@ __published:	// IDE-managed Components
     void __fastcall pmSourceCodePopup(TObject *Sender);
     void __fastcall miCopytoClipboardNamesClick(TObject *Sender);
     void __fastcall miHiewGeneratorClick(TObject *Sender);
+    void __fastcall mniShellIntegration1Click(TObject *Sender);
 private:	// User declarations
     bool            ProjectLoaded;
 

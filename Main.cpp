@@ -35,6 +35,7 @@
 #include <Outline.hpp>
 #include <Tabnotbk.hpp>
 #include <IniFiles.hpp>
+#include <Registry.hpp>
 #include <assert.h>
 /*
 //----Highlighting-----------------------------------------------------------
@@ -4866,6 +4867,23 @@ void __fastcall TFMain_11011981::FormShow(TObject *Sender)
             ShowMessage("File " + FileName + " is not executable or IDR project file");
         }
     }
+    //Added by TerminatorX 31.12.2018
+    //TerminatorX code BEGIN
+    //Cheking registry record *.exe/*.dll
+    bool exefile1, dllfile1;
+    TRegistry *reg = new TRegistry(KEY_EXECUTE);
+    reg->RootKey = HKEY_CLASSES_ROOT;
+    reg->OpenKey("\\exefile\\shell\\Open with IDR\\command\\", false);
+    exefile1 = reg->ValueExists("");
+    reg->CloseKey();
+
+    reg->OpenKey("\\dllfile\\shell\\Open with IDR\\command\\", false);
+    dllfile1 = reg->ValueExists("");
+    reg->CloseKey();
+    delete reg;
+
+    mniShellIntegration1->Checked = (exefile1 && dllfile1);
+    //TerminatorX code END
 }
 //---------------------------------------------------------------------------
 /*
@@ -13401,5 +13419,36 @@ void __fastcall TFMain_11011981::miHiewGeneratorClick(TObject *Sender)
     fclose(fNamet);
     Screen->Cursor = crDefault;
 }
-//---------------------------------------------------------------------------
 //TerminatorX code END
+//---------------------------------------------------------------------------
+//Added by TerminatorX 30.12.2018
+//TerminatorX code BEGIN
+void __fastcall TFMain_11011981::mniShellIntegration1Click(TObject *Sender)
+{
+    if (!mniShellIntegration1->Checked)
+    {
+        TRegistry *reg = new TRegistry(KEY_ALL_ACCESS);
+        reg->RootKey = HKEY_CLASSES_ROOT;
+        reg->OpenKey("\exefile\shell\Open with IDR\command", true);
+        reg->WriteString("",(ExtractFilePath(Application->ExeName) + "Idr.exe %1"));
+        reg->CloseKey();
+
+        reg->OpenKey("\dllfile\shell\Open with IDR\command", true);
+        reg->WriteString("",(ExtractFilePath(Application->ExeName) + "Idr.exe %1"));
+        reg->CloseKey();
+        delete reg;
+        mniShellIntegration1->Checked = true;
+    }
+    else
+    {
+        TRegistry *reg = new TRegistry(KEY_ALL_ACCESS);
+        reg->RootKey=HKEY_CLASSES_ROOT;
+        reg->DeleteKey("\exefile\shell\Open with IDR");
+        reg->DeleteKey("\dllfile\shell\Open with IDR");
+        delete reg;
+        mniShellIntegration1->Checked = false;
+    }
+}
+//TerminatorX code END
+//---------------------------------------------------------------------------
+
