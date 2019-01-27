@@ -1,8 +1,8 @@
 object FMain_11011981: TFMain_11011981
-  Left = 203
-  Top = 77
+  Left = 243
+  Top = 124
   Width = 1033
-  Height = 914
+  Height = 855
   Caption = 'Interactive Delphi Reconstructor'
   Color = clBtnFace
   DefaultMonitor = dmDesktop
@@ -26,7 +26,7 @@ object FMain_11011981: TFMain_11011981
   TextHeight = 13
   object SplitterH1: TSplitter
     Left = 0
-    Top = 706
+    Top = 647
     Width = 1017
     Height = 4
     Cursor = crVSplit
@@ -41,7 +41,7 @@ object FMain_11011981: TFMain_11011981
     Left = 250
     Top = 0
     Width = 3
-    Height = 706
+    Height = 647
     Cursor = crHSplit
     AutoSnap = False
     Beveled = True
@@ -53,10 +53,10 @@ object FMain_11011981: TFMain_11011981
     Left = 253
     Top = 0
     Width = 764
-    Height = 706
-    ActivePage = tsClassView
+    Height = 647
+    ActivePage = tsCodeView
     Align = alClient
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -65,7 +65,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 653
+        Height = 594
         Cursor = crIBeam
         Style = lbOwnerDrawFixed
         AutoComplete = False
@@ -189,7 +189,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 653
+        Height = 594
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -215,7 +215,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 638
+        Height = 579
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -260,7 +260,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 756
-        Height = 638
+        Height = 579
         Align = alClient
         Color = clWhite
         Font.Charset = DEFAULT_CHARSET
@@ -288,7 +288,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 653
+        Height = 594
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -300,6 +300,7 @@ object FMain_11011981: TFMain_11011981
         Font.Name = 'Courier New'
         Font.Style = []
         ItemHeight = 16
+        MultiSelect = True
         ParentFont = False
         PopupMenu = pmStrings
         TabOrder = 0
@@ -316,7 +317,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 806
+          Left = 652
           Top = 1
           Width = 111
           Height = 23
@@ -331,7 +332,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 653
+        Height = 594
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -379,7 +380,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 25
         Width = 646
-        Height = 653
+        Height = 594
         AutoComplete = False
         Align = alClient
         Anchors = []
@@ -402,7 +403,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowNXrefs: TPanel
-          Left = 644
+          Left = 652
           Top = 1
           Width = 111
           Height = 23
@@ -417,7 +418,7 @@ object FMain_11011981: TFMain_11011981
         Left = 646
         Top = 25
         Width = 110
-        Height = 653
+        Height = 594
         Style = lbOwnerDrawFixed
         Align = alRight
         Anchors = []
@@ -448,7 +449,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 756
-        Height = 664
+        Height = 619
         Align = alClient
         Font.Charset = RUSSIAN_CHARSET
         Font.Color = clWindowText
@@ -465,15 +466,31 @@ object FMain_11011981: TFMain_11011981
         OnMouseMove = lbSourceCodeMouseMove
       end
     end
+    object tsMap: TTabSheet
+      Caption = 'Map (F11)'
+      ImageIndex = 6
+      object lstMap: TListBox
+        Left = 0
+        Top = 0
+        Width = 756
+        Height = 619
+        Align = alClient
+        ItemHeight = 13
+        MultiSelect = True
+        PopupMenu = pmMap
+        TabOrder = 0
+        OnDblClick = lstMapDblClick
+      end
+    end
   end
   object pcInfo: TPageControl
     Left = 0
     Top = 0
     Width = 250
-    Height = 706
-    ActivePage = tsRTTIs
+    Height = 647
+    ActivePage = tsUnits
     Align = alLeft
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 0
     OnChange = pcInfoChange
     object tsUnits: TTabSheet
@@ -482,7 +499,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 242
-        Height = 678
+        Height = 619
         Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
@@ -513,7 +530,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 0
         Width = 242
-        Height = 678
+        Height = 619
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -537,7 +554,7 @@ object FMain_11011981: TFMain_11011981
       ImageIndex = 3
       object Splitter1: TSplitter
         Left = 0
-        Top = 504
+        Top = 445
         Width = 242
         Height = 4
         Cursor = crVSplit
@@ -573,7 +590,7 @@ object FMain_11011981: TFMain_11011981
         Left = 0
         Top = 40
         Width = 242
-        Height = 464
+        Height = 405
         AutoComplete = False
         Align = alClient
         Color = clWhite
@@ -594,7 +611,7 @@ object FMain_11011981: TFMain_11011981
       end
       object Panel4: TPanel
         Left = 0
-        Top = 508
+        Top = 449
         Width = 242
         Height = 170
         Align = alBottom
@@ -680,7 +697,7 @@ object FMain_11011981: TFMain_11011981
   end
   object lbUnitItems: TListBox
     Left = 0
-    Top = 710
+    Top = 651
     Width = 1017
     Height = 146
     TabStop = False
@@ -706,8 +723,8 @@ object FMain_11011981: TFMain_11011981
   end
   object MainMenu: TMainMenu
     AutoHotkeys = maManual
-    Left = 640
-    Top = 72
+    Left = 632
+    Top = 96
     object miFile: TMenuItem
       Caption = '&File'
       object miLoadFile: TMenuItem
@@ -971,6 +988,11 @@ object FMain_11011981: TFMain_11011981
         ShortCut = 121
         OnClick = SourceCode1Click
       end
+      object mniMap1: TMenuItem
+        Caption = 'Map'
+        ShortCut = 122
+        OnClick = mniMap1Click
+      end
     end
     object miPlugins: TMenuItem
       Caption = 'Plu&gins'
@@ -1007,8 +1029,8 @@ object FMain_11011981: TFMain_11011981
     end
   end
   object OpenDlg: TOpenDialog
-    Left = 688
-    Top = 72
+    Left = 696
+    Top = 96
   end
   object pmCode: TPopupMenu
     AutoHotkeys = maManual
@@ -1040,18 +1062,24 @@ object FMain_11011981: TFMain_11011981
       Enabled = False
       OnClick = miEditFunctionCClick
     end
+    object mniN3: TMenuItem
+      Caption = '-'
+    end
+    object miCopyAddressCode: TMenuItem
+      Caption = 'Copy Address'
+      OnClick = miCopyAddressCodeClick
+    end
     object miCopyCode: TMenuItem
       Caption = 'Copy to Clipboard'
       OnClick = miCopyCodeClick
+    end
+    object mniN4: TMenuItem
+      Caption = '-'
     end
     object miFuzzyScanKB: TMenuItem
       Caption = 'Fuzzy scan KB'
       Enabled = False
       OnClick = miFuzzyScanKBClick
-    end
-    object miCopyAddressCode: TMenuItem
-      Caption = 'Copy Address'
-      OnClick = miCopyAddressCodeClick
     end
     object miXRefs: TMenuItem
       Caption = 'XRefs'
@@ -1075,8 +1103,8 @@ object FMain_11011981: TFMain_11011981
     end
   end
   object SaveDlg: TSaveDialog
-    Left = 632
-    Top = 120
+    Left = 736
+    Top = 96
   end
   object pmUnits: TPopupMenu
     AutoHotkeys = maManual
@@ -1235,6 +1263,10 @@ object FMain_11011981: TFMain_11011981
       Caption = 'Search'
       OnClick = miSearchStringClick
     end
+    object mniCopyLinesStrings1: TMenuItem
+      Caption = 'Copy Lines'
+      OnClick = mniCopyLinesStrings1Click
+    end
     object miCopyStrings: TMenuItem
       Caption = 'Copy To Clipboard'
       OnClick = miCopyStringsClick
@@ -1243,16 +1275,16 @@ object FMain_11011981: TFMain_11011981
   object pmCodePanel: TPopupMenu
     AutoHotkeys = maManual
     OnPopup = pmCodePanelPopup
-    Left = 672
-    Top = 120
+    Left = 664
+    Top = 96
     object miEmptyHistory: TMenuItem
       Caption = 'Empty History'
       OnClick = miEmptyHistoryClick
     end
   end
   object alMain: TActionList
-    Left = 736
-    Top = 72
+    Left = 816
+    Top = 96
     object acOnTop: TAction
       Category = 'Appearance'
       Caption = 'Always on top'
@@ -1291,8 +1323,8 @@ object FMain_11011981: TFMain_11011981
     Font.Style = []
     MinFontSize = 0
     MaxFontSize = 0
-    Left = 712
-    Top = 112
+    Left = 776
+    Top = 96
   end
   object pmSourceCode: TPopupMenu
     OnPopup = pmSourceCodePopup
@@ -1313,6 +1345,19 @@ object FMain_11011981: TFMain_11011981
     object miCopytoClipboardNames: TMenuItem
       Caption = 'Copy to Clipboard'
       OnClick = miCopytoClipboardNamesClick
+    end
+  end
+  object pmMap: TPopupMenu
+    AutoHotkeys = maManual
+    Left = 584
+    Top = 96
+    object mniCopyLines: TMenuItem
+      Caption = 'Copy Lines'
+      OnClick = mniCopyLinesClick
+    end
+    object mniCopyAllToClipboard: TMenuItem
+      Caption = 'Copy All To Clipboard'
+      OnClick = mniCopyAllToClipboardClick
     end
   end
 end

@@ -513,6 +513,15 @@ __published:	// IDE-managed Components
     TMenuItem *miCopytoClipboardNames;
     TMenuItem *miHiewGenerator;
     TMenuItem *mniShellIntegration1;
+        TTabSheet *tsMap;
+        TListBox *lstMap;
+        TMenuItem *mniMap1;
+        TPopupMenu *pmMap;
+        TMenuItem *mniCopyLines;
+        TMenuItem *mniCopyAllToClipboard;
+        TMenuItem *mniN3;
+        TMenuItem *mniN4;
+        TMenuItem *mniCopyLinesStrings1;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -705,6 +714,11 @@ __published:	// IDE-managed Components
     void __fastcall miCopytoClipboardNamesClick(TObject *Sender);
     void __fastcall miHiewGeneratorClick(TObject *Sender);
     void __fastcall mniShellIntegration1Click(TObject *Sender);
+        void __fastcall mniMap1Click(TObject *Sender);
+        void __fastcall mniCopyAllToClipboardClick(TObject *Sender);
+        void __fastcall lstMapDblClick(TObject *Sender);
+        void __fastcall mniCopyLinesClick(TObject *Sender);
+        void __fastcall mniCopyLinesStrings1Click(TObject *Sender);
 private:	// User declarations
     bool            ProjectLoaded;
 
@@ -879,6 +893,12 @@ public:		// User declarations
     void __fastcall CopyAddress(String line, int ofs, int bytes);
     void __fastcall GoToXRef(TObject *Sender);
     //void __fastcall ChangeDelphiHighlightTheme(TObject *Sender);
+
+    // MAP
+    void __fastcall MapGenerator();
+    void __fastcall GoToAddressMap(String cmdAdr);
+    void __fastcall ExploreAdrMap(String cmdAdr);
+    void __fastcall ExpGotoAddressMap(bool FlagGo);
 
     BEGIN_MESSAGE_MAP
     VCL_MESSAGE_HANDLER(WM_DROPFILES, TWMDropFiles, wm_dropFiles);

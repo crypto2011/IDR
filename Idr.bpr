@@ -41,7 +41,7 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="ilink32"/>
-    <USERDEFINES value=""/>
+    <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="NO_STRICT"/>
     <MAINSOURCE value="Idr.cpp"/>
     <INCLUDEPATH value="&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl"/>
@@ -52,12 +52,12 @@
   <OPTIONS>
     <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\Source\vcl -src_suffix cpp 
       -D_DEBUG -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Q -w- -Vx -Ve -X- -a1 -5 -b- -k- -vi -c -tW 
-      -tWM"/>
-    <PFLAGS value="-N2obj -N0obj -$Y- -$L- -$D- -$A8 -v -JPHNE -M"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Q -w- -Vx -Ve -X- -r- -a1 -5 -b- -k -y -v 
+      -vi- -c -tW -tWM"/>
+    <PFLAGS value="-N2obj -N0obj -$Y+ -$W -$O- -$A8 -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zn"/>
-    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -w"/>
+    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zi"/>
+    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -w -v"/>
     <OTHERFILES value=""/>
   </OPTIONS>
   <LINKER>

@@ -86,6 +86,8 @@ extern  char*   RepPrefixTab[4];
 
 extern  RegClassInfo RegClasses[];
 
+String          cmdAdr = "";
+
 int             dummy = 0;          //for debugging purposes!!!
 
 MDisasm         Disasm;				//Дизассемблер для анализатора кода
@@ -467,6 +469,11 @@ void __fastcall TFMain_11011981::Init()
     lbStrings->Clear();
     miSearchString->Enabled = false;
     tsStrings->Enabled = false;
+
+    //Init Map
+    lstMap->Clear();
+    tsMap->Enabled = false;
+
     //Init Names
     lbNames->Clear();
     tsNames->Enabled = false;
@@ -8527,6 +8534,8 @@ void __fastcall TFMain_11011981::AnalyzeThreadDone(TObject* Sender)
 
     delete AnalyzeThread;
     AnalyzeThread = 0;
+
+    MapGenerator();
 }
 //---------------------------------------------------------------------------
 bool __fastcall TFMain_11011981::ImportsValid(DWORD ImpRVA, DWORD ImpSize)
@@ -9508,6 +9517,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     miHex2Double->Enabled = true;
 
     WrkDir = ExtractFileDir(FileName);
+    MapGenerator();
     Screen->Cursor = crDefault;
 }
 //---------------------------------------------------------------------------
@@ -12899,6 +12909,7 @@ void __fastcall TFMain_11011981::SetupAllFonts(TFont* font)
       lbCXrefs,
       lbSourceCode,
       lbUnitItems,
+      lstMap,
       0
     };
 
@@ -13358,6 +13369,8 @@ void __fastcall TFMain_11011981::miHiewGeneratorClick(TObject *Sender)
     String  procName;
     String  nametName = "";
     String  SourceFileNamet = "";
+    String moduleName = "";
+
     if (SourceFile != "") nametName = ChangeFileExt(SourceFile, ".namet");
     if (IDPFile != "") nametName = ChangeFileExt(IDPFile, ".namet");
 
@@ -13389,29 +13402,30 @@ void __fastcall TFMain_11011981::miHiewGeneratorClick(TObject *Sender)
             PInfoRec recN = GetInfoRec(adr);
             if (recN)
             {
-                if (adr != EP)
+                if (adr == EP)
+                    fprintf(fNamet, ".%08X Entry Point_%08X\n", adr, adr);
+                else
                 {
                     PUnitRec recU = GetUnit(adr);
                     if (recU)
                     {
-                        String moduleName = GetUnitName(recU);
+                        moduleName = GetUnitName(recU);
                         if (adr == recU->iniadr)
                             procName = "Initialization";
                         else if (adr == recU->finadr)
                             procName = "Finalization";
                         else
                             procName = recN->MakeMapName(adr);
-                        fprintf(fNamet, ".%08X %s.%s_%08X\n", adr, moduleName.c_str(), procName.c_str(), adr);
                     }
                     else
                     {
+                        moduleName = "";
                         procName = recN->MakeMapName(adr);
-                        fprintf(fNamet, ".%08X %s_%08X\n", adr, procName.c_str(), adr);
                     }
-                }
-                else
-                {
-                    fprintf(fNamet, ".%08X Entry Point_%08X\n", adr, adr);
+                    if (moduleName != "")
+                        fprintf(fNamet, ".%08X %s.%s_%08X\n", adr, moduleName.c_str(), procName.c_str(), adr);
+                    else
+                        fprintf(fNamet, ".%08X %s_%08X\n", adr, procName.c_str(), adr);
                 }
             }
         }
@@ -13451,4 +13465,236 @@ void __fastcall TFMain_11011981::mniShellIntegration1Click(TObject *Sender)
 }
 //TerminatorX code END
 //---------------------------------------------------------------------------
+//Added by TerminatorX 03.01.2019
+//TerminatorX code BEGIN
+void __fastcall TFMain_11011981::GoToAddressMap(String cmdAdr)
+{
+    int             pos;
+    DWORD           gotoAdr;
+    String          sAdr;
+    PROCHISTORYREC  rec;
 
+    // if (lbCode->ItemIndex <= 0) return;
+    if (cmdAdr != "") sAdr = cmdAdr;
+    else
+     sAdr = InputDialogExec("Enter Address", "Address:", "");
+    if (sAdr != "")
+    {
+        sscanf(sAdr.c_str(), "%lX", &gotoAdr);
+        if (IsValidCodeAdr(gotoAdr))
+        {
+            pos = Adr2Pos(gotoAdr);
+            //If immport- nothing to map
+            //Delete import check!!!
+            // if (IsFlagSet(cfImport, pos)) return;
+            //Search address
+            while (pos >= 0)
+            {
+                //Find procedure start
+                if (IsFlagSet(cfProcStart, pos))
+                {
+                    rec.adr = CurProcAdr;
+                    rec.itemIdx = lbCode->ItemIndex;
+                    rec.xrefIdx = lbCXrefs->ItemIndex;
+                    rec.topIdx = lbCode->TopIndex;
+                    ShowCode(Pos2Adr(pos), gotoAdr, -1, -1);
+                    CodeHistoryPush(&rec);
+                    break;
+                }
+                //Fint Type start
+                if (IsFlagSet(cfRTTI, pos))
+                {
+                    FTypeInfo_11011981->ShowRTTI(Pos2Adr(pos));
+                    break;
+                }
+                pos--;
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::ExploreAdrMap(String cmdAdr)
+{
+    int         size;
+    DWORD       viewAdr;
+    String      text = "", sAdr;
+    PInfoRec    recN;
+
+    if (cmdAdr != "") lbCode->ItemIndex = 1;
+    if (lbCode->ItemIndex <= 0) return;
+
+    size = CodeGetTargetAdr(lbCode->Items->Strings[lbCode->ItemIndex], &viewAdr);
+    if (viewAdr) text = Val2Str8(viewAdr);
+    if (cmdAdr != "") sAdr = cmdAdr;
+    else
+     sAdr = InputDialogExec("Enter Address", "Address:", text);
+    if (sAdr != "")
+    {
+        sscanf(sAdr.c_str(), "%lX", &viewAdr);
+        if (IsValidImageAdr(viewAdr))
+        {
+            int pos = Adr2Pos(viewAdr);
+            if (pos == -2) return;
+            if (pos == -1)
+            {
+               // ShowMessage("BSS");
+                MessageDlg("BSS", mtWarning, TMsgDlgButtons() << mbOK, 0);
+                return;
+            }
+            FExplorer_11011981->tsCode->TabVisible = true;
+            FExplorer_11011981->ShowCode(viewAdr, 1024);
+            FExplorer_11011981->tsData->TabVisible = true;
+            FExplorer_11011981->ShowData(viewAdr, 1024);
+            FExplorer_11011981->tsString->TabVisible = true;
+            FExplorer_11011981->ShowString(viewAdr, 1024);
+            FExplorer_11011981->tsText->TabVisible = false;
+            FExplorer_11011981->pc1->ActivePage = FExplorer_11011981->tsCode;
+            FExplorer_11011981->WAlign = -4;
+            
+            FExplorer_11011981->btnDefCode->Enabled = true;
+            if (IsFlagSet(cfCode, pos)) FExplorer_11011981->btnDefCode->Enabled = false;
+            FExplorer_11011981->btnUndefCode->Enabled = false;
+            if (IsFlagSet(cfCode | cfData, pos)) FExplorer_11011981->btnUndefCode->Enabled = true;
+
+            if (FExplorer_11011981->ShowModal() == mrOk)
+            {
+                switch (FExplorer_11011981->DefineAs)
+                {
+                case DEFINE_AS_CODE:
+                    //Delete any information at this address
+                    recN = GetInfoRec(viewAdr);
+                    if (recN) delete recN;
+                    //Create new info about proc
+                    recN = new InfoRec(pos, ikRefine);
+
+                    //AnalyzeProcInitial(viewAdr);
+                    AnalyzeProc1(viewAdr, 0, 0, 0, false);
+                    AnalyzeProc2(viewAdr, true, true);
+                    AnalyzeArguments(viewAdr);
+                    AnalyzeProc2(viewAdr, true, true);
+
+                    if (!ContainsUnexplored(GetUnit(viewAdr))) ShowUnits(true);
+                    ShowUnitItems(GetUnit(viewAdr), lbUnitItems->TopIndex, lbUnitItems->ItemIndex);
+                    ShowCode(viewAdr, 0, -1, -1);
+                    break;
+                case DEFINE_AS_STRING:
+                    break;
+                }
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::MapGenerator()
+{
+    String  procName, moduleName;
+    tsMap->Enabled = miMapGenerator->Enabled;
+    lstMap->Enabled = miMapGenerator->Enabled;
+    lstMap->Clear();
+
+    for (int n = 0; n < CodeSize; n++)
+    {
+        if (IsFlagSet(cfProcStart, n) && !IsFlagSet(cfEmbedded, n))
+        {
+            int adr = Pos2Adr(n);
+            PInfoRec recN = GetInfoRec(adr);
+            if (recN)
+            {
+                if (adr == EP)
+                    lstMap->Items->Add(IntToHex(adr, 8) + ":Entry Point");
+                else
+                {
+                    PUnitRec recU = GetUnit(adr);
+                    if (recU)
+                    {
+                        moduleName = GetUnitName(recU);
+                        if (adr == recU->iniadr)
+                            procName = "Initialization";
+                        else if (adr == recU->finadr)
+                            procName = "Finalization";
+                        else
+                            procName = recN->MakeMapName(adr);
+                    }
+                    else
+                    {
+                        moduleName = "";
+                        procName = recN->MakeMapName(adr);
+                    }
+                    if (!IsFlagSet(cfImport, n))
+                        procName = recN->MakePrototype(adr, true, false, false, true, false);
+                    lstMap->Items->Add(IntToHex(adr, 8) + ":{" + moduleName + "}" + procName);
+                }
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::ExpGotoAddressMap(bool FlagGo)
+{
+    String  strhexs11 = "";
+    if (lstMap->ItemIndex < 0) return;
+    for (int d = 0; d < lstMap->Items->Count; d++)
+    {
+        if(lstMap->Selected[d])
+        {
+            strhexs11 = lstMap->Items->Strings[d];
+            if (TryStrToInt(("$" + strhexs11.SubString(1,8)), 0))
+            {
+                if (FlagGo)
+                {
+                    GoToAddressMap(strhexs11.SubString(1,8));
+                    CodeViewer1Click(this);
+                }
+                else
+                    ExploreAdrMap(strhexs11.SubString(1,8));
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniMap1Click(TObject *Sender)
+{
+    pcWorkArea->ActivePage = tsMap;
+    if (lstMap->CanFocus()) ActiveControl = lstMap;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyAllToClipboardClick(
+      TObject *Sender)
+{
+    Copy2Clipboard(lstMap->Items, 0, false);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::lstMapDblClick(TObject *Sender)
+{
+    ExpGotoAddressMap(True);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyLinesClick(TObject *Sender)
+{
+    String  strm11 = "";
+    if (lstMap->ItemIndex <= 0) return;
+    for(int i = 0; i < lstMap->Items->Count; i++)
+    {
+        if(lstMap->Selected[i])
+            strm11 += (lstMap->Items->Strings[i].Delete(1,1)+"\r"+"\n");
+    }
+    Clipboard()->Open();
+    Clipboard()->AsText = strm11;
+    Clipboard()->Close();
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyLinesStrings1Click(TObject *Sender)
+{
+    String  strs11 = "";
+    if (lbStrings->ItemIndex <= 0) return;
+    for(int l = 0; l < lbStrings->Items->Count; l++)
+    {
+        if(lbStrings->Selected[l])
+            strs11 += (lbStrings->Items->Strings[l].Delete(1,1)+"\r"+"\n");
+    }
+    Clipboard()->Open();
+    Clipboard()->AsText = strs11;
+    Clipboard()->Close();
+}
+//---------------------------------------------------------------------------
+//TerminatorX code END
