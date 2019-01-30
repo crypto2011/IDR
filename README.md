@@ -21,3 +21,7 @@ trojans and other malware applications, those which executing is dangerous or is
 The program does not require any installation activity and does not do any records in Windows registry.
 
 Use Borland C++ Builder 6 to build this project.
+
+====================================================================================================
+Knowledge bases for various Delphi versions can be found at:
+https://www.dropbox.com/sh/9ran313nidqtagb/AADl_m_9GVYSiXUviZtDQWQHa?dl=0
