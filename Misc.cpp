@@ -44,7 +44,11 @@ void __fastcall ScaleForm(TForm* AForm)
     HDC _hdc = GetDC(0);
     if (_hdc)
     {
-        AForm->ScaleBy(GetDeviceCaps(_hdc, 0x58), 100);
+        //Modified by ZGL
+        int LogicalScreenHeight = GetDeviceCaps(_hdc, VERTRES);
+        int PhysicalScreenHeight = GetDeviceCaps(_hdc, DESKTOPVERTRES);
+        AForm->ScaleBy(PhysicalScreenHeight, LogicalScreenHeight);
+        //Modified end
         ReleaseDC(0, _hdc);
     }
 }
