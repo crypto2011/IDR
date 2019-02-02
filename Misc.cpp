@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 #include <vcl.h>
 #pragma hdrstop
-
+ 
 #include "Misc.h"
 #include <Clipbrd.hpp>
 #include <Imagehlp.h>
