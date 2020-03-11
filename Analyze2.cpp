@@ -285,7 +285,6 @@ bool __fastcall TFMain_11011981::AnalyzeProc2(DWORD fromAdr, bool addArg, bool A
     while (1)
     {
         if (curAdr >= CodeBase + TotalSize) break;
-        
         //Skip exception table
         if (IsFlagSet(cfETable, curPos))
         {

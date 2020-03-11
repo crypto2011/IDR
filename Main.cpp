@@ -8352,7 +8352,7 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
     FILE *f = fopen(FileName.c_str(), "rb");
 
     Screen->Cursor = crHourGlass;
-    int res = LoadImage(f, loadExp, loadImp);
+    int res = LoadImage(f, version, loadExp, loadImp);
     fclose(f);
 
     if (res <= 0)
@@ -8568,7 +8568,7 @@ bool __fastcall TFMain_11011981::ImportsValid(DWORD ImpRVA, DWORD ImpSize)
     return true;
 }
 //---------------------------------------------------------------------------
-int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
+int __fastcall TFMain_11011981::LoadImage(FILE* f, int version, bool loadExp, bool loadImp)
 {
     int         	        i, n, m, bytes, pos, SectionsNum, ExpNum, NameLength;
     DWORD       	        DataEnd, Items;
@@ -8700,47 +8700,57 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
     EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;//temporary assignment to evaluate BCB ini and fin tables
     BCB = false;
 
-    DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
-    if (!evalInitTable)
+    if (version != 2)
     {
-        ShowMessage("Cannot find initialization table");
-        delete[] SectionHeaders;
-        delete[] Image;
-        Image = 0;
-        return 0;
-    }
+        DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
+        if (!evalInitTable)
+        {
+            ShowMessage("Cannot find initialization table");
+            delete[] SectionHeaders;
+            delete[] Image;
+            Image = 0;
+            return 0;
+        }
 
-    DWORD evalEP = 0;
-    //Find instruction mov eax,offset InitTable
-    for (n = 0; n < TotalSize - 5; n++)
-    {
-        if (Image[n] == 0xB8 && *((DWORD*)(Image + n + 1)) == evalInitTable)
+        DWORD evalEP = 0;
+        //Find instruction mov eax,offset InitTable
+        for (n = 0; n < TotalSize - 5; n++)
         {
-            evalEP = n;
-            break;
-        }
-    }
-    //Scan up until bytes 0x55 (push ebp) and 0x8B,0xEC (mov ebp,esp)
-    if (evalEP)
-    {
-        while (evalEP != 0)
-        {
-            if (Image[evalEP] == 0x55 && Image[evalEP + 1] == 0x8B && Image[evalEP + 2] == 0xEC)
-                break;
-            evalEP--;
-        }
-    }
-    //Check evalEP
-    if (evalEP + CodeBase != NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase)
-    {
-        sprintf(msg, "Possible invalid EP (NTHeader:%lX, Evaluated:%lX). Input valid EP?", NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase, evalEP + CodeBase);
-        if (Application->MessageBox(msg, "Confirmation", MB_YESNO) == IDYES)
-        {
-            sEP = InputDialogExec("New EP", "EP:", Val2Str0(NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase));
-            if (sEP != "")
+            if (Image[n] == 0xB8 && *((DWORD*)(Image + n + 1)) == evalInitTable)
             {
-                sscanf(sEP.c_str(), "%lX", &EP);
-                if (!IsValidImageAdr(EP))
+                evalEP = n;
+                break;
+            }
+        }
+        //Scan up until bytes 0x55 (push ebp) and 0x8B,0xEC (mov ebp,esp)
+        if (evalEP)
+        {
+            while (evalEP != 0)
+            {
+                if (Image[evalEP] == 0x55 && Image[evalEP + 1] == 0x8B && Image[evalEP + 2] == 0xEC)
+                    break;
+                evalEP--;
+            }
+        }
+        //Check evalEP
+        if (evalEP + CodeBase != NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase)
+        {
+            sprintf(msg, "Possible invalid EP (NTHeader:%lX, Evaluated:%lX). Input valid EP?", NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase, evalEP + CodeBase);
+            if (Application->MessageBox(msg, "Confirmation", MB_YESNO) == IDYES)
+            {
+                sEP = InputDialogExec("New EP", "EP:", Val2Str0(NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase));
+                if (sEP != "")
+                {
+                    sscanf(sEP.c_str(), "%lX", &EP);
+                    if (!IsValidImageAdr(EP))
+                    {
+                        delete[] SectionHeaders;
+                        delete[] Image;
+                        Image = 0;
+                        return 0;
+                    }
+                }
+                else
                 {
                     delete[] SectionHeaders;
                     delete[] Image;
@@ -8758,15 +8768,8 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
         }
         else
         {
-            delete[] SectionHeaders;
-            delete[] Image;
-            Image = 0;
-            return 0;
+            EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;
         }
-    }
-    else
-    {
-        EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;
     }
     //Find DataStart
     //DWORD _codeEnd = DataEnd;
