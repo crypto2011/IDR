@@ -5075,6 +5075,7 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
     if (fromPos < 0) return;
 
     bool selectByAdr = (IsValidImageAdr(SelectedIdx) == true);
+    /*
     //If procedure is the same then move selection and not update Xrefs
     if (fromAdr == CurProcAdr)
     {
@@ -5105,6 +5106,7 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
         pcWorkArea->ActivePage = tsCodeView;
         return;
     }
+    */
     if (!AnalyzeThread)//Clear all Items (used in highlighting)
     {
         //AnalyzeProc1(fromAdr, 0, 0, 0, false);//!!!

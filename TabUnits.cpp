@@ -333,6 +333,7 @@ void __fastcall TFMain_11011981::miRenameUnitClick(TObject *Sender)
         
         ProjectModified = true;
         ShowUnits(true);
+        RedrawCode();
         lbUnits->SetFocus();
     }
 }
