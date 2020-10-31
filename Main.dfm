@@ -284,20 +284,19 @@ object FMain_11011981: TFMain_11011981
     object tsStrings: TTabSheet
       Caption = 'Strings (F8)'
       ImageIndex = 2
-      object lbStrings: TListBox
+      object lbStrings: TTntListBox
         Left = 0
         Top = 25
         Width = 646
         Height = 594
-        Style = lbOwnerDrawFixed
         AutoComplete = False
         Align = alClient
         Anchors = []
         Color = clWhite
-        Font.Charset = DEFAULT_CHARSET
+        Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
         Font.Height = -12
-        Font.Name = 'Courier New'
+        Font.Name = 'Fixedsys'
         Font.Style = []
         ItemHeight = 16
         MultiSelect = True
@@ -306,7 +305,6 @@ object FMain_11011981: TFMain_11011981
         TabOrder = 0
         OnClick = lbStringsClick
         OnDblClick = lbStringsDblClick
-        OnDrawItem = lbStringsDrawItem
         OnMouseMove = lbStringsMouseMove
       end
       object Panel3: TPanel
@@ -317,7 +315,7 @@ object FMain_11011981: TFMain_11011981
         Align = alTop
         TabOrder = 1
         object ShowSXrefs: TPanel
-          Left = 652
+          Left = 644
           Top = 1
           Width = 111
           Height = 23
@@ -466,22 +464,6 @@ object FMain_11011981: TFMain_11011981
         OnMouseMove = lbSourceCodeMouseMove
       end
     end
-    object tsMap: TTabSheet
-      Caption = 'Map (F11)'
-      ImageIndex = 6
-      object lstMap: TListBox
-        Left = 0
-        Top = 0
-        Width = 756
-        Height = 619
-        Align = alClient
-        ItemHeight = 13
-        MultiSelect = True
-        PopupMenu = pmMap
-        TabOrder = 0
-        OnDblClick = lstMapDblClick
-      end
-    end
   end
   object pcInfo: TPageControl
     Left = 0
@@ -518,7 +500,7 @@ object FMain_11011981: TFMain_11011981
         TabOrder = 0
         OnClick = lbUnitsClick
         OnDblClick = lbUnitsDblClick
-        OnDrawItem = lbUnitsDrawItem
+        OnDrawItem = lbUnitItemsDrawItem
         OnKeyDown = lbUnitsKeyDown
         OnMouseMove = lbUnitsMouseMove
       end
@@ -666,7 +648,7 @@ object FMain_11011981: TFMain_11011981
             Font.Height = -12
             Font.Name = 'Courier New'
             Font.Style = []
-            ItemHeight = 0
+            ItemHeight = 15
             ParentFont = False
             Sorted = True
             TabOrder = 0
@@ -988,11 +970,6 @@ object FMain_11011981: TFMain_11011981
         ShortCut = 121
         OnClick = SourceCode1Click
       end
-      object mniMap1: TMenuItem
-        Caption = 'Map'
-        ShortCut = 122
-        OnClick = mniMap1Click
-      end
     end
     object miPlugins: TMenuItem
       Caption = 'Plu&gins'
@@ -1263,14 +1240,6 @@ object FMain_11011981: TFMain_11011981
       Caption = 'Search'
       OnClick = miSearchStringClick
     end
-    object mniCopyLinesStrings1: TMenuItem
-      Caption = 'Copy Lines'
-      OnClick = mniCopyLinesStrings1Click
-    end
-    object miCopyStrings: TMenuItem
-      Caption = 'Copy To Clipboard'
-      OnClick = miCopyStringsClick
-    end
   end
   object pmCodePanel: TPopupMenu
     AutoHotkeys = maManual
@@ -1345,19 +1314,6 @@ object FMain_11011981: TFMain_11011981
     object miCopytoClipboardNames: TMenuItem
       Caption = 'Copy to Clipboard'
       OnClick = miCopytoClipboardNamesClick
-    end
-  end
-  object pmMap: TPopupMenu
-    AutoHotkeys = maManual
-    Left = 584
-    Top = 96
-    object mniCopyLines: TMenuItem
-      Caption = 'Copy Lines'
-      OnClick = mniCopyLinesClick
-    end
-    object mniCopyAllToClipboard: TMenuItem
-      Caption = 'Copy All To Clipboard'
-      OnClick = mniCopyAllToClipboardClick
     end
   end
 end

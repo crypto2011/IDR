@@ -6,7 +6,7 @@ object FStringInfo_11011981: TFStringInfo_11011981
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
-  Font.Height = -13
+  Font.Height = -10
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   KeyPreview = True
@@ -14,17 +14,17 @@ object FStringInfo_11011981: TFStringInfo_11011981
   Position = poScreenCenter
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
-  PixelsPerInch = 120
-  TextHeight = 16
-  object memStringInfo: TMemo
+  PixelsPerInch = 96
+  TextHeight = 13
+  object memStringInfo: TTntMemo
     Left = 0
     Top = 0
-    Width = 845
-    Height = 150
+    Width = 837
+    Height = 152
     Align = alClient
-    Font.Charset = DEFAULT_CHARSET
+    Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
-    Font.Height = -15
+    Font.Height = -12
     Font.Name = 'Fixedsys'
     Font.Style = []
     ParentFont = False
