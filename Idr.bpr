@@ -21,18 +21,18 @@
       KBViewer.dfm UfrmFormTree.dfm Legend.dfm Hex2Double.dfm Plugins.dfm 
       ActiveProcesses.dfm IdcSplitSize.dfm ProgressBar.dfm"/>
     <LIBFILES value=""/>
-    <LIBRARIES value="dsnapcon.lib dsnapcrba.lib dss.lib bcb2kaxserver.lib indy.lib dbxcds.lib 
-      dclocx.lib soaprtl.lib bcbie.lib nmfast.lib dbexpress.lib inetdbxpress.lib 
-      inetdb.lib inetdbbde.lib inet.lib xmlrtl.lib visualdbclx.lib ibxpress.lib 
-      teeqr.lib teeui.lib bdecds.lib cds.lib vcldbx.lib qrpt.lib adortl.lib 
-      bcbsmp.lib dsnap.lib teedb.lib vcldb.lib bdertl.lib dbrtl.lib tee.lib 
-      vclx.lib vcl.lib rtl.lib"/>
+    <LIBRARIES value="TntLibR.lib dsnapcon.lib dsnapcrba.lib dss.lib bcb2kaxserver.lib indy.lib 
+      dbxcds.lib dclocx.lib soaprtl.lib bcbie.lib nmfast.lib dbexpress.lib 
+      inetdbxpress.lib inetdb.lib inetdbbde.lib inet.lib xmlrtl.lib 
+      visualdbclx.lib ibxpress.lib teeqr.lib teeui.lib bdecds.lib cds.lib 
+      vcldbx.lib qrpt.lib adortl.lib bcbsmp.lib dsnap.lib teedb.lib vcldb.lib 
+      bdertl.lib dbrtl.lib tee.lib vclx.lib vcl.lib rtl.lib"/>
     <SPARELIBS value="rtl.lib vcl.lib vclx.lib tee.lib dbrtl.lib bdertl.lib vcldb.lib teedb.lib 
       dsnap.lib bcbsmp.lib adortl.lib qrpt.lib vcldbx.lib cds.lib bdecds.lib 
       teeui.lib teeqr.lib ibxpress.lib visualdbclx.lib xmlrtl.lib inet.lib 
       inetdbbde.lib inetdb.lib inetdbxpress.lib dbexpress.lib nmfast.lib 
       bcbie.lib soaprtl.lib dclocx.lib dbxcds.lib indy.lib bcb2kaxserver.lib 
-      dss.lib dsnapcrba.lib dsnapcon.lib"/>
+      dss.lib dsnapcrba.lib dsnapcon.lib TntLibR.lib"/>
     <PACKAGES value="rtl.bpi vcl.bpi vclx.bpi"/>
     <PATHCPP value=".;"/>
     <PATHPAS value=".;"/>
@@ -41,23 +41,23 @@
     <DEBUGLIBPATH value="$(BCB)\lib\debug"/>
     <RELEASELIBPATH value="$(BCB)\lib\release"/>
     <LINKER value="ilink32"/>
-    <USERDEFINES value=""/>
+    <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="NO_STRICT"/>
     <MAINSOURCE value="Idr.cpp"/>
-    <INCLUDEPATH value="&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl"/>
-    <LIBPATH value="&quot;c:\program files (x86)\borland\cbuilder6\source\vcl&quot;;&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
+    <INCLUDEPATH value="UnicodeControls;&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl"/>
+    <LIBPATH value="UnicodeControls;&quot;c:\program files (x86)\borland\cbuilder6\source\vcl&quot;;&quot;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS&quot;;&quot;C:\Program Files (x86)\Borland\CBuilder6\Bin&quot;;&quot;C:\Program Files\Borland\CBuilder6\Bin&quot;;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par -w-csu"/>
     <OTHERFILES value=""/>
   </MACROS>
   <OPTIONS>
     <IDLCFLAGS value="-I$(BCB)\include -I$(BCB)\include\vcl -I$(BCB)\Source\vcl -src_suffix cpp 
       -D_DEBUG -boa"/>
-    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Q -w- -Vx -Ve -X- -a1 -5 -b- -k- -vi -c -tW 
-      -tWM"/>
-    <PFLAGS value="-N2obj -N0obj -$Y- -$L- -$D- -$A8 -v -JPHNE -M"/>
+    <CFLAG1 value="-Od -H=$(BCB)\lib\vcl60.csm -Q -w- -Vx -Ve -X- -r- -a1 -5 -b- -k -y -v 
+      -vi- -c -tW -tWM"/>
+    <PFLAGS value="-N2obj -N0obj -$Y+ -$W -$O- -$A8 -v -JPHNE -M"/>
     <RFLAGS value=""/>
-    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zn"/>
-    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -w"/>
+    <AFLAGS value="/mx /mv32 /kh32768 /w2 /zi"/>
+    <LFLAGS value="-Iobj -D&quot;&quot; -aa -Tpe -x -Gn -w -v"/>
     <OTHERFILES value=""/>
   </OPTIONS>
   <LINKER>
@@ -146,47 +146,49 @@ c:\program files (x86)\borland\cbuilder6\Bin\dcldbxcds60.bpl=Borland Local DBX C
 c:\program files (x86)\borland\cbuilder6\Bin\dclite60.bpl=Borland Integrated Translation Environment
 
 [HistoryLists\hlIncludePath]
-Count=18
-Item0=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item1=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item2=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item3=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item4=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item5=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item6=$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item7=C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item8=..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
-Item9=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
-Item10=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
-Item11=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
-Item12=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
-Item13=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
-Item14=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
-Item15=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\include;$(BCB)\include\vcl
-Item16=$(BCB)\include;$(BCB)\include\vcl
-Item17=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\include;$(BCB)\include\vcl
+Count=19
+Item0=UnicodeControls;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item1=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item2=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item3=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item4=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item5=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item6=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item7=$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item8=C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item9=..\..\Bin;$(BCB)\include;$(BCB)\include\vcl;$(BCB)\Source\vcl
+Item10=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item11=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item12=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\include;$(BCB)\include\vcl
+Item13=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item14=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item15=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\include;$(BCB)\include\vcl
+Item16=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\include;$(BCB)\include\vcl
+Item17=$(BCB)\include;$(BCB)\include\vcl
+Item18=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\include;$(BCB)\include\vcl
 
 [HistoryLists\hlLibraryPath]
-Count=19
-Item0=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item1=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item2=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item3=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item4=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item5=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item6=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item7=$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
-Item8=$(BCB)\Projects\Lib;C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
-Item9=..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
-Item10=$(BCB)\lib\obj;$(BCB)\lib
-Item11=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
-Item12=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
-Item13=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
-Item14=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
-Item15=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
-Item16=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
-Item17=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\lib\obj;$(BCB)\lib
-Item18=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Count=20
+Item0=UnicodeControls;c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item1=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item2=c:\program files (x86)\borland\cbuilder6\source\vcl;C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item3=C:\PROGRAM FILES (X86)\BORLAND\CBUILDER6\OBJREPOS;Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item4=Projects;..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item5=..\SE4\SE4_Project;C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item6=C:\Program Files (x86)\Borland\CBuilder6\Bin;C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item7=C:\Program Files\Borland\CBuilder6\Bin;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item8=$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
+Item9=$(BCB)\Projects\Lib;C:\LMD2010\lib\b6;..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
+Item10=..\..\Bin;$(BCB)\lib\obj;$(BCB)\lib
+Item11=$(BCB)\lib\obj;$(BCB)\lib
+Item12=C:\PROGRAM FILES\BORLAND\CBUILDER6\OBJREPOS;C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item13=C:\Program Files\Borland\CBuilder6\Bin;c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item14=c:\program files\borland\cbuilder6\source\vcl;$(BCB)\lib\obj;$(BCB)\lib
+Item15=c:\program files\borland\cbuilder6\source\vcl;C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item16=C:\Program Files\Borland\CBuilder6\Projects;C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item17=C:\Program Files\Borland\CBuilder5\bin;$(BCB)\lib\obj;$(BCB)\lib
+Item18=C:\Program Files\Borland\CBuilder5\bin\;$(BCB)\lib\obj;$(BCB)\lib
+Item19=C:\Program Files\Borland\CBuilder5\Components\AdvStringGrid;$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib
 
 [HistoryLists\hlDebugSourcePath]
 Count=1
