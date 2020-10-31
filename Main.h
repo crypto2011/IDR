@@ -19,6 +19,7 @@
 #include "Infos.h"
 #include "UFileDropper.h"
 #include <ActnList.hpp>
+#include "TntStdCtrls.hpp"
 //---------------------------------------------------------------------------
 #define USER_KNOWLEDGEBASE      0x80000000
 #define SOURCE_LIBRARY          0x40000000
@@ -354,7 +355,7 @@ __published:	// IDE-managed Components
 	TTabSheet *tsClassView;
     TTreeView *tvClassesFull;
     TTabSheet *tsStrings;
-    TListBox *lbStrings;
+    TTntListBox *lbStrings;
     TPanel *Panel1;
     TPopupMenu *pmUnits;
     TMenuItem *miSearchUnit;
@@ -488,7 +489,6 @@ __published:	// IDE-managed Components
     TMenuItem *Showhorizontalscroll2;
     TMenuItem *Showbar2;
     TButton *bDecompile;
-    TMenuItem *miCopyStrings;
     TMenuItem *miCopyAddressI;
     TMenuItem *miCopyAddressCode;
     TPopupMenu *pmSourceCode;
@@ -513,15 +513,8 @@ __published:	// IDE-managed Components
     TMenuItem *miCopytoClipboardNames;
     TMenuItem *miHiewGenerator;
     TMenuItem *mniShellIntegration1;
-        TTabSheet *tsMap;
-        TListBox *lstMap;
-        TMenuItem *mniMap1;
-        TPopupMenu *pmMap;
-        TMenuItem *mniCopyLines;
-        TMenuItem *mniCopyAllToClipboard;
         TMenuItem *mniN3;
         TMenuItem *mniN4;
-        TMenuItem *mniCopyLinesStrings1;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -647,8 +640,8 @@ __published:	// IDE-managed Components
 	void __fastcall lbStringsClick(TObject *Sender);
 	void __fastcall miViewClassClick(TObject *Sender);
 	void __fastcall pmVMTsPopup(TObject *Sender);
-	void __fastcall lbStringsDrawItem(TWinControl *Control, int Index,
-          TRect &Rect, TOwnerDrawState State);
+	//void __fastcall lbStringsDrawItem(TWinControl *Control, int Index,
+    //      TRect &Rect, TOwnerDrawState State);
 	void __fastcall ShowSXrefsClick(TObject *Sender);
 	void __fastcall miAboutClick(TObject *Sender);
 	void __fastcall miHelpClick(TObject *Sender);
@@ -714,11 +707,11 @@ __published:	// IDE-managed Components
     void __fastcall miCopytoClipboardNamesClick(TObject *Sender);
     void __fastcall miHiewGeneratorClick(TObject *Sender);
     void __fastcall mniShellIntegration1Click(TObject *Sender);
-        void __fastcall mniMap1Click(TObject *Sender);
-        void __fastcall mniCopyAllToClipboardClick(TObject *Sender);
-        void __fastcall lstMapDblClick(TObject *Sender);
-        void __fastcall mniCopyLinesClick(TObject *Sender);
-        void __fastcall mniCopyLinesStrings1Click(TObject *Sender);
+        //void __fastcall mniMap1Click(TObject *Sender);
+        //void __fastcall mniCopyAllToClipboardClick(TObject *Sender);
+        //void __fastcall lstMapDblClick(TObject *Sender);
+        //void __fastcall mniCopyLinesClick(TObject *Sender);
+        //void __fastcall mniCopyLinesStrings1Click(TObject *Sender);
 private:	// User declarations
     bool            ProjectLoaded;
 
@@ -893,12 +886,6 @@ public:		// User declarations
     void __fastcall CopyAddress(String line, int ofs, int bytes);
     void __fastcall GoToXRef(TObject *Sender);
     //void __fastcall ChangeDelphiHighlightTheme(TObject *Sender);
-
-    // MAP
-    void __fastcall MapGenerator();
-    void __fastcall GoToAddressMap(String cmdAdr);
-    void __fastcall ExploreAdrMap(String cmdAdr);
-    void __fastcall ExpGotoAddressMap(bool FlagGo);
 
     BEGIN_MESSAGE_MAP
     VCL_MESSAGE_HANDLER(WM_DROPFILES, TWMDropFiles, wm_dropFiles);

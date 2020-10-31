@@ -10,6 +10,7 @@
 #include <ComCtrls.hpp>
 #include <ExtCtrls.hpp>
 #include <Menus.hpp>
+#include "TntStdCtrls.hpp"
 //---------------------------------------------------------------------------
 #define     DEFINE_AS_CODE      1
 #define     DEFINE_AS_STRING    2
