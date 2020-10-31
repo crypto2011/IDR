@@ -1,3 +1,5 @@
+extern WideString __fastcall UnicodeEncode(String Str, int CodePage);
+//---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::ShowStrings(int idx)
 {
     int			n, itemidx, wid, maxwid = 0;
@@ -15,12 +17,13 @@ void __fastcall TFMain_11011981::ShowStrings(int idx)
         {
         	if (recN->kind == ikResString && recN->rsInfo->value != "")
             {
-            	line = " " + Val2Str8(Pos2Adr(n)) + " <ResString> " + recN->rsInfo->value;
+            	//line = " " + Val2Str8(Pos2Adr(n)) + " <ResString> " + recN->rsInfo->value;
+                line = Val2Str8(Pos2Adr(n)) + " <ResString> " + recN->rsInfo->value;
                 if (recN->rsInfo->value.Length() <= MAXLEN)
                 	line1 = line;
                 else
                 {
-                	line1 = line.SubString(1, MAXLEN) + "..."; line1[1] ^= 1;
+                	line1 = line.SubString(1, MAXLEN) + "..."; //line1[1] ^= 1;
                 }
                 lbStrings->Items->Add(line1);
                 wid = canvas->TextWidth(line1); if (wid > maxwid) maxwid = wid;
@@ -54,14 +57,19 @@ void __fastcall TFMain_11011981::ShowStrings(int idx)
                 }
                 if (str != "")
                 {
-                	line = " " + Val2Str8(Pos2Adr(n)) + " " + str + " " + recN->GetName();
+                    //bool    truncate = false;
+                	//line = " " + Val2Str8(Pos2Adr(n)) + " " + str + " " + recN->GetName();
+                    line = Val2Str8(Pos2Adr(n)) + " " + str + " " + recN->GetName();
                     if (recN->GetNameLength() <= MAXLEN)
                     	line1 = line;
                     else
                     {
-                    	line1 = line.SubString(1, MAXLEN) + "..."; line1[1] ^= 1;
+                    	line1 = line.SubString(1, MAXLEN) + "...";
+                        //truncate = true;
                     }
-                    lbStrings->Items->Add(line1);
+                    WideString ws = UnicodeEncode(line1, CodePage);
+                    //if (truncate) line1[1] ^= 1;
+                    lbStrings->Items->Add(ws);
                     wid = canvas->TextWidth(line1); if (wid > maxwid) maxwid = wid;
                 }
             }
@@ -82,7 +90,8 @@ void __fastcall TFMain_11011981::lbStringsClick(TObject *Sender)
     {
     	DWORD adr;
         String line = lbStrings->Items->Strings[lbStrings->ItemIndex];
-        sscanf(line.c_str() + 1, "%lX", &adr);
+        //sscanf(line.c_str() + 1, "%lX", &adr);
+        sscanf(line.c_str(), "%lX", &adr);
         ShowStringXrefs(adr, -1);
     }
 }
@@ -91,7 +100,8 @@ void __fastcall TFMain_11011981::lbStringsDblClick(TObject *Sender)
 {
 	DWORD adr;
     String line = lbStrings->Items->Strings[lbStrings->ItemIndex];
-    sscanf(line.c_str() + 1, "%lX", &adr);
+    //sscanf(line.c_str() + 1, "%lX", &adr);
+    sscanf(line.c_str(), "%lX", &adr);
     if (IsValidImageAdr(adr))
     {
         PInfoRec recN = GetInfoRec(adr);
@@ -107,12 +117,14 @@ void __fastcall TFMain_11011981::lbStringsDblClick(TObject *Sender)
         {
             FStringInfo_11011981->Caption = "String context";
         	FStringInfo_11011981->memStringInfo->Clear();
-            FStringInfo_11011981->memStringInfo->Lines->Add(recN->GetName());
+            WideString ws = UnicodeEncode(recN->GetName(), CodePage);
+            FStringInfo_11011981->memStringInfo->Lines->Add(UnicodeEncode(recN->GetName(), CodePage));
         	FStringInfo_11011981->ShowModal();
         }
     }
 }
 //---------------------------------------------------------------------------
+/*
 void __fastcall TFMain_11011981::lbStringsDrawItem(TWinControl *Control,
       int Index, TRect &Rect, TOwnerDrawState State)
 {
@@ -150,6 +162,7 @@ void __fastcall TFMain_11011981::lbStringsDrawItem(TWinControl *Control,
     }
     RestoreCanvas(canvas);
 }
+*/
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miSearchStringClick(TObject *Sender)
 {
@@ -172,7 +185,8 @@ void __fastcall TFMain_11011981::miSearchStringClick(TObject *Sender)
         
     	DWORD adr;
         String line = lbStrings->Items->Strings[lbStrings->ItemIndex];
-        sscanf(line.c_str() + 1, "%lX", &adr);
+        //sscanf(line.c_str() + 1, "%lX", &adr);
+        sscanf(line.c_str(), "%lX", &adr);
         ShowStringXrefs(adr, -1);
     }
 }

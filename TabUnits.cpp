@@ -1,3 +1,5 @@
+
+extern WideString __fastcall UnicodeEncode(String Str, int CodePage);
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miSortUnitsByAdrClick(TObject *Sender)
 {
@@ -754,7 +756,9 @@ void __fastcall TFMain_11011981::lbUnitItemsDblClick(TObject *Sender)
         FStringInfo_11011981->memStringInfo->Clear();
         FStringInfo_11011981->Caption = "String";
         recN = GetInfoRec(adr);
-        FStringInfo_11011981->memStringInfo->Lines->Add(recN->GetName());
+        WideString ws = UnicodeEncode(recN->GetName(), CodePage);
+        FStringInfo_11011981->memStringInfo->Lines->Add(ws);
+        //FStringInfo_11011981->memStringInfo->Lines->Add((WideString)recN->GetName());
         FStringInfo_11011981->ShowModal();
         return;
     }
@@ -984,4 +988,3 @@ void __fastcall TFMain_11011981::miCopyAddressIClick(TObject *Sender)
     CopyAddress(lbUnitItems->Items->Strings[lbUnitItems->ItemIndex], 1, 8);    
 }
 //---------------------------------------------------------------------------
-

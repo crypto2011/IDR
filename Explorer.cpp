@@ -8,6 +8,7 @@
 #include <Clipbrd.hpp>
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
+#pragma link "TntStdCtrls"
 #pragma resource "*.dfm"
 
 extern  MDisasm Disasm;
