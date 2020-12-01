@@ -82,7 +82,7 @@ public:
     int             CurrentBytes;//Current part output bytes
 };
 
-class TSaveIDCDialog : public TOpenDialog
+class TSaveIDCDialog : public TSaveDialog
 {
 public:
 	__fastcall TSaveIDCDialog(TComponent* AOwner, char* TemplateName);

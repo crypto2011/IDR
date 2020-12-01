@@ -1384,7 +1384,7 @@ String __fastcall InfoRec::MakePrototype(int adr, bool showKind, bool showTail, 
             else
                 result += "?";
             result += ":";
-            if (argInfo->TypeDef != "")
+            if (argInfo->TypeDef != "" && argInfo->TypeDef[1] >= 'A' && argInfo->TypeDef[1] <= 'z')
                 result += argInfo->TypeDef;
             else
                 result += "?";

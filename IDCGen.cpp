@@ -1315,7 +1315,7 @@ PREPNAMEINFO __fastcall TIDCGen::GetNameInfo(int idx)
     return 0;
 }
 //---------------------------------------------------------------------------
-__fastcall TSaveIDCDialog::TSaveIDCDialog(TComponent* AOwner, char* TemplateName) : TOpenDialog(AOwner)
+__fastcall TSaveIDCDialog::TSaveIDCDialog(TComponent* AOwner, char* TemplateName) : TSaveDialog(AOwner)
 {
 	Options >> ofEnableSizing;
     Template = TemplateName;
