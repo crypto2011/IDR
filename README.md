@@ -25,6 +25,6 @@ Use Borland C++ Builder 6 to build this project.
 IDR dont require any installations, just copy idr.exe, dis.dll, icons.dll, idr.ico and *.bin files
 to IDR home directory. Message "Cannot Initialize Disasm" means that file dis.dll is absent.
 
-====================================================================================================
+!!!
 Knowledge bases for various Delphi versions can be found at:
 https://www.dropbox.com/sh/9ran313nidqtagb/AADl_m_9GVYSiXUviZtDQWQHa?dl=0
