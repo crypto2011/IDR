@@ -12,7 +12,7 @@
 #define     FT_REAL         4
 #define     FT_COMP         5
 #define     FT_CURRENCY     6
-//---------------------------------------------------------------------------
+
 //Add by ZGL-----------------------------------------------------------------
 class TUnicodeClipboard : public TClipboard
 {
