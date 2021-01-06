@@ -3,7 +3,6 @@
 #pragma hdrstop
  
 #include "Misc.h"
-#include <Clipbrd.hpp>
 #include <Imagehlp.h>
 #include "assert.h"
 #include "InputDlg.h"
@@ -38,30 +37,32 @@ extern  char*       Reg8Tab[8];
 extern  char*       Reg16Tab[8];
 extern  char*       Reg32Tab[8];
 extern  char*       SegRegTab[8];
-//---------------------------------------------------------------------------
-WideString __fastcall UnicodeEncode(String Str, int CodePage)
-{
-    int         Len;
-    WideString  Result;
 
-    Len = Str.Length() + 1;
-    Result.SetLength(Len);
-    Len = MultiByteToWideChar(CodePage, 0, PChar(Str.c_str()), -1, PWideChar(Result), Len);
-    Result.SetLength(Len - 1); //end is #0
-    return Result;
-};
-//---------------------------------------------------------------------------
-String __fastcall UnicodeDecode(WideString Str, int CodePage)
+//Add by ZGL-----------------------------------------------------------------
+WideString __fastcall TUnicodeClipboard::GetAsUnicodeText()
 {
-    int     Len;
-    String  Result;
-
-    Len = Str.Length() * 2 + 1; //one for #0
-    Result.SetLength(Len);
-    Len = WideCharToMultiByte(CodePage, 0, PWideChar(Str), -1, PChar(Result.c_str()), Len, 0, 0);
-    Result.SetLength(Len - 1);
-    return Result;
-};
+    WideString res;
+    Open();
+    HANDLE data = GetClipboardData(CF_UNICODETEXT);
+    try
+    {
+        if (data)
+            res = (wchar_t *)GlobalLock(data);
+        else
+            res = "";
+    }
+    __finally
+    {
+        if (data) GlobalUnlock(data);
+        Close();
+    }
+    return res;
+}
+//Add by ZGL-----------------------------------------------------------------
+void __fastcall TUnicodeClipboard::SetAsUnicodeText(const WideString Value)
+{
+    SetBuffer(CF_UNICODETEXT, (wchar_t *)Value, (wcslen(Value) + 1) * sizeof(WideChar));
+}
 //---------------------------------------------------------------------------
 void __fastcall ScaleForm(TForm* AForm)
 {
@@ -2373,7 +2374,7 @@ void __fastcall Copy2Clipboard(TStrings* items, int leftMargin, bool asmCode)
             }
 
             *p = 0;
-            Clipboard()->SetTextBuf(buf);
+            ((TUnicodeClipboard *)Clipboard())->AsUnicodeText = buf;
             Clipboard()->Close();
 
             delete[] buf;

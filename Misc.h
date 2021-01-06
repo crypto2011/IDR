@@ -2,6 +2,7 @@
 #ifndef MiscH
 #define MiscH
 //---------------------------------------------------------------------------
+#include <Clipbrd.hpp>
 #include "Decompiler.h"
 //---------------------------------------------------------------------------
 //Float Type
@@ -11,6 +12,16 @@
 #define     FT_REAL         4
 #define     FT_COMP         5
 #define     FT_CURRENCY     6
+//---------------------------------------------------------------------------
+//Add by ZGL-----------------------------------------------------------------
+class TUnicodeClipboard : public TClipboard
+{
+private:
+    WideString __fastcall GetAsUnicodeText();
+    void __fastcall SetAsUnicodeText(const WideString Value);
+public:
+    __property WideString AsUnicodeText = {read=GetAsUnicodeText, write=SetAsUnicodeText};
+};
 //---------------------------------------------------------------------------
 //global API
 void __fastcall ScaleForm(TForm* AForm);
