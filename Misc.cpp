@@ -64,30 +64,6 @@ void __fastcall TUnicodeClipboard::SetAsUnicodeText(const WideString Value)
     SetBuffer(CF_UNICODETEXT, (wchar_t *)Value, (wcslen(Value) + 1) * sizeof(WideChar));
 }
 //---------------------------------------------------------------------------
-WideString __fastcall UnicodeEncode(String Str, int CodePage)
-{
-    int         Len;
-    WideString  Result;
-
-    Len = Str.Length() + 1;
-    Result.SetLength(Len);
-    Len = MultiByteToWideChar(CodePage, 0, PChar(Str.c_str()), -1, PWideChar(Result), Len);
-    Result.SetLength(Len - 1); //end is #0
-    return Result;
-};
-//---------------------------------------------------------------------------
-String __fastcall UnicodeDecode(WideString Str, int CodePage)
-{
-    int     Len;
-    String  Result;
-
-    Len = Str.Length() * 2 + 1; //one for #0
-    Result.SetLength(Len);
-    Len = WideCharToMultiByte(CodePage, 0, PWideChar(Str), -1, PChar(Result.c_str()), Len, 0, 0);
-    Result.SetLength(Len - 1);
-    return Result;
-};
-//---------------------------------------------------------------------------
 void __fastcall ScaleForm(TForm* AForm)
 {
     HDC _hdc = GetDC(0);
@@ -283,6 +259,7 @@ String __fastcall TrimTypeName(const String& TypeName)
 //---------------------------------------------------------------------------
 bool __fastcall IsValidImageAdr(DWORD Adr)
 {
+    if (Adr >> 8 == 0x408D) return false; //Add by ZGL assigned global byte or boolean variable
     if (Adr >= CodeBase && Adr < CodeBase + ImageSize)
         return true;
     else
