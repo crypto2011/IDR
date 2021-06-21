@@ -194,7 +194,7 @@ void __fastcall TFActiveProcesses::EnumSections(HANDLE HProcess, BYTE* PProcessB
     memset((BYTE*)&_section, 0, sizeof(_section));
 
     *Secnum = _ntHdr.FileHeader.NumberOfSections; _pBuf = (BYTE*)Buffer;
-    for (i = 0; i < _ntHdr.FileHeader.NumberOfSections; i++)
+    for (i = 0; i < _ntHdr.FileHeader.NumberOfSections && i < 64; i++)
     {
         if (!ReadProcessMemory(HProcess, _pSection + i * sizeof(_section), &_section, sizeof(_section), &_sz)) return;
         memmove(_pBuf, &_section, sizeof(_section));
