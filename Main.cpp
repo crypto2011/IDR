@@ -9003,23 +9003,24 @@ void __fastcall TFMain_11011981::DoOpenProjectFile(String FileName)
     }
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::ReadNode(TStream* stream, TTreeNode* node, char* buf)
+void __fastcall TFMain_11011981::ReadNode(FILE* fIn, TTreeNode* node, char* buf)
+//void __fastcall TFMain_11011981::ReadNode(TStream* stream, TTreeNode* node, char* buf)
 {
     //Count
     int itemsCount;
-    stream->Read(&itemsCount, sizeof(itemsCount));
+    fread(&itemsCount, sizeof(itemsCount), 1, fIn);//stream->Read(&itemsCount, sizeof(itemsCount));
 
     //Text
     int len;
-    stream->Read(&len, sizeof(len));
-    stream->Read(buf, len);
+    fread(&len, sizeof(len), 1, fIn);//stream->Read(&len, sizeof(len));
+    fread(buf, len, 1, fIn);//stream->Read(buf, len);
     node->Text = String(buf, len);
     FProgressBar->pb->StepIt();
 
     for (int n = 0; n < itemsCount; n++)
     {
         TTreeNode* snode = node->Owner->AddChild(node, "");
-        ReadNode(stream, snode, buf);
+        ReadNode(fIn, snode, buf);//ReadNode(stream, snode, buf);
     }
     Application->ProcessMessages();
 }
@@ -9089,407 +9090,410 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     Update();
 
     char* buf = new BYTE[MaxBufLen];
-    TMemoryStream* inStream = new TMemoryStream();
-    inStream->LoadFromFile(IDPFile);
-
-    char magic[12];
-    inStream->Read(magic, 12);
-    inStream->Read(&_ver, sizeof(_ver));
-    DelphiVersion = _ver & ~(USER_KNOWLEDGEBASE | SOURCE_LIBRARY);
-
-    inStream->Read(&EP, sizeof(EP));
-    inStream->Read(&ImageBase, sizeof(ImageBase));
-    inStream->Read(&ImageSize, sizeof(ImageSize));
-    inStream->Read(&TotalSize, sizeof(TotalSize));
-    inStream->Read(&CodeBase, sizeof(CodeBase));
-    inStream->Read(&CodeSize, sizeof(CodeSize));
-    inStream->Read(&CodeStart, sizeof(CodeStart));
-
-    inStream->Read(&DataBase, sizeof(DataBase));
-    inStream->Read(&DataSize, sizeof(DataSize));
-    inStream->Read(&DataStart, sizeof(DataStart));
-    
-
-    //SegmentList
-    inStream->Read(&num, sizeof(num));
-    for (n = 0; n < num; n++)
+    FILE* fIn = fopen(IDPFile.c_str(), "rb");
+    if (fIn)
     {
-        PSegmentInfo segInfo = new SegmentInfo;
-        inStream->Read(&segInfo->Start, sizeof(segInfo->Start));
-        inStream->Read(&segInfo->Size, sizeof(segInfo->Size));
-        inStream->Read(&segInfo->Flags, sizeof(segInfo->Flags));
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        segInfo->Name = String(buf, len);
-        SegmentList->Add((void*)segInfo);
-    }
+        //TMemoryStream* inStream = new TMemoryStream();
+        //inStream->LoadFromFile(IDPFile);
 
-    Image = new BYTE[TotalSize];
-    Code = Image + CodeStart;
-    Data = Image + DataStart;
-    DWORD Items = TotalSize;
-    BYTE* pImage = Image;
+        char magic[12];
+        fread(magic, 12, 1, fIn);//inStream->Read(magic, 12);
+        fread(&_ver, sizeof(_ver), 1, fIn);//inStream->Read(&_ver, sizeof(_ver));
+        DelphiVersion = _ver & ~(USER_KNOWLEDGEBASE | SOURCE_LIBRARY);
 
-    while (Items >= MAX_ITEMS)
-    {
-        inStream->Read(pImage, MAX_ITEMS);
-        pImage += MAX_ITEMS;
-        Items -= MAX_ITEMS;
-    }
-    if (Items) inStream->Read(pImage, Items);
+        fread(&EP, sizeof(EP), 1, fIn);//inStream->Read(&EP, sizeof(EP));
+        fread(&ImageBase, sizeof(ImageBase), 1, fIn);//inStream->Read(&ImageBase, sizeof(ImageBase));
+        fread(&ImageSize, sizeof(ImageSize), 1, fIn);//inStream->Read(&ImageSize, sizeof(ImageSize));
+        fread(&TotalSize, sizeof(TotalSize), 1, fIn);//inStream->Read(&TotalSize, sizeof(TotalSize));
+        fread(&CodeBase, sizeof(CodeBase), 1, fIn);//inStream->Read(&CodeBase, sizeof(CodeBase));
+        fread(&CodeSize, sizeof(CodeSize), 1, fIn);//inStream->Read(&CodeSize, sizeof(CodeSize));
+        fread(&CodeStart, sizeof(CodeStart), 1, fIn);//inStream->Read(&CodeStart, sizeof(CodeStart));
 
-    Flags = new DWORD[TotalSize];
-    Items = TotalSize;
-    DWORD* pFlags = Flags;
+        fread(&DataBase, sizeof(DataBase), 1, fIn);//inStream->Read(&DataBase, sizeof(DataBase));
+        fread(&DataSize, sizeof(DataSize), 1, fIn);//inStream->Read(&DataSize, sizeof(DataSize));
+        fread(&DataStart, sizeof(DataStart), 1, fIn);//inStream->Read(&DataStart, sizeof(DataStart));
 
-    while (Items >= MAX_ITEMS)
-    {
-        inStream->Read(pFlags, sizeof(DWORD)*MAX_ITEMS);
-        pFlags += MAX_ITEMS;
-        Items -= MAX_ITEMS;
-    }
-    if (Items) inStream->Read(pFlags, sizeof(DWORD)*Items);
-
-    Infos = new PInfoRec[TotalSize];
-    memset((void*)Infos, 0, sizeof(PInfoRec)*TotalSize);
-
-    inStream->Read(&infosCnt, sizeof(infosCnt));
-    BYTE kind;
-    for (n = 0; n < TotalSize; n++)
-    {
-        inStream->Read(&pos, sizeof(pos));
-        if (pos == -1) break;
-        inStream->Read(&kind, sizeof(kind));
-        recN = new InfoRec(pos, kind);
-        recN->Load(inStream, buf);
-    }
-    //BSSInfos
-    BSSInfos = new TStringList;
-    inStream->Read(&bssCnt, sizeof(bssCnt));
-    for (n = 0; n < bssCnt; n++)
-    {
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        String _adr = String(buf, len);
-        inStream->Read(&kind, sizeof(kind));
-        recN = new InfoRec(-1, kind);
-        recN->Load(inStream, buf);
-        BSSInfos->AddObject(_adr, (TObject*)recN);
-    }
-    BSSInfos->Sorted = true;
-
-    lbCXrefs->Enabled = true;
-
-    //Units
-    inStream->Read(&num, sizeof(num));
-
-    UnitsNum = num;
-    for (n = 0; n < UnitsNum; n++)
-    {
-        PUnitRec recU = new UnitRec;
-        inStream->Read(&recU->trivial, sizeof(recU->trivial));
-        inStream->Read(&recU->trivialIni, sizeof(recU->trivialIni));
-        inStream->Read(&recU->trivialFin, sizeof(recU->trivialFin));
-        inStream->Read(&recU->kb, sizeof(recU->kb));
-        inStream->Read(&recU->fromAdr, sizeof(recU->fromAdr));
-        inStream->Read(&recU->toAdr, sizeof(recU->toAdr));
-        inStream->Read(&recU->finadr, sizeof(recU->finadr));
-        inStream->Read(&recU->finSize, sizeof(recU->finSize));
-        inStream->Read(&recU->iniadr, sizeof(recU->iniadr));
-        inStream->Read(&recU->iniSize, sizeof(recU->iniSize));
-        recU->matchedPercent = 0.0;
-        inStream->Read(&recU->iniOrder, sizeof(recU->iniOrder));
-        recU->names = new TStringList;
-        int namesNum = 0;
-        inStream->Read(&namesNum, sizeof(namesNum));
-        for (u = 0; u < namesNum; u++)
+        //SegmentList
+        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
+        for (n = 0; n < num; n++)
         {
-            inStream->Read(&len, sizeof(len));
-            inStream->Read(buf, len);
-            SetUnitName(recU, String(buf, len));
+            PSegmentInfo segInfo = new SegmentInfo;
+            fread(&segInfo->Start, sizeof(segInfo->Start), 1, fIn);//inStream->Read(&segInfo->Start, sizeof(segInfo->Start));
+            fread(&segInfo->Size, sizeof(segInfo->Size), 1, fIn);//inStream->Read(&segInfo->Size, sizeof(segInfo->Size));
+            fread(&segInfo->Flags, sizeof(segInfo->Flags), 1, fIn);//inStream->Read(&segInfo->Flags, sizeof(segInfo->Flags));
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            segInfo->Name = String(buf, len);
+            SegmentList->Add((void*)segInfo);
         }
-        Units->Add((void*)recU);
-    }
-    UnitSortField = 0;
-    CurUnitAdr = 0;
-    topIdxU = 0; itemIdxU = -1;
-    topIdxI = 0; itemIdxI = -1;
-    
-    if (UnitsNum)
-    {
-        inStream->Read(&UnitSortField, sizeof(UnitSortField));
-        inStream->Read(&CurUnitAdr, sizeof(CurUnitAdr));
-        inStream->Read(&topIdxU, sizeof(topIdxU));
-        inStream->Read(&itemIdxU, sizeof(itemIdxU));
-        //UnitItems
-        if (CurUnitAdr)
+
+        Image = new BYTE[TotalSize];
+        Code = Image + CodeStart;
+        Data = Image + DataStart;
+        DWORD Items = TotalSize;
+        BYTE* pImage = Image;
+
+        while (Items >= MAX_ITEMS)
         {
-      	  	inStream->Read(&topIdxI, sizeof(topIdxI));
-        	inStream->Read(&itemIdxI, sizeof(itemIdxI));
+            fread(pImage, MAX_ITEMS, 1, fIn);//inStream->Read(pImage, MAX_ITEMS);
+            pImage += MAX_ITEMS;
+            Items -= MAX_ITEMS;
         }
-    }
+        if (Items) fread(pImage, Items, 1, fIn);//inStream->Read(pImage, Items);
 
-    tsUnits->Enabled = true;
-    switch (UnitSortField)
-    {
-    case 0:
-        miSortUnitsByAdr->Checked = true;
-        miSortUnitsByOrd->Checked = false;
-        miSortUnitsByNam->Checked = false;
-        break;
-    case 1:
-        miSortUnitsByAdr->Checked = false;
-        miSortUnitsByOrd->Checked = true;
-        miSortUnitsByNam->Checked = false;
-        break;
-    case 2:
-        miSortUnitsByAdr->Checked = false;
-        miSortUnitsByOrd->Checked = false;
-        miSortUnitsByNam->Checked = true;
-        break;
-    }
-    ShowUnits(true);
-    lbUnits->TopIndex = topIdxU;
-    lbUnits->ItemIndex = itemIdxU;
+        Flags = new DWORD[TotalSize];
+        Items = TotalSize;
+        DWORD* pFlags = Flags;
 
-    ShowUnitItems(GetUnit(CurUnitAdr), topIdxI, itemIdxI);
-
-    miRenameUnit->Enabled = true;
-    miSearchUnit->Enabled = true;
-    miSortUnits->Enabled = true;
-    miCopyList->Enabled = true;
-
-    miEditFunctionC->Enabled = true;
-    miEditFunctionI->Enabled = true;
-    miFuzzyScanKB->Enabled = true;
-    miSearchItem->Enabled = true;
-
-    //Types
-    inStream->Read(&num, sizeof(num));
-    for (n = 0; n < num; n++)
-    {
-        PTypeRec recT = new TypeRec;
-        inStream->Read(&recT->kind, sizeof(recT->kind));
-        inStream->Read(&recT->adr, sizeof(recT->adr));
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        recT->name = String(buf, len);
-        OwnTypeList->Add((void*)recT);
-    }
-    RTTISortField = 0;
-    if (num) inStream->Read(&RTTISortField, sizeof(RTTISortField));
-    //UpdateRTTIs
-    tsRTTIs->Enabled = true;
-    miSearchRTTI->Enabled = true;
-    miSortRTTI->Enabled = true;
-
-    switch (RTTISortField)
-    {
-    case 0:
-        miSortRTTIsByAdr->Checked = true;
-        miSortRTTIsByKnd->Checked = false;
-        miSortRTTIsByNam->Checked = false;
-        break;
-    case 1:
-        miSortRTTIsByAdr->Checked = false;
-        miSortRTTIsByKnd->Checked = true;
-        miSortRTTIsByNam->Checked = false;
-        break;
-    case 2:
-        miSortRTTIsByAdr->Checked = false;
-        miSortRTTIsByKnd->Checked = false;
-        miSortRTTIsByNam->Checked = true;
-        break;
-    }
-    ShowRTTIs();
-
-    //Forms
-    inStream->Read(&num, sizeof(num));
-    for (n = 0; n < num; n++)
-    {
-        TDfm* dfm = new TDfm;
-        //Flags
-        inStream->Read(&dfm->Flags, sizeof(dfm->Flags));
-        //ResName
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        dfm->ResName = String(buf, len);
-        //Name
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        dfm->Name = String(buf, len);
-        //ClassName
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        dfm->ClassName = String(buf, len);
-        //MemStream
-        inStream->Read(&size, sizeof(size));
-        dfm->MemStream->Size = size;
-        while (size >= 4096)
+        while (Items >= MAX_ITEMS)
         {
-            inStream->Read(buf, 4096);
-            dfm->MemStream->Write(buf, 4096);
-            size -= 4096;
+            fread(pFlags, sizeof(DWORD)*MAX_ITEMS, 1, fIn);//inStream->Read(pFlags, sizeof(DWORD)*MAX_ITEMS);
+            pFlags += MAX_ITEMS;
+            Items -= MAX_ITEMS;
         }
-        if (size)
+        if (Items) fread(pFlags, sizeof(DWORD)*Items, 1, fIn);//inStream->Read(pFlags, sizeof(DWORD)*Items);
+
+        Infos = new PInfoRec[TotalSize];
+        memset((void*)Infos, 0, sizeof(PInfoRec)*TotalSize);
+
+        fread(&infosCnt, sizeof(infosCnt), 1, fIn);//inStream->Read(&infosCnt, sizeof(infosCnt));
+        BYTE kind;
+        for (n = 0; n < TotalSize; n++)
         {
-            inStream->Read(buf, size);
-            dfm->MemStream->Write(buf, size);
+            fread(&pos, sizeof(pos), 1, fIn);//inStream->Read(&pos, sizeof(pos));
+            if (pos == -1) break;
+            fread(&kind, sizeof(kind), 1, fIn);//inStream->Read(&kind, sizeof(kind));
+            recN = new InfoRec(pos, kind);
+            recN->Load(fIn, buf);//recN->Load(inStream, buf);
         }
-        //Events
-        dfm->Events = new TList;
-        inStream->Read(&evnum, sizeof(evnum));
-        for (m = 0; m < evnum; m++)
+        //BSSInfos
+        BSSInfos = new TStringList;
+        fread(&bssCnt, sizeof(bssCnt), 1, fIn);//inStream->Read(&bssCnt, sizeof(bssCnt));
+        for (n = 0; n < bssCnt; n++)
         {
-            PEventInfo eInfo = new EventInfo;
-            //EventName
-            inStream->Read(&len, sizeof(len));
-            inStream->Read(buf, len);
-            eInfo->EventName = String(buf, len);
-            //ProcName
-            inStream->Read(&len, sizeof(len));
-            inStream->Read(buf, len);
-            eInfo->ProcName = String(buf, len);
-            dfm->Events->Add((void*)eInfo);
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            String _adr = String(buf, len);
+            fread(&kind, sizeof(kind), 1, fIn);//inStream->Read(&kind, sizeof(kind));
+            recN = new InfoRec(-1, kind);
+            recN->Load(fIn, buf);//recN->Load(inStream, buf);
+            BSSInfos->AddObject(_adr, (TObject*)recN);
         }
-        //Components
-        inStream->Read(&cnum, sizeof(cnum));
-        if (cnum)
+        BSSInfos->Sorted = true;
+        lbCXrefs->Enabled = true;
+
+        //Units
+        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
+
+        UnitsNum = num;
+        for (n = 0; n < UnitsNum; n++)
         {
-        	dfm->Components = new TList;
-            for (m = 0; m < cnum; m++)
+            PUnitRec recU = new UnitRec;
+            fread(&recU->trivial, sizeof(recU->trivial), 1, fIn);//inStream->Read(&recU->trivial, sizeof(recU->trivial));
+            fread(&recU->trivialIni, sizeof(recU->trivialIni), 1, fIn);//inStream->Read(&recU->trivialIni, sizeof(recU->trivialIni));
+            fread(&recU->trivialFin, sizeof(recU->trivialFin), 1, fIn);//inStream->Read(&recU->trivialFin, sizeof(recU->trivialFin));
+            fread(&recU->kb, sizeof(recU->kb), 1, fIn);//inStream->Read(&recU->kb, sizeof(recU->kb));
+            fread(&recU->fromAdr, sizeof(recU->fromAdr), 1, fIn);//inStream->Read(&recU->fromAdr, sizeof(recU->fromAdr));
+            fread(&recU->toAdr, sizeof(recU->toAdr), 1, fIn);//inStream->Read(&recU->toAdr, sizeof(recU->toAdr));
+            fread(&recU->finadr, sizeof(recU->finadr), 1, fIn);//inStream->Read(&recU->finadr, sizeof(recU->finadr));
+            fread(&recU->finSize, sizeof(recU->finSize), 1, fIn);//inStream->Read(&recU->finSize, sizeof(recU->finSize));
+            fread(&recU->iniadr, sizeof(recU->iniadr), 1, fIn);//inStream->Read(&recU->iniadr, sizeof(recU->iniadr));
+            fread(&recU->iniSize, sizeof(recU->iniSize), 1, fIn);//inStream->Read(&recU->iniSize, sizeof(recU->iniSize));
+            recU->matchedPercent = 0.0;
+            fread(&recU->iniOrder, sizeof(recU->iniOrder), 1, fIn);//inStream->Read(&recU->iniOrder, sizeof(recU->iniOrder));
+            recU->names = new TStringList;
+            int namesNum = 0;
+            fread(&namesNum, sizeof(namesNum), 1, fIn);//inStream->Read(&namesNum, sizeof(namesNum));
+            for (u = 0; u < namesNum; u++)
             {
-                PComponentInfo cInfo = new ComponentInfo;
-                //Inherited
-                inStream->Read(&cInfo->Inherit, sizeof(cInfo->Inherit));
-                //HasGlyph
-                inStream->Read(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
-                //Name
-                inStream->Read(&len, sizeof(len));
-                inStream->Read(buf, len);
-                cInfo->Name = String(buf, len);
-                //ClassName
-                inStream->Read(&len, sizeof(len));
-                inStream->Read(buf, len);
-                cInfo->ClassName = String(buf, len);
-                //Events
-                cInfo->Events = new TList;
-                inStream->Read(&evnum, sizeof(evnum));
-                for (k = 0; k < evnum; k++)
-                {
-                    PEventInfo eInfo = new EventInfo;
-                    //EventName
-                    inStream->Read(&len, sizeof(len));
-                    inStream->Read(buf, len);
-                    eInfo->EventName = String(buf, len);
-                    //ProcName
-                    inStream->Read(&len, sizeof(len));
-                    inStream->Read(buf, len);
-                    eInfo->ProcName = String(buf, len);
-                    cInfo->Events->Add((void*)eInfo);
-                }
-                dfm->Components->Add((void*)cInfo);
+                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                SetUnitName(recU, String(buf, len));
+            }
+            Units->Add((void*)recU);
+        }
+        UnitSortField = 0;
+        CurUnitAdr = 0;
+        topIdxU = 0; itemIdxU = -1;
+        topIdxI = 0; itemIdxI = -1;
+    
+        if (UnitsNum)
+        {
+            fread(&UnitSortField, sizeof(UnitSortField), 1, fIn);//inStream->Read(&UnitSortField, sizeof(UnitSortField));
+            fread(&CurUnitAdr, sizeof(CurUnitAdr), 1, fIn);//inStream->Read(&CurUnitAdr, sizeof(CurUnitAdr));
+            fread(&topIdxU, sizeof(topIdxU), 1, fIn);//inStream->Read(&topIdxU, sizeof(topIdxU));
+            fread(&itemIdxU, sizeof(itemIdxU), 1, fIn);//inStream->Read(&itemIdxU, sizeof(itemIdxU));
+            //UnitItems
+            if (CurUnitAdr)
+            {
+                fread(&topIdxI, sizeof(topIdxI), 1, fIn);//inStream->Read(&topIdxI, sizeof(topIdxI));
+                fread(&itemIdxI, sizeof(itemIdxI), 1, fIn);//inStream->Read(&itemIdxI, sizeof(itemIdxI));
             }
         }
-        ResInfo->FormList->Add((void*)dfm);
+
+        tsUnits->Enabled = true;
+        switch (UnitSortField)
+        {
+        case 0:
+            miSortUnitsByAdr->Checked = true;
+            miSortUnitsByOrd->Checked = false;
+            miSortUnitsByNam->Checked = false;
+            break;
+        case 1:
+            miSortUnitsByAdr->Checked = false;
+            miSortUnitsByOrd->Checked = true;
+            miSortUnitsByNam->Checked = false;
+            break;
+        case 2:
+            miSortUnitsByAdr->Checked = false;
+            miSortUnitsByOrd->Checked = false;
+            miSortUnitsByNam->Checked = true;
+            break;
+        }
+        ShowUnits(true);
+        lbUnits->TopIndex = topIdxU;
+        lbUnits->ItemIndex = itemIdxU;
+
+        ShowUnitItems(GetUnit(CurUnitAdr), topIdxI, itemIdxI);
+
+        miRenameUnit->Enabled = true;
+        miSearchUnit->Enabled = true;
+        miSortUnits->Enabled = true;
+        miCopyList->Enabled = true;
+
+        miEditFunctionC->Enabled = true;
+        miEditFunctionI->Enabled = true;
+        miFuzzyScanKB->Enabled = true;
+        miSearchItem->Enabled = true;
+
+        //Types
+        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            PTypeRec recT = new TypeRec;
+            fread(&recT->kind, sizeof(recT->kind), 1, fIn);//inStream->Read(&recT->kind, sizeof(recT->kind));
+            fread(&recT->adr, sizeof(recT->adr), 1, fIn);//inStream->Read(&recT->adr, sizeof(recT->adr));
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            recT->name = String(buf, len);
+            OwnTypeList->Add((void*)recT);
+        }
+        RTTISortField = 0;
+        if (num) fread(&RTTISortField, sizeof(RTTISortField), 1, fIn);//inStream->Read(&RTTISortField, sizeof(RTTISortField));
+        //UpdateRTTIs
+        tsRTTIs->Enabled = true;
+        miSearchRTTI->Enabled = true;
+        miSortRTTI->Enabled = true;
+
+        switch (RTTISortField)
+        {
+        case 0:
+            miSortRTTIsByAdr->Checked = true;
+            miSortRTTIsByKnd->Checked = false;
+            miSortRTTIsByNam->Checked = false;
+            break;
+        case 1:
+            miSortRTTIsByAdr->Checked = false;
+            miSortRTTIsByKnd->Checked = true;
+            miSortRTTIsByNam->Checked = false;
+            break;
+        case 2:
+            miSortRTTIsByAdr->Checked = false;
+            miSortRTTIsByKnd->Checked = false;
+            miSortRTTIsByNam->Checked = true;
+            break;
+        }
+        ShowRTTIs();
+
+        //Forms
+        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            TDfm* dfm = new TDfm;
+            //Flags
+            fread(&dfm->Flags, sizeof(dfm->Flags), 1, fIn);//inStream->Read(&dfm->Flags, sizeof(dfm->Flags));
+            //ResName
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            dfm->ResName = String(buf, len);
+            //Name
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            dfm->Name = String(buf, len);
+            //ClassName
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            dfm->ClassName = String(buf, len);
+            //MemStream
+            fread(&size, sizeof(size), 1, fIn);//inStream->Read(&size, sizeof(size));
+            dfm->MemStream->Size = size;
+            while (size >= 4096)
+            {
+                fread(buf, 4096, 1, fIn);//inStream->Read(buf, 4096);
+                dfm->MemStream->Write(buf, 4096);
+                size -= 4096;
+            }
+            if (size)
+            {
+                fread(buf, size, 1, fIn);//inStream->Read(buf, size);
+                dfm->MemStream->Write(buf, size);
+            }
+            //Events
+            dfm->Events = new TList;
+            fread(&evnum, sizeof(evnum), 1, fIn);//inStream->Read(&evnum, sizeof(evnum));
+            for (m = 0; m < evnum; m++)
+            {
+                PEventInfo eInfo = new EventInfo;
+                //EventName
+                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                eInfo->EventName = String(buf, len);
+                //ProcName
+                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                eInfo->ProcName = String(buf, len);
+                dfm->Events->Add((void*)eInfo);
+            }
+            //Components
+            fread(&cnum, sizeof(cnum), 1, fIn);//inStream->Read(&cnum, sizeof(cnum));
+            if (cnum)
+            {
+                dfm->Components = new TList;
+                for (m = 0; m < cnum; m++)
+                {
+                    PComponentInfo cInfo = new ComponentInfo;
+                    //Inherited
+                    fread(&cInfo->Inherit, sizeof(cInfo->Inherit), 1, fIn);//inStream->Read(&cInfo->Inherit, sizeof(cInfo->Inherit));
+                    //HasGlyph
+                    fread(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph), 1, fIn);//inStream->Read(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
+                    //Name
+                    fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                    fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                    cInfo->Name = String(buf, len);
+                    //ClassName
+                    fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                    fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                    cInfo->ClassName = String(buf, len);
+                    //Events
+                    cInfo->Events = new TList;
+                    fread(&evnum, sizeof(evnum), 1, fIn);//inStream->Read(&evnum, sizeof(evnum));
+                    for (k = 0; k < evnum; k++)
+                    {
+                        PEventInfo eInfo = new EventInfo;
+                        //EventName
+                        fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                        fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                        eInfo->EventName = String(buf, len);
+                        //ProcName
+                        fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+                        fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+                        eInfo->ProcName = String(buf, len);
+                        cInfo->Events->Add((void*)eInfo);
+                    }
+                    dfm->Components->Add((void*)cInfo);
+                }
+            }
+            ResInfo->FormList->Add((void*)dfm);
+        }
+        //UpdateForms
+        ResInfo->ShowResources(lbForms);
+        //Aliases
+        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
+            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
+            ResInfo->Aliases->Add(String(buf, len));
+        }
+        InitAliases(false);
+        tsForms->Enabled = (lbForms->Items->Count > 0);
+
+        //CodeHistory
+        fread(&CodeHistorySize, sizeof(CodeHistorySize), 1, fIn);//inStream->Read(&CodeHistorySize, sizeof(CodeHistorySize));
+        fread(&CodeHistoryPtr, sizeof(CodeHistoryPtr), 1, fIn);//inStream->Read(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
+        fread(&CodeHistoryMax, sizeof(CodeHistoryMax), 1, fIn);//inStream->Read(&CodeHistoryMax, sizeof(CodeHistoryMax));
+        bCodePrev->Enabled = (CodeHistoryPtr >= 0);
+        bCodeNext->Enabled = (CodeHistoryPtr < CodeHistoryMax);
+
+        CodeHistory.Length = CodeHistorySize;
+        for (n = 0; n < CodeHistorySize; n++)
+            fread(&CodeHistory[n], sizeof(PROCHISTORYREC), 1, fIn);//inStream->Read(&CodeHistory[n], sizeof(PROCHISTORYREC));
+
+        fread(&CurProcAdr, sizeof(CurProcAdr), 1, fIn);//inStream->Read(&CurProcAdr, sizeof(CurProcAdr));
+        fread(&topIdxC, sizeof(topIdxC), 1, fIn);//inStream->Read(&topIdxC, sizeof(topIdxC));
+
+        //Important variables
+        fread(&HInstanceVarAdr, sizeof(HInstanceVarAdr), 1, fIn);//inStream->Read(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
+        fread(&LastTls, sizeof(LastTls), 1, fIn);//inStream->Read(&LastTls, sizeof(LastTls));
+
+        fread(&Reserved, sizeof(Reserved), 1, fIn);//inStream->Read(&Reserved, sizeof(Reserved));
+        fread(&LastResStrNo, sizeof(LastResStrNo), 1, fIn);//inStream->Read(&LastResStrNo, sizeof(LastResStrNo));
+
+        fread(&CtdRegAdr, sizeof(CtdRegAdr), 1, fIn);//inStream->Read(&CtdRegAdr, sizeof(CtdRegAdr));
+
+        //UpdateVmtList
+        FillVmtList();
+        //UpdateCode
+        tsCodeView->Enabled = true;
+        miGoTo->Enabled = true;
+        miExploreAdr->Enabled = true;
+        miSwitchFlag->Enabled = cbMultipleSelection->Checked;
+        bEP->Enabled = true;
+        DWORD adr = CurProcAdr;
+        CurProcAdr = 0;
+        ShowCode(adr, 0, -1, topIdxC);
+        //UpdateStrings
+        tsStrings->Enabled = true;
+        miSearchString->Enabled = true;
+        ShowStrings(0);
+        //UpdateNames
+        tsNames->Enabled = true;
+        ShowNames(0);
+
+        Update();
+
+        //Class Viewer
+        //Total nodes num (for progress bar)
+        int nodesNum;
+        fread(&nodesNum, sizeof(nodesNum), 1, fIn);//inStream->Read(&nodesNum, sizeof(nodesNum));
+        if (nodesNum)
+        {
+            tvClassesFull->Items->BeginUpdate();
+            TTreeNode* root = tvClassesFull->Items->Add(0, "");
+            ReadNode(fIn, root, buf);//ReadNode(inStream, root, buf);
+            tvClassesFull->Items->EndUpdate();
+            ClassTreeDone = true;
+        }
+        //UpdateClassViewer
+        tsClassView->Enabled = true;
+        miViewClass->Enabled = true;
+        miSearchVMT->Enabled = true;
+        miCollapseAll->Enabled = true;
+        miEditClass->Enabled = true;
+
+        if (ClassTreeDone)
+        {
+            TTreeNode *root = tvClassesFull->Items->Item[0];
+            root->Expanded = true;
+            rgViewerMode->ItemIndex = 0;
+            rgViewerMode->Enabled = true;
+            tvClassesFull->BringToFront();
+        }
+        else
+        {
+            rgViewerMode->ItemIndex = 1;
+            rgViewerMode->Enabled = false;
+            tvClassesShort->BringToFront();
+        }
+        miClassTreeBuilder->Enabled = true;
+
+        //Just cheking
+        fread(&MaxBufLen, sizeof(MaxBufLen), 1, fIn);//inStream->Read(&MaxBufLen, sizeof(MaxBufLen));
+        fclose(fIn);
     }
-    //UpdateForms
-    ResInfo->ShowResources(lbForms);
-    //Aliases
-    inStream->Read(&num, sizeof(num));
-    for (n = 0; n < num; n++)
-    {
-        inStream->Read(&len, sizeof(len));
-        inStream->Read(buf, len);
-        ResInfo->Aliases->Add(String(buf, len));
-    }
-    InitAliases(false);
-    tsForms->Enabled = (lbForms->Items->Count > 0);
-
-    //CodeHistory
-    inStream->Read(&CodeHistorySize, sizeof(CodeHistorySize));
-    inStream->Read(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
-    inStream->Read(&CodeHistoryMax, sizeof(CodeHistoryMax));
-    bCodePrev->Enabled = (CodeHistoryPtr >= 0);
-    bCodeNext->Enabled = (CodeHistoryPtr < CodeHistoryMax);
-
-    CodeHistory.Length = CodeHistorySize;
-    for (n = 0; n < CodeHistorySize; n++)
-        inStream->Read(&CodeHistory[n], sizeof(PROCHISTORYREC));
-
-    inStream->Read(&CurProcAdr, sizeof(CurProcAdr));
-    inStream->Read(&topIdxC, sizeof(topIdxC));
-
-    //Important variables
-    inStream->Read(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
-    inStream->Read(&LastTls, sizeof(LastTls));
-
-    inStream->Read(&Reserved, sizeof(Reserved));
-    inStream->Read(&LastResStrNo, sizeof(LastResStrNo));
-
-	inStream->Read(&CtdRegAdr, sizeof(CtdRegAdr));
-
-    //UpdateVmtList
-    FillVmtList();
-    //UpdateCode
-    tsCodeView->Enabled = true;
-    miGoTo->Enabled = true;
-    miExploreAdr->Enabled = true;
-    miSwitchFlag->Enabled = cbMultipleSelection->Checked;
-    bEP->Enabled = true;
-    DWORD adr = CurProcAdr;
-    CurProcAdr = 0;
-    ShowCode(adr, 0, -1, topIdxC);
-    //UpdateStrings
-    tsStrings->Enabled = true;
-    miSearchString->Enabled = true;
-    ShowStrings(0);
-    //UpdateNames
-    tsNames->Enabled = true;
-    ShowNames(0);
-
-    Update();
-
-    //Class Viewer
-    //Total nodes num (for progress bar)
-    int nodesNum;
-    inStream->Read(&nodesNum, sizeof(nodesNum));
-    if (nodesNum)
-    {
-        tvClassesFull->Items->BeginUpdate();
-        TTreeNode* root = tvClassesFull->Items->Add(0, "");
-        ReadNode(inStream, root, buf);
-        tvClassesFull->Items->EndUpdate();
-        ClassTreeDone = true;
-    }
-    //UpdateClassViewer
-    tsClassView->Enabled = true;
-    miViewClass->Enabled = true;
-    miSearchVMT->Enabled = true;
-    miCollapseAll->Enabled = true;
-    miEditClass->Enabled = true;
-
-    if (ClassTreeDone)
-    {
-        TTreeNode *root = tvClassesFull->Items->Item[0];
-        root->Expanded = true;
-        rgViewerMode->ItemIndex = 0;
-        rgViewerMode->Enabled = true;
-        tvClassesFull->BringToFront();
-    }
-    else
-    {
-        rgViewerMode->ItemIndex = 1;
-        rgViewerMode->Enabled = false;
-        tvClassesShort->BringToFront();
-    }
-    miClassTreeBuilder->Enabled = true;
-
-    //Just cheking
-    inStream->Read(&MaxBufLen, sizeof(MaxBufLen));
 
     if (buf) delete[] buf;
-    delete inStream;
+    //delete inStream;
 
     ProjectLoaded = true;
     ProjectModified = false;
@@ -9617,21 +9621,22 @@ void __fastcall TFMain_11011981::miSaveProjectClick(TObject *Sender)
     if (SaveDlg->Execute()) SaveProject(SaveDlg->FileName);
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
+void __fastcall TFMain_11011981::WriteNode(FILE* f, TTreeNode* node)
+//void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
 {
     //Count
     int itemsCount = node->Count;
-    stream->Write(&itemsCount, sizeof(itemsCount));
+    fwrite(&itemsCount, sizeof(itemsCount), 1, f);//stream->Write(&itemsCount, sizeof(itemsCount));
     FProgressBar->pb->StepIt();
 
     //Text
     int len = node->Text.Length(); if (len > MaxBufLen) MaxBufLen = len;
-    stream->Write(&len, sizeof(len));
-    stream->Write(node->Text.c_str(), len);
+    fwrite(&len, sizeof(len), 1, f);//stream->Write(&len, sizeof(len));
+    fwrite(node->Text.c_str(), len, 1, f);//stream->Write(node->Text.c_str(), len);
 
     for (int n = 0; n < itemsCount; n++)
     {
-        WriteNode(stream, node->Item[n]);
+        WriteNode(f, node->Item[n]);//WriteNode(stream, node->Item[n]);
     }
     Application->ProcessMessages();
 }
@@ -9639,7 +9644,7 @@ void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
 void __fastcall TFMain_11011981::SaveProject(String FileName)
 {
     int             n, m, k, len, num, cnum, evnum, size, pos, res, infosCnt, topIdx, itemIdx;
-    TMemoryStream*    outStream = 0;
+    FILE*           outF;//TMemoryStream*    outStream = 0;
     BYTE            buf[4096];
 
     if (FileExists(FileName))
@@ -9652,338 +9657,342 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
     try
     {
-        outStream = new TMemoryStream();
-
-        FProgressBar->Show();
-
-        char* magic = "IDR proj v.3";
-        outStream->Write(magic, 12);
-        int _ver = DelphiVersion;
-        if (UserKnowledgeBase) _ver |= USER_KNOWLEDGEBASE;
-        if (SourceIsLibrary) _ver |= SOURCE_LIBRARY;
-        outStream->Write(&_ver, sizeof(_ver));
-
-        outStream->Write(&EP, sizeof(EP));
-        outStream->Write(&ImageBase, sizeof(ImageBase));
-        outStream->Write(&ImageSize, sizeof(ImageSize));
-        outStream->Write(&TotalSize, sizeof(TotalSize));
-        outStream->Write(&CodeBase, sizeof(CodeBase));
-        outStream->Write(&CodeSize, sizeof(CodeSize));
-        outStream->Write(&CodeStart, sizeof(CodeStart));
-
-        outStream->Write(&DataBase, sizeof(DataBase));
-        outStream->Write(&DataSize, sizeof(DataSize));
-        outStream->Write(&DataStart, sizeof(DataStart));
-        //SegmentList
-        num = SegmentList->Count;
-        outStream->Write(&num, sizeof(num));
-        for (n = 0; n < num; n++)
+        outF = fopen(IDPFile.c_str(), "wb+");//outStream = new TMemoryStream();
+        if (outF)
         {
-            PSegmentInfo segInfo = (PSegmentInfo)SegmentList->Items[n];
-            outStream->Write(&segInfo->Start, sizeof(segInfo->Start));
-            outStream->Write(&segInfo->Size, sizeof(segInfo->Size));
-            outStream->Write(&segInfo->Flags, sizeof(segInfo->Flags));
-            len = segInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(segInfo->Name.c_str(), len);
-        }
 
-        DWORD Items = TotalSize;
-        BYTE *pImage = Image;
-        FProgressBar->StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
-        while (Items >= MAX_ITEMS)
-        {
-            FProgressBar->pb->StepIt();
-            outStream->Write(pImage, MAX_ITEMS);
-            pImage += MAX_ITEMS;
-            Items -= MAX_ITEMS;
-        }
-        if (Items) outStream->Write(pImage, Items);
+            FProgressBar->Show();
 
-        Items = TotalSize;
-        DWORD *pFlags = Flags;
-        FProgressBar->StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
-        while (Items >= MAX_ITEMS)
-        {
-            FProgressBar->pb->StepIt();
-            outStream->Write(pFlags, sizeof(DWORD)*MAX_ITEMS);
-            pFlags += MAX_ITEMS;
-            Items -= MAX_ITEMS;
-        }
-        if (Items) outStream->Write(pFlags, sizeof(DWORD)*Items);
+            char* magic = "IDR proj v.3";
+            fwrite(magic, 12, 1, outF);//outStream->Write(magic, 12);
+            int _ver = DelphiVersion;
+            if (UserKnowledgeBase) _ver |= USER_KNOWLEDGEBASE;
+            if (SourceIsLibrary) _ver |= SOURCE_LIBRARY;
+            fwrite(&_ver, sizeof(_ver), 1, outF);//outStream->Write(&_ver, sizeof(_ver));
 
-        infosCnt = 0;
-        for (n = 0; n < TotalSize; n++)
-        {
-            PInfoRec recN = GetInfoRec(Pos2Adr(n));
-            if (recN) infosCnt++;
-        }
-        outStream->Write(&infosCnt, sizeof(infosCnt));
+            fwrite(&EP, sizeof(EP), 1, outF);//outStream->Write(&EP, sizeof(EP));
+            fwrite(&ImageBase, sizeof(ImageBase), 1, outF);//outStream->Write(&ImageBase, sizeof(ImageBase));
+            fwrite(&ImageSize, sizeof(ImageSize), 1, outF);//outStream->Write(&ImageSize, sizeof(ImageSize));
+            fwrite(&TotalSize, sizeof(TotalSize), 1, outF);//outStream->Write(&TotalSize, sizeof(TotalSize));
+            fwrite(&CodeBase, sizeof(CodeBase), 1, outF);//outStream->Write(&CodeBase, sizeof(CodeBase));
+            fwrite(&CodeSize, sizeof(CodeSize), 1, outF);//outStream->Write(&CodeSize, sizeof(CodeSize));
+            fwrite(&CodeStart, sizeof(CodeStart), 1, outF);//outStream->Write(&CodeStart, sizeof(CodeStart));
 
-        FProgressBar->StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
-        MaxBufLen = 0;
-        BYTE kind;
-        try
-        {
+            fwrite(&DataBase, sizeof(DataBase), 1, outF);//outStream->Write(&DataBase, sizeof(DataBase));
+            fwrite(&DataSize, sizeof(DataSize), 1, outF);//outStream->Write(&DataSize, sizeof(DataSize));
+            fwrite(&DataStart, sizeof(DataStart), 1, outF);//outStream->Write(&DataStart, sizeof(DataStart));
+            //SegmentList
+            num = SegmentList->Count;
+            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            for (n = 0; n < num; n++)
+            {
+                PSegmentInfo segInfo = (PSegmentInfo)SegmentList->Items[n];
+                fwrite(&segInfo->Start, sizeof(segInfo->Start), 1, outF);//outStream->Write(&segInfo->Start, sizeof(segInfo->Start));
+                fwrite(&segInfo->Size, sizeof(segInfo->Size), 1, outF);//outStream->Write(&segInfo->Size, sizeof(segInfo->Size));
+                fwrite(&segInfo->Flags, sizeof(segInfo->Flags), 1, outF);//outStream->Write(&segInfo->Flags, sizeof(segInfo->Flags));
+                len = segInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(segInfo->Name.c_str(), len, 1, outF);//outStream->Write(segInfo->Name.c_str(), len);
+            }
+
+            DWORD Items = TotalSize;
+            BYTE *pImage = Image;
+            FProgressBar->StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+            while (Items >= MAX_ITEMS)
+            {
+                FProgressBar->pb->StepIt();
+                fwrite(pImage, MAX_ITEMS, 1, outF);//outStream->Write(pImage, MAX_ITEMS);
+                pImage += MAX_ITEMS;
+                Items -= MAX_ITEMS;
+            }
+            if (Items) fwrite(pImage, Items, 1, outF);//outStream->Write(pImage, Items);
+
+            Items = TotalSize;
+            DWORD *pFlags = Flags;
+            FProgressBar->StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+            while (Items >= MAX_ITEMS)
+            {
+                FProgressBar->pb->StepIt();
+                fwrite(pFlags, sizeof(DWORD), MAX_ITEMS, outF);//outStream->Write(pFlags, sizeof(DWORD)*MAX_ITEMS);
+                pFlags += MAX_ITEMS;
+                Items -= MAX_ITEMS;
+            }
+            if (Items) fwrite(pFlags, sizeof(DWORD), Items, outF);//outStream->Write(pFlags, sizeof(DWORD)*Items);
+
+            infosCnt = 0;
             for (n = 0; n < TotalSize; n++)
             {
-                if ((n & 4095) == 0)
-                {
-                    FProgressBar->pb->StepIt();
-                    Application->ProcessMessages();
-                }
-
                 PInfoRec recN = GetInfoRec(Pos2Adr(n));
-                if (recN)
+                if (recN) infosCnt++;
+            }
+            fwrite(&infosCnt, sizeof(infosCnt), 1, outF);//outStream->Write(&infosCnt, sizeof(infosCnt));
+
+            FProgressBar->StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
+            MaxBufLen = 0;
+            BYTE kind;
+            try
+            {
+                for (n = 0; n < TotalSize; n++)
                 {
-                    //Position
-                    pos = n;
-                    outStream->Write(&pos, sizeof(pos));
-                    kind = recN->kind;
-                    outStream->Write(&kind, sizeof(kind));
-                    recN->Save(outStream);
+                    if ((n & 4095) == 0)
+                    {
+                        FProgressBar->pb->StepIt();
+                        Application->ProcessMessages();
+                    }
+
+                    PInfoRec recN = GetInfoRec(Pos2Adr(n));
+                    if (recN)
+                    {
+                        //Position
+                        pos = n;
+                        fwrite(&pos, sizeof(pos), 1, outF);//outStream->Write(&pos, sizeof(pos));
+                        kind = recN->kind;
+                        fwrite(&kind, sizeof(kind), 1, outF);//outStream->Write(&kind, sizeof(kind));
+                        recN->Save(outF);//recN->Save(outStream);
+                    }
                 }
             }
-        }
-        catch (Exception &exception)
-        {
-            ShowMessage("Error at " + Val2Str8(Pos2Adr(n)));
-        }
-        //Last position = -1 -> end of items
-        pos = -1; outStream->Write(&pos, sizeof(pos));
+            catch (Exception &exception)
+            {
+                ShowMessage("Error at " + Val2Str8(Pos2Adr(n)));
+            }
+            //Last position = -1 -> end of items
+            pos = -1; fwrite(&pos, sizeof(pos), 1, outF);//outStream->Write(&pos, sizeof(pos));
 
-        //BSSInfos
-        String _adr;
-        int bssCnt = BSSInfos->Count;
-        outStream->Write(&bssCnt, sizeof(bssCnt));
-        for (n = 0; n < bssCnt; n++)
-        {
-            _adr = BSSInfos->Strings[n];
-            len = _adr.Length();  if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(_adr.c_str(), len);
-            PInfoRec recN = (PInfoRec)BSSInfos->Objects[n];
-            kind = recN->kind;
-            outStream->Write(&kind, sizeof(kind));
-            recN->Save(outStream);
-        }
+            //BSSInfos
+            String _adr;
+            int bssCnt = BSSInfos->Count;
+            fwrite(&bssCnt, sizeof(bssCnt), 1, outF);//outStream->Write(&bssCnt, sizeof(bssCnt));
+            for (n = 0; n < bssCnt; n++)
+            {
+                _adr = BSSInfos->Strings[n];
+                len = _adr.Length();  if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(_adr.c_str(), len, 1, outF);//outStream->Write(_adr.c_str(), len);
+                PInfoRec recN = (PInfoRec)BSSInfos->Objects[n];
+                kind = recN->kind;
+                fwrite(&kind, sizeof(kind), 1, outF);//outStream->Write(&kind, sizeof(kind));
+                recN->Save(outF);//recN->Save(outStream);
+            }
 
-        //Units
-        num = UnitsNum;
-        FProgressBar->StartProgress("Writing Units (number = "+String(num)+")...", "", num);
-        outStream->Write(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            FProgressBar->pb->StepIt();
-            Application->ProcessMessages();
-            PUnitRec recU = (PUnitRec)Units->Items[n];
-            outStream->Write(&recU->trivial, sizeof(recU->trivial));
-            outStream->Write(&recU->trivialIni, sizeof(recU->trivialIni));
-            outStream->Write(&recU->trivialFin, sizeof(recU->trivialFin));
-            outStream->Write(&recU->kb, sizeof(recU->kb));
-            outStream->Write(&recU->fromAdr, sizeof(recU->fromAdr));
-            outStream->Write(&recU->toAdr, sizeof(recU->toAdr));
-            outStream->Write(&recU->finadr, sizeof(recU->finadr));
-            outStream->Write(&recU->finSize, sizeof(recU->finSize));
-            outStream->Write(&recU->iniadr, sizeof(recU->iniadr));
-            outStream->Write(&recU->iniSize, sizeof(recU->iniSize));
-            outStream->Write(&recU->iniOrder, sizeof(recU->iniOrder));
-            int namesNum = recU->names->Count;
-            outStream->Write(&namesNum, sizeof(namesNum));
-            for (int u = 0; u < namesNum; u++)
+            //Units
+            num = UnitsNum;
+            FProgressBar->StartProgress("Writing Units (number = "+String(num)+")...", "", num);
+            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            for (n = 0; n < num; n++)
             {
-                len = recU->names->Strings[u].Length(); if (len > MaxBufLen) MaxBufLen = len;
-                outStream->Write(&len, sizeof(len));
-                outStream->Write(recU->names->Strings[u].c_str(), len);
-            }
-        }
-        if (num)
-        {
-            outStream->Write(&UnitSortField, sizeof(UnitSortField));
-            outStream->Write(&CurUnitAdr, sizeof(CurUnitAdr));
-            topIdx = lbUnits->TopIndex;
-            outStream->Write(&topIdx, sizeof(topIdx));
-            itemIdx = lbUnits->ItemIndex;
-            outStream->Write(&itemIdx, sizeof(itemIdx));
-            //UnitItems
-            if (CurUnitAdr)
-            {
-            	topIdx = lbUnitItems->TopIndex;
-            	outStream->Write(&topIdx, sizeof(topIdx));
-                itemIdx = lbUnitItems->ItemIndex;
-                outStream->Write(&itemIdx, sizeof(itemIdx));
-            }
-        }
-
-        //Types
-        num = OwnTypeList->Count;
-        FProgressBar->StartProgress("Writing Types (number = "+String(num)+")...", "", num);
-        outStream->Write(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            FProgressBar->pb->StepIt();
-            Application->ProcessMessages();
-            PTypeRec recT = (PTypeRec)OwnTypeList->Items[n];
-            outStream->Write(&recT->kind, sizeof(recT->kind));
-            outStream->Write(&recT->adr, sizeof(recT->adr));
-            len = recT->name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(recT->name.c_str(), len);
-        }
-        if (num) outStream->Write(&RTTISortField, sizeof(RTTISortField));
-
-        //Forms
-        num = ResInfo->FormList->Count;
-        FProgressBar->StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
-        outStream->Write(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            FProgressBar->pb->StepIt();
-            Application->ProcessMessages();
-            TDfm* dfm = (TDfm*)ResInfo->FormList->Items[n];
-            //Flags
-            outStream->Write(&dfm->Flags, sizeof(dfm->Flags));
-            //ResName
-            len = dfm->ResName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(dfm->ResName.c_str(), len);
-            //Name
-            len = dfm->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(dfm->Name.c_str(), len);
-            //ClassName
-            len = dfm->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(dfm->ClassName.c_str(), len);
-            //MemStream
-            size = dfm->MemStream->Size; if (4096 > MaxBufLen) MaxBufLen = 4096;
-            outStream->Write(&size, sizeof(size));
-            dfm->MemStream->Seek(0, soFromBeginning);
-            while (size >= 4096)
-            {
-                dfm->MemStream->Read(buf, 4096);
-                outStream->Write(buf, 4096);
-                size -= 4096;
-            }
-            if (size)
-            {
-                dfm->MemStream->Read(buf, size);
-                outStream->Write(buf, size);
-            }
-            //Events
-            evnum = (dfm->Events) ? dfm->Events->Count : 0;
-            outStream->Write(&evnum, sizeof(evnum));
-            for (m = 0; m < evnum; m++)
-            {
-            	PEventInfo eInfo = (PEventInfo)dfm->Events->Items[m];
-                //EventName
-                len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                outStream->Write(&len, sizeof(len));
-                outStream->Write(eInfo->EventName.c_str(), len);
-                //ProcName
-                len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                outStream->Write(&len, sizeof(len));
-                outStream->Write(eInfo->ProcName.c_str(), len);
-            }
-            //Components
-            cnum = (dfm->Components) ? dfm->Components->Count : 0;
-            outStream->Write(&cnum, sizeof(cnum));
-            for (m = 0; m < cnum; m++)
-            {
-                PComponentInfo cInfo = (PComponentInfo)dfm->Components->Items[m];
-                //Inherited
-                outStream->Write(&cInfo->Inherit, sizeof(cInfo->Inherit));
-                //HasGlyph
-                outStream->Write(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
-                //Name
-                len = cInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                outStream->Write(&len, sizeof(len));
-                outStream->Write(cInfo->Name.c_str(), len);
-                //ClassName
-                len = cInfo->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                outStream->Write(&len, sizeof(len));
-                outStream->Write(cInfo->ClassName.c_str(), len);
-                //Events
-                evnum = (cInfo->Events) ? cInfo->Events->Count : 0;
-                outStream->Write(&evnum, sizeof(evnum));
-                for (k = 0; k < evnum; k++)
+                FProgressBar->pb->StepIt();
+                Application->ProcessMessages();
+                PUnitRec recU = (PUnitRec)Units->Items[n];
+                fwrite(&recU->trivial, sizeof(recU->trivial), 1, outF);//outStream->Write(&recU->trivial, sizeof(recU->trivial));
+                fwrite(&recU->trivialIni, sizeof(recU->trivialIni), 1, outF);//outStream->Write(&recU->trivialIni, sizeof(recU->trivialIni));
+                fwrite(&recU->trivialFin, sizeof(recU->trivialFin), 1, outF);//outStream->Write(&recU->trivialFin, sizeof(recU->trivialFin));
+                fwrite(&recU->kb, sizeof(recU->kb), 1, outF);//outStream->Write(&recU->kb, sizeof(recU->kb));
+                fwrite(&recU->fromAdr, sizeof(recU->fromAdr), 1, outF);//outStream->Write(&recU->fromAdr, sizeof(recU->fromAdr));
+                fwrite(&recU->toAdr, sizeof(recU->toAdr), 1, outF);//outStream->Write(&recU->toAdr, sizeof(recU->toAdr));
+                fwrite(&recU->finadr, sizeof(recU->finadr), 1, outF);//outStream->Write(&recU->finadr, sizeof(recU->finadr));
+                fwrite(&recU->finSize, sizeof(recU->finSize), 1, outF);//outStream->Write(&recU->finSize, sizeof(recU->finSize));
+                fwrite(&recU->iniadr, sizeof(recU->iniadr), 1, outF);//outStream->Write(&recU->iniadr, sizeof(recU->iniadr));
+                fwrite(&recU->iniSize, sizeof(recU->iniSize), 1, outF);//outStream->Write(&recU->iniSize, sizeof(recU->iniSize));
+                fwrite(&recU->iniOrder, sizeof(recU->iniOrder), 1, outF);//outStream->Write(&recU->iniOrder, sizeof(recU->iniOrder));
+                int namesNum = recU->names->Count;
+                fwrite(&namesNum, sizeof(namesNum), 1, outF);//outStream->Write(&namesNum, sizeof(namesNum));
+                for (int u = 0; u < namesNum; u++)
                 {
-                    PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[k];
-                    //EventName
-                    len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    outStream->Write(&len, sizeof(len));
-                    outStream->Write(eInfo->EventName.c_str(), len);
-                    //ProcName
-                    len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    outStream->Write(&len, sizeof(len));
-                    outStream->Write(eInfo->ProcName.c_str(), len);
+                    len = recU->names->Strings[u].Length(); if (len > MaxBufLen) MaxBufLen = len;
+                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                    fwrite(recU->names->Strings[u].c_str(), len, 1, outF);//outStream->Write(recU->names->Strings[u].c_str(), len);
                 }
             }
-        }
-        //Aliases
-        num = ResInfo->Aliases->Count;
-        FProgressBar->StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
-        outStream->Write(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            FProgressBar->pb->StepIt();
-            Application->ProcessMessages();
-            len = ResInfo->Aliases->Strings[n].Length(); if (len > MaxBufLen) MaxBufLen = len;
-            outStream->Write(&len, sizeof(len));
-            outStream->Write(ResInfo->Aliases->Strings[n].c_str(), len);
-        }
-
-        //CodeHistory
-        outStream->Write(&CodeHistorySize, sizeof(CodeHistorySize));
-        outStream->Write(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
-        outStream->Write(&CodeHistoryMax, sizeof(CodeHistoryMax));
-        PROCHISTORYREC phRec;
-        FProgressBar->StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
-        for (n = 0; n < CodeHistorySize; n++)
-        {
-            FProgressBar->pb->StepIt();
-            Application->ProcessMessages();
-            outStream->Write(&CodeHistory[n], sizeof(PROCHISTORYREC));
-        }
-
-        outStream->Write(&CurProcAdr, sizeof(CurProcAdr));
-        topIdx = lbCode->TopIndex;
-        outStream->Write(&topIdx, sizeof(topIdx));
-
-        //Important variables
-        outStream->Write(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
-        outStream->Write(&LastTls, sizeof(LastTls));
-
-        outStream->Write(&Reserved, sizeof(Reserved));
-        outStream->Write(&LastResStrNo, sizeof(LastResStrNo));
-
-        outStream->Write(&CtdRegAdr, sizeof(CtdRegAdr));
-
-        FProgressBar->Close();
-        //Class Viewer
-        //Total nodes (for progress)
-        num = 0; if (ClassTreeDone) num = tvClassesFull->Items->Count;
-        if (num && Application->MessageBox("Save full Tree of Classes?", "Warning", MB_YESNO) == IDYES)
-        {
-            FProgressBar->Show();
-            outStream->Write(&num, sizeof(num));
             if (num)
             {
-                FProgressBar->StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
-                TTreeNode* root = tvClassesFull->Items->GetFirstNode();
-                WriteNode(outStream, root);
+                fwrite(&UnitSortField, sizeof(UnitSortField), 1, outF);//outStream->Write(&UnitSortField, sizeof(UnitSortField));
+                fwrite(&CurUnitAdr, sizeof(CurUnitAdr), 1, outF);//outStream->Write(&CurUnitAdr, sizeof(CurUnitAdr));
+                topIdx = lbUnits->TopIndex;
+                fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
+                itemIdx = lbUnits->ItemIndex;
+                fwrite(&itemIdx, sizeof(itemIdx), 1, outF);//outStream->Write(&itemIdx, sizeof(itemIdx));
+                //UnitItems
+                if (CurUnitAdr)
+                {
+                    topIdx = lbUnitItems->TopIndex;
+                    fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
+                    itemIdx = lbUnitItems->ItemIndex;
+                    fwrite(&itemIdx, sizeof(itemIdx), 1, outF);//outStream->Write(&itemIdx, sizeof(itemIdx));
+                }
             }
+
+            //Types
+            num = OwnTypeList->Count;
+            FProgressBar->StartProgress("Writing Types (number = "+String(num)+")...", "", num);
+            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            for (n = 0; n < num; n++)
+            {
+                FProgressBar->pb->StepIt();
+                Application->ProcessMessages();
+                PTypeRec recT = (PTypeRec)OwnTypeList->Items[n];
+                fwrite(&recT->kind, sizeof(recT->kind), 1, outF);//outStream->Write(&recT->kind, sizeof(recT->kind));
+                fwrite(&recT->adr, sizeof(recT->adr), 1, outF);//outStream->Write(&recT->adr, sizeof(recT->adr));
+                len = recT->name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(recT->name.c_str(), len, 1, outF);//outStream->Write(recT->name.c_str(), len);
+            }
+            if (num) fwrite(&RTTISortField, sizeof(RTTISortField), 1, outF);//outStream->Write(&RTTISortField, sizeof(RTTISortField));
+
+            //Forms
+            num = ResInfo->FormList->Count;
+            FProgressBar->StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
+            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            for (n = 0; n < num; n++)
+            {
+                FProgressBar->pb->StepIt();
+                Application->ProcessMessages();
+                TDfm* dfm = (TDfm*)ResInfo->FormList->Items[n];
+                //Flags
+                fwrite(&dfm->Flags, sizeof(dfm->Flags), 1, outF);//outStream->Write(&dfm->Flags, sizeof(dfm->Flags));
+                //ResName
+                len = dfm->ResName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(dfm->ResName.c_str(), len, 1, outF);//outStream->Write(dfm->ResName.c_str(), len);
+                //Name
+                len = dfm->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(dfm->Name.c_str(), len, 1, outF);//outStream->Write(dfm->Name.c_str(), len);
+                //ClassName
+                len = dfm->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(dfm->ClassName.c_str(), len, 1, outF);//outStream->Write(dfm->ClassName.c_str(), len);
+                //MemStream
+                size = dfm->MemStream->Size; if (4096 > MaxBufLen) MaxBufLen = 4096;
+                fwrite(&size, sizeof(size), 1, outF);//outStream->Write(&size, sizeof(size));
+                dfm->MemStream->Seek(0, soFromBeginning);
+                while (size >= 4096)
+                {
+                    dfm->MemStream->Read(buf, 4096);
+                    fwrite(buf, 4096, 1, outF);//outStream->Write(buf, 4096);
+                    size -= 4096;
+                }
+                if (size)
+                {
+                    dfm->MemStream->Read(buf, size);
+                    fwrite(buf, size, 1, outF);//outStream->Write(buf, size);
+                }
+                //Events
+                evnum = (dfm->Events) ? dfm->Events->Count : 0;
+                fwrite(&evnum, sizeof(evnum), 1, outF);//outStream->Write(&evnum, sizeof(evnum));
+                for (m = 0; m < evnum; m++)
+                {
+                    PEventInfo eInfo = (PEventInfo)dfm->Events->Items[m];
+                    //EventName
+                    len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                    fwrite(eInfo->EventName.c_str(), len, 1, outF);//outStream->Write(eInfo->EventName.c_str(), len);
+                    //ProcName
+                    len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                    fwrite(eInfo->ProcName.c_str(), len, 1, outF);//outStream->Write(eInfo->ProcName.c_str(), len);
+                }
+                //Components
+                cnum = (dfm->Components) ? dfm->Components->Count : 0;
+                fwrite(&cnum, sizeof(cnum), 1, outF);//outStream->Write(&cnum, sizeof(cnum));
+                for (m = 0; m < cnum; m++)
+                {
+                    PComponentInfo cInfo = (PComponentInfo)dfm->Components->Items[m];
+                    //Inherited
+                    fwrite(&cInfo->Inherit, sizeof(cInfo->Inherit), 1, outF);//outStream->Write(&cInfo->Inherit, sizeof(cInfo->Inherit));
+                    //HasGlyph
+                    fwrite(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph), 1, outF);//outStream->Write(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
+                    //Name
+                    len = cInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                    fwrite(cInfo->Name.c_str(), len, 1, outF);//outStream->Write(cInfo->Name.c_str(), len);
+                    //ClassName
+                    len = cInfo->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                    fwrite(cInfo->ClassName.c_str(), len, 1, outF);//outStream->Write(cInfo->ClassName.c_str(), len);
+                    //Events
+                    evnum = (cInfo->Events) ? cInfo->Events->Count : 0;
+                    fwrite(&evnum, sizeof(evnum), 1, outF);//outStream->Write(&evnum, sizeof(evnum));
+                    for (k = 0; k < evnum; k++)
+                    {
+                        PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[k];
+                        //EventName
+                        len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                        fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                        fwrite(eInfo->EventName.c_str(), len, 1, outF);//outStream->Write(eInfo->EventName.c_str(), len);
+                        //ProcName
+                        len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                        fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                        fwrite(eInfo->ProcName.c_str(), len, 1, outF);//outStream->Write(eInfo->ProcName.c_str(), len);
+                    }
+                }
+            }
+            //Aliases
+            num = ResInfo->Aliases->Count;
+            FProgressBar->StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
+            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            for (n = 0; n < num; n++)
+            {
+                FProgressBar->pb->StepIt();
+                Application->ProcessMessages();
+                len = ResInfo->Aliases->Strings[n].Length(); if (len > MaxBufLen) MaxBufLen = len;
+                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
+                fwrite(ResInfo->Aliases->Strings[n].c_str(), len, 1, outF);//outStream->Write(ResInfo->Aliases->Strings[n].c_str(), len);
+            }
+
+            //CodeHistory
+            fwrite(&CodeHistorySize, sizeof(CodeHistorySize), 1, outF);//outStream->Write(&CodeHistorySize, sizeof(CodeHistorySize));
+            fwrite(&CodeHistoryPtr, sizeof(CodeHistoryPtr), 1, outF);//outStream->Write(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
+            fwrite(&CodeHistoryMax, sizeof(CodeHistoryMax), 1, outF);//outStream->Write(&CodeHistoryMax, sizeof(CodeHistoryMax));
+            PROCHISTORYREC phRec;
+            FProgressBar->StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
+            for (n = 0; n < CodeHistorySize; n++)
+            {
+                FProgressBar->pb->StepIt();
+                Application->ProcessMessages();
+                fwrite(&CodeHistory[n], sizeof(PROCHISTORYREC), 1, outF);//outStream->Write(&CodeHistory[n], sizeof(PROCHISTORYREC));
+            }
+
+            fwrite(&CurProcAdr, sizeof(CurProcAdr), 1, outF);//outStream->Write(&CurProcAdr, sizeof(CurProcAdr));
+            topIdx = lbCode->TopIndex;
+            fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
+
+            //Important variables
+            fwrite(&HInstanceVarAdr, sizeof(HInstanceVarAdr), 1, outF);//outStream->Write(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
+            fwrite(&LastTls, sizeof(LastTls), 1, outF);//outStream->Write(&LastTls, sizeof(LastTls));
+
+            fwrite(&Reserved, sizeof(Reserved), 1, outF);//outStream->Write(&Reserved, sizeof(Reserved));
+            fwrite(&LastResStrNo, sizeof(LastResStrNo), 1, outF);//outStream->Write(&LastResStrNo, sizeof(LastResStrNo));
+
+            fwrite(&CtdRegAdr, sizeof(CtdRegAdr), 1, outF);//outStream->Write(&CtdRegAdr, sizeof(CtdRegAdr));
+
             FProgressBar->Close();
+            //Class Viewer
+            //Total nodes (for progress)
+            num = 0; if (ClassTreeDone) num = tvClassesFull->Items->Count;
+            if (num && Application->MessageBox("Save full Tree of Classes?", "Warning", MB_YESNO) == IDYES)
+            {
+                FProgressBar->Show();
+                fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+                if (num)
+                {
+                    FProgressBar->StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
+                    TTreeNode* root = tvClassesFull->Items->GetFirstNode();
+                    WriteNode(outF, root);//WriteNode(outStream, root);
+                }
+                FProgressBar->Close();
+            }
+            else
+            {
+                num = 0;
+                fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
+            }
+            //At end write MaxBufLen
+            fwrite(&MaxBufLen, sizeof(MaxBufLen), 1, outF);//outStream->Write(&MaxBufLen, sizeof(MaxBufLen));
+            fclose(outF);
         }
-        else
-        {
-            num = 0;
-            outStream->Write(&num, sizeof(num));
-        }
-        //At end write MaxBufLen
-        outStream->Write(&MaxBufLen, sizeof(MaxBufLen));
-        outStream->SaveToFile(IDPFile);
-        delete outStream;
+        //outStream->SaveToFile(IDPFile);
+        //delete outStream;
 
         ProjectModified = false;
 
@@ -11694,6 +11703,7 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                     fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[0];
                     if (Offset == fInfo->Offset)
                     {
+                        if (prefix != "") //Add by ZGL
                         fInfo->Name = prefix + "." + fInfo->Name;
                         return fInfo;
                     }
@@ -11722,6 +11732,7 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                             if (fInfo)
                             {
                                 fInfo->Offset = Offset;
+                                if (prefix != "") //Add by ZGL
                                 fInfo->Name = prefix + "." + fInfo->Name;
                                 return fInfo;
                             }

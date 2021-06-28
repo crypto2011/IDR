@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="C:\PAPA\IDR\Idr.exe"/>
+    <PROJECT value="C:\PAPA\IDR\bin\Idr.exe"/>
     <OBJFILES value="obj\Idr.obj obj\Main.obj obj\TypeInfo.obj obj\StringInfo.obj 
       obj\Explorer.obj obj\KnowledgeBase.obj obj\Disasm.obj obj\Threads.obj 
       obj\InputDlg.obj obj\FindDlg.obj obj\Infos.obj obj\EditFunctionDlg.obj 
@@ -198,28 +198,15 @@ Count=1
 Item0=_DEBUG
 
 [HistoryLists\hlIntOutputDir]
-Count=4
+Count=2
 Item0=obj
 Item1=C:\Program Files\Borland\CBuilder6\Projects\IDR
-Item2=D:\_D_\PROJECTS\IDD
-Item3=C:\_D_\PROJECTS\IDD
 
 [HistoryLists\hlFinalOutputDir]
-Count=14
-Item0=C:\PAPA\IDR\
-Item1=C:\PAPA\IDR
-Item2=bin\
-Item3=build\
-Item4=build
-Item5=D:\PAPA\IDR\
-Item6=D:\PAPA\IDR
-Item7=exe\
-Item8=exe
-Item9=C:\Program Files\Borland\CBuilder6\Projects\IDR\
-Item10=C:\Program Files\Borland\CBuilder6\Projects\IDR
-Item11=D:\_D_\PROJECTS\IDD\
-Item12=C:\_D_\PROJECTS\IDD\
-Item13=C:\_D_\PROJECTS\IDD
+Count=3
+Item0=C:\PAPA\IDR\bin
+Item1=G:\IDR\
+Item2=G:\IDR
 
 [Debugging]
 DebugSourceDirs=$(BCB)\source\vcl

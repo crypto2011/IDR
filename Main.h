@@ -723,7 +723,8 @@ private:	// User declarations
     void __fastcall LoadFile(String FileName, int version);
     void __fastcall LoadDelphiFile(int version);
     void __fastcall LoadDelphiFile1(String FileName, int version, bool loadExp, bool loadImp);
-    void __fastcall ReadNode(TStream* stream, TTreeNode* node, char* buf);
+    void __fastcall ReadNode(FILE* fIn, TTreeNode* node, char* buf);
+    //void __fastcall ReadNode(TStream* stream, TTreeNode* node, char* buf);
     void __fastcall OpenProject(String FileName);
     bool __fastcall ImportsValid(DWORD ImpRVA, DWORD ImpSize);
     int __fastcall LoadImage(FILE* f, int version, bool loadExp, bool loadImp);
@@ -741,7 +742,7 @@ private:	// User declarations
     void __fastcall ShowCodeXrefs(DWORD Adr, int selIdx);
     void __fastcall ShowStringXrefs(DWORD Adr, int selIdx);
     void __fastcall ShowNameXrefs(DWORD Adr, int selIdx);
-    void __fastcall WriteNode(TStream* stream, TTreeNode* node);
+    void __fastcall WriteNode(FILE* f, TTreeNode* node);//void __fastcall WriteNode(TStream* stream, TTreeNode* node);
     void __fastcall SaveProject(String FileName);
     void __fastcall CloseProject();
     void __fastcall CleanProject();
