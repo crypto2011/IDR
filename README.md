@@ -18,7 +18,7 @@ this word) pleasant.
 IDR make static analysis (analyzed file is not loaded to memory and executed) that allows to safely investigate viruses, 
 trojans and other malware applications, those which executing is dangerous or is not desirable.
 
-The program does not require any installation activity and does not do any records in Windows registry.
+The program does not require any installation activity and does not create any records in Windows registry.
 
 Use Borland C++ Builder 6 to build this project.
 
