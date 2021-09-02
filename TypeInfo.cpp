@@ -830,7 +830,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
                             result += "1..?";
                     }
                     else
-                        result += "1.." + String(typeAdr);
+                        result += "1.." + Val2Str8(typeAdr);
                 }
                 if (i != dimCount - 1) result += ",";
             }
@@ -839,7 +839,7 @@ String __fastcall TFTypeInfo_11011981::GetRTTI(DWORD adr)
         break;
     case ikRecord:
         Size = *((DWORD*)(Code + pos)); pos += 4;
-        result = RTTIName + " = record//size=" + Val2Str0(Size);
+        result = RTTIName + " = record//size=0x" + Val2Str0(Size);
         elNum = *((DWORD*)(Code + pos)); pos += 4;  //FldCount
         if (elNum)
         {
@@ -1273,4 +1273,758 @@ void __fastcall TFTypeInfo_11011981::FormCreate(TObject *Sender)
     ScaleForm(this);
 }
 //---------------------------------------------------------------------------
+FIELD_INFO* __fastcall FindFieldInfoByOffset(TList* List, int Offset)
+{
+    for (int n = 0; n < List->Count; n++)
+    {
+        FIELD_INFO* fInfo = (FIELD_INFO*)List->Items[n];
+        if (fInfo->Offset == Offset)
+            return fInfo;
+    }
+    return 0;
+}
+//---------------------------------------------------------------------------
+String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, int action)
+{
+    bool        found;
+    BYTE        methodKind, paramCount, numOps, ordType, callConv, paramFlags, propFlags, flags, dimCount, len;
+    WORD        dw, propCount, methCnt;
+    DWORD       k, minValue, maxValue, minValueB, maxValueB;
+    int         i, j, m, n, vmtofs, pos, posn, spos, _ap, curOfs, typeKind, typeSize, fieldsNum, intfNum, size, prevOfs;
+    DWORD       elType;             //for tkDynArray
+    DWORD       typeAdr, classVMT, parentAdr, elNum, elOff, resultTypeAdr;
+    DWORD       propType, getProc, setProc, storedProc, methAdr, procSig;
+    BYTE        GUID[16];
+    String		typname, name, FldFileName, bfZeroes, result, proto, item;
+    FILE        *fldf;
+    PInfoRec    recN;
+    MTypeInfo   tInfo;
+    TList*      fieldsList;
+    TStringList*    intfList;
+    FIELD_INFO* FieldInfo;//For records
+    PFIELDINFO  fInfo;//for VMT
 
+    RTTIAdr = adr;
+    recN = GetInfoRec(adr);
+    if (!adr || !recN) return "";
+
+    if (recN->kind != ikVMT && recN->kind != ikUnknown)
+    {
+        _ap = Adr2Pos(RTTIAdr); pos = _ap;
+        pos += 4;
+        RTTIKind = Code[pos]; pos++;
+        len = Code[pos]; pos++;
+        RTTIName = String((char*)(Code + pos), len); pos += len;
+    }
+    else
+    {
+        RTTIKind = ikVMT;
+        RTTIName = recN->GetName();
+    }
+    RTTIName = SanitizeName(RTTIName);
+
+    result = "";
+    switch (RTTIKind)
+    {
+    case ikUnknown:
+        break;
+    case ikInteger:
+    case ikChar:
+    case ikWChar:
+        ordType = Code[pos]; pos++;
+        //Unsigned type
+        if ((ordType & 1) != 0)
+            result += "unsigned ";
+        ordType &= 0xFE;//Clean sign bit
+        if (ordType == 0)
+            result += "char";
+        else if (ordType == 2)
+            result += "short";
+        else if (ordType == 4)
+            result += "int";
+        break;
+    case ikEnumeration:
+        ordType = Code[pos]; pos++;
+        minValue = *((DWORD*)(Code + pos)); pos += 4;
+        maxValue = *((DWORD*)(Code + pos)); pos += 4;
+        //BaseTypeAdr
+        typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+        //If BaseTypeAdr != SelfAdr then fields extracted from BaseType
+        if (typeAdr != RTTIAdr)
+        {
+            pos = Adr2Pos(typeAdr);
+            pos += 4;   //SelfPointer
+            pos++;      //typeKind
+            len = Code[pos]; pos++;
+            pos += len; //BaseClassName
+            pos++;      //ordType
+            minValueB = *((DWORD*)(Code + pos)); pos += 4;
+            maxValueB = *((DWORD*)(Code + pos)); pos += 4;
+            pos += 4;   //BaseClassPtr
+        }
+        else
+        {
+            minValueB = minValue;
+            maxValueB = maxValue;
+        }
+
+        bfZeroes = "";
+        for (i = minValueB, k = 1; i <= maxValueB; i++)
+        {
+            len = Code[pos]; pos++;
+            if (i >= minValue && i <= maxValue)
+            {
+                name = String((char*)(Code + pos), len);
+                if (i != minValue) result += ",\n";
+                if (action == 1) result += "bf_";//Make bitfield info
+                result += name;
+                if (action == 1)
+                {
+                    if (k == 0)
+                    {
+                        bfZeroes += "00000000";
+                        k = 1;
+                    }
+                    if (k <= 0x80000000)
+                    {
+                        result += " = 0x" + Val2Str0(k) + bfZeroes;
+                        k <<= 1;
+                    }
+                }
+            }
+            pos += len;
+        }
+        *o_pSize = maxValueB - minValueB + 1;
+        break;
+    case ikString:
+        result = "String";
+        break;
+    case ikSet:
+        pos++;  //skip ordType
+        typeAdr = *((DWORD*)(Code + pos));
+        result = GetCppTypeInfo(typeAdr, o_pSize, 1);
+        break;
+    case ikMethod:
+        methodKind = Code[pos]; pos++;
+        switch (methodKind)
+        {
+        case MkProcedure:
+            result = "procedure";
+            break;
+        case MkFunction:
+            result = "function";
+            break;
+        case MkConstructor:
+            result = "constructor";
+            break;
+        case MkDestructor:
+            result = "destructor";
+            break;
+        case MkClassProcedure:
+            result = "class procedure";
+            break;
+        case MkClassFunction:
+            result = "class function";
+            break;
+        case 6:
+            if (DelphiVersion < 2009)
+                result = "safeprocedure";
+            else
+                result = "class constructor";
+            break;
+        case 7:
+            if (DelphiVersion < 2009)
+                result = "safefunction";
+            else
+                result = "operator overload";
+            break;
+        }
+
+        paramCount = Code[pos]; pos++;
+        if (paramCount > 0) proto = "(";
+
+        for (i = 0; i < paramCount; i++)
+        {
+            BYTE paramFlags = Code[pos]; pos++;
+            if (paramFlags & PfVar)
+                proto += "var ";
+            else if (paramFlags & PfConst)
+                proto += "const ";
+            else if (paramFlags & PfArray)
+                proto += "array ";
+            len = Code[pos]; pos++;
+            name = String((char*)(Code + pos), len); pos += len;
+            proto += name + ":";
+            len = Code[pos]; pos++;
+            name = String((char*)(Code + pos), len); pos += len;
+            proto += name;
+            if (i != paramCount - 1) proto += "; ";
+        }
+        if (paramCount > 0) proto += ")";
+
+        if (methodKind)
+        {
+            len = Code[pos]; pos++;
+            name = String((char*)(Code + pos), len); pos += len;
+            if (DelphiVersion > 6)
+            {
+                typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                name = GetTypeName(typeAdr);
+            }
+            proto += ":" + name;
+        }
+        if (DelphiVersion > 6)
+        {
+            //CC
+            callConv = Code[pos]; pos++;
+            //ParamTypeRefs
+            pos += 4*paramCount;
+            if (DelphiVersion >= 2010)
+            {
+                //MethSig
+                procSig = *((DWORD*)(Code + pos)); pos += 4;
+                //AttrData
+                dw = *((WORD*)(Code + pos));
+                pos += dw;//ATR!!
+                //Procedure Signature
+                if (procSig)
+                {
+                    if (IsValidImageAdr(procSig))
+                        posn = Adr2Pos(procSig);
+                    else
+                        posn = _ap + procSig;
+                    //Flags
+                    flags = Code[posn]; posn++;
+                    if (flags != 0xFF)
+                    {
+                        //CC
+                        callConv = Code[posn]; posn++;
+                        //ResultType
+                        resultTypeAdr = *((DWORD*)(Code + posn)); posn += 4;
+                        //ParamCount
+                        paramCount = Code[posn]; posn++;
+                        if (paramCount > 0) proto = "(";
+                        for (i = 0; i < paramCount; i++)
+                        {
+                            BYTE paramFlags = Code[posn]; posn++;
+                            if (paramFlags & PfVar)
+                                proto += "var ";
+                            else if (paramFlags & PfConst)
+                                proto += "const ";
+                            else if (paramFlags & PfArray)
+                                proto += "array ";
+                            typeAdr = *((DWORD*)(Code + posn)); posn += 4;
+                            len = Code[posn]; posn++;
+                            name = String((char*)(Code + posn), len); posn += len;
+                            proto += name + ":" + GetTypeName(typeAdr);
+                            if (i != paramCount - 1) proto += "; ";
+                            //AttrData
+                            dw = *((WORD*)(Code + posn));
+                            posn += dw;//ATR!!
+                        }
+                        if (paramCount > 0) proto += ")";
+                        if (resultTypeAdr) proto += ":" + GetTypeName(resultTypeAdr);
+                    }
+                }
+            }
+        }
+        result += proto + " of object;";
+        break;
+    case ikLString:
+        result = "String";
+        break;
+    case ikWString:
+        result = "WideString";
+        break;
+    case ikArray:
+        *o_pSize = *((DWORD*)(Code + pos)); pos += 4;
+        elNum = *((DWORD*)(Code + pos)); pos += 4;
+        resultTypeAdr = *((DWORD*)(Code + pos)); pos += 4;
+        result = GetTypeName(resultTypeAdr) + " %s";
+
+        if (DelphiVersion >= 2010)
+        {
+            //DimCount
+            dimCount = Code[pos]; pos++;
+            for (i = 0; i < dimCount; i++)
+            {
+                result += "[";
+                typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                if (IsValidImageAdr(typeAdr))
+                    result += GetTypeName(typeAdr);
+                else
+                {
+                    if (!typeAdr)
+                    {
+                        if (dimCount == 1)
+                            result += String(elNum);
+                        else
+                            result += "?";
+                    }
+                    else
+                        result += Val2Str8(typeAdr);
+                }
+                result += "];//size=0x" + Val2Str0(*o_pSize) + "\n\n";
+            }
+        }
+        break;
+    case ikRecord:
+        fieldsList = new TList;
+        *o_pSize = *((DWORD*)(Code + pos)); pos += 4;
+        elNum = *((DWORD*)(Code + pos)); pos += 4;  //FldCount
+        //First cycle - fill fieldsList
+        if (elNum)
+        {
+            curOfs = 0;
+            for (i = 0; i < elNum; i++)
+            {
+                FieldInfo = new FIELD_INFO;
+                typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                typname = GetTypeName(typeAdr);
+                elOff = *((DWORD*)(Code + pos)); pos += 4;
+                FieldInfo->Offset = elOff;
+                //Find type size
+                GetTypeKind(typname, &typeSize);
+                FieldInfo->Size = typeSize;
+                FieldInfo->Name = "";
+                FieldInfo->Type = typname;
+                fieldsList->Add((void*)FieldInfo);
+            }
+        }
+        if (DelphiVersion >= 2010)
+        {
+            //NumOps
+            numOps = Code[pos]; pos++;
+            for (i = 0; i < numOps; i++)    //RecOps
+            {
+                pos += 4;
+            }
+            elNum = *((DWORD*)(Code + pos)); pos += 4;  //RecFldCnt
+
+            if (elNum)
+            {
+                curOfs = 0;
+                for (i = 0; i < elNum; i++)
+                {
+                    //TypeRef
+                    typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                    typname = GetTypeName(typeAdr);
+                    //FldOffset
+                    elOff = *((DWORD*)(Code + pos)); pos += 4;
+                    GetTypeKind(typname, &typeSize);
+                    //Flags
+                    pos++;
+                    //Name
+                    len = Code[pos]; pos++;
+                    name = String((char*)(Code + pos), len); pos += len;
+                    //AttrData
+                    dw = *((WORD*)(Code + pos));
+                    pos += dw;//ATR!!
+                    FieldInfo = FindFieldInfoByOffset(fieldsList, elOff);
+                    //If field with elOff exists then add name
+                    if (FieldInfo)
+                    {
+                        if (FieldInfo->Name != "")
+                            FieldInfo->Name += "|" + name;
+                        else
+                            FieldInfo->Name = name;
+                    }
+                    //Else add new FieldInfo
+                    else
+                    {
+                        FieldInfo = new FIELD_INFO;
+                        FieldInfo->Offset = elOff;
+                        FieldInfo->Size = typeSize;
+                        FieldInfo->Name = name;
+                        FieldInfo->Type = typname;
+                        fieldsList->Add((void*)FieldInfo);
+                    }
+                }
+            }
+            //AttrData
+            dw = *((WORD*)(Code + pos));
+            pos += dw;//ATR!!
+            if (DelphiVersion >= 2012)
+            {
+                methCnt = *((WORD*)(Code + pos)); pos += 2;
+                if (methCnt > 0) result += "\n//Methods:";
+                for (m = 0; m < methCnt; m++)
+                {
+                    //Flags
+                    pos++;
+                    //Code
+                    methAdr = *((DWORD*)(Code + pos)); pos += 4;
+                    //Name
+                    len = Code[pos]; pos++;
+                    name = String((char*)(Code + pos), len); pos += len;
+                    result += "\n" + name;
+                    //ProcedureSignature
+                    //Flags
+                    flags = Code[pos]; pos++;
+                    if (flags != 0xFF)
+                    {
+                        //CC
+                        pos++;
+                        //ResultType
+                        resultTypeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                        //ParamCnt
+                        paramCount = Code[pos]; pos++;
+                        if (paramCount > 0) result += "(";
+                        //Params
+                        for (n = 0; n < paramCount; n++)
+                        {
+                            //Flags
+                            pos++;
+                            //ParamType
+                            typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                            //Name
+                            len = Code[pos]; pos++;
+                            name = String((char*)(Code + pos), len); pos += len;
+                            result += name + ":" + GetTypeName(typeAdr);
+                            if (n != paramCount - 1) result += ";";
+                            //AttrData
+                            dw = *((WORD*)(Code + pos));
+                            pos += dw;//ATR!!
+                        }
+                        if (paramCount > 0) result += ")";
+                        if (resultTypeAdr) result += ":" + GetTypeName(resultTypeAdr);
+                        result += ";//" + Val2Str8(methAdr);
+                    }
+                    //AttrData
+                    dw = *((WORD*)(Code + pos));
+                    pos += dw;//ATR!!
+                }
+            }
+        }
+        fieldsList->Sort(FieldInfoCmpFunction);
+        //Second cycle - process fieldsList
+        curOfs = 0;
+        for (i = 0; i < fieldsList->Count; i++)
+        {
+            FieldInfo = (FIELD_INFO*)fieldsList->Items[i];
+            elOff = FieldInfo->Offset;
+            //Skip big offsets (who knows about it's appearence, for example in TComponent)
+            if (elOff > *o_pSize)
+                break;
+            //Check long types like double, that has two referenced parts (or records and so on)
+            if (elOff < curOfs)
+                continue;
+
+            if (elOff > curOfs)
+            {
+                result += "BYTE gap" + Val2Str0(curOfs) + "[0x" + Val2Str0(elOff - curOfs) + "];\n";
+                curOfs = elOff;
+            }
+
+            if (FieldInfo->Type != "?" && FieldInfo->Type != "")
+            {
+                typeKind = GetTypeKind(FieldInfo->Type, &size);
+                if (typeKind == ikEnumeration || typeKind == ikSet) size = 1;
+                if (typeKind == ikMethod) size = 16;
+                if (typeKind == ikInterface) size = 4;
+                if (typeKind == ikRecord || typeKind == ikVMT)
+                    result += "struct ";
+                result += FieldInfo->Type;
+                if (typeKind == ikVMT)
+                    result += "*";
+            }
+            else
+            {
+                size = 1;
+                result += "BYTE";
+            }
+            result += " f" + Val2Str0(FieldInfo->Offset);
+            if (FieldInfo->Name != "")
+                result += "_" + FieldInfo->Name;
+            result += ";\n";
+
+            curOfs += size;
+        }
+        if (curOfs < *o_pSize)
+            result += "BYTE gap" + Val2Str0(curOfs) + "[0x" + Val2Str0(*o_pSize - curOfs) + "];\n";
+
+        fieldsList->Clear();
+        delete fieldsList;
+        break;
+    case ikInterface:
+        //IntfParent
+        pos += 4;
+        //IntfFlags
+        pos++;
+        //GUID
+        pos += 16;
+        //UnitName
+        len = Code[pos]; pos++;
+        pos += len;
+        //Methods
+        propCount = *((WORD*)(Code + pos)); pos += 2;
+        if (DelphiVersion >= 6)
+        {
+            //RttiCount
+            dw = *((WORD*)(Code + pos)); pos += 2;
+            if (dw != 0xFFFF)
+            {
+                if (DelphiVersion >= 2010)
+                {
+                    for (i = 0; i < propCount; i++)
+                    {
+                        //Name
+                        len = Code[pos]; pos++;
+                        result += "\n" + String((char*)(Code + pos), len); pos += len;
+                        //Kind
+                        methodKind = Code[pos]; pos++;
+                        //CallConv
+                        pos++;
+                        //ParamCount
+                        paramCount = Code[pos]; pos++;
+                        if (paramCount) result += "(";
+                        for (m = 0; m < paramCount; m++)
+                        {
+                            if (m) result += ";";
+                            //Flags
+                            pos++;
+                            //ParamName
+                            len = Code[pos]; pos++;
+                            result += String((char*)(Code + pos), len); pos += len;
+                            //TypeName
+                            len = Code[pos]; pos++;
+                            result += ":" + String((char*)(Code + pos), len); pos += len;
+                            //ParamType
+                            pos += 4;
+                        }
+                        if (paramCount) result += ")";
+                        if (methodKind)
+                        {
+                            result += ":";
+                            //ResultTypeName
+                            len = Code[pos]; pos++;
+                            result += String((char*)(Code + pos), len); pos += len;
+                            if (len)
+                            {
+                                //ResultType
+                                pos += 4;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    for (i = 0; i < propCount; i++)
+                    {
+                        //PropType
+                        pos += 4;
+                        //GetProc
+                        pos += 4;
+                        //SetProc
+                        pos += 4;
+                        //StoredProc
+                        pos += 4;
+                        //Index
+                        pos += 4;
+                        //Default
+                        pos += 4;
+                        //NameIndex
+                        pos += 2;
+                        //Name
+                        len = Code[pos]; pos++;
+                        result += "\n" + String((char*)(Code + pos), len); pos += len;
+                    }
+                }
+            }
+        }
+        break;
+    case ikInt64:
+        result = "__int64";
+        break;
+    case ikDynArray:
+        //elSize
+        pos += 4;
+        //elType
+        elType = *((DWORD*)(Code + pos)); pos += 4;
+        result = GetTypeName(elType);
+        //varType
+        pos += 4;
+        if (DelphiVersion >= 6)
+        {
+            //elType2
+            pos += 4;
+            //UnitName
+            len = Code[pos]; pos++;
+            pos += len;
+        }
+        if (DelphiVersion >= 2010)
+        {
+            //DynArrElType
+            elType = *((DWORD*)(Code + pos));
+            result = GetTypeName(elType);
+        }
+        break;
+    case ikUString:
+        result = "UString";
+        break;
+    case ikClassRef:    //0x13
+        typeAdr = *((DWORD*)(Code + pos));
+        if (typeAdr) result = GetTypeName(typeAdr);
+        break;
+    case ikPointer:     //0x14
+        typeAdr = *((DWORD*)(Code + pos));
+        if (typeAdr) result = GetTypeName(typeAdr);
+        break;
+    case ikProcedure:   //0x15
+        result = RTTIName;
+        //MethSig
+        procSig = *((DWORD*)(Code + pos)); pos += 4;
+        //AttrData
+        dw = *((WORD*)(Code + pos));
+        pos += dw;//ATR!!
+        //Procedure Signature
+        if (procSig)
+        {
+            if (IsValidImageAdr(procSig))
+                pos = Adr2Pos(procSig);
+            else
+                pos = _ap + procSig;
+            //Flags
+            flags = Code[pos]; pos++;
+            if (flags != 0xFF)
+            {
+                //CallConv
+                callConv = Code[pos]; pos++;
+                //ResultType
+                resultTypeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                if (resultTypeAdr)
+                    result = "function ";
+                else
+                    result = "procedure ";
+                result += RTTIName;
+
+                //ParamCount
+                paramCount = Code[pos]; pos++;
+
+                if (paramCount) result += "(";
+                for (i = 0; i < paramCount; i++)
+                {
+                    //Flags
+                    paramFlags = Code[pos]; pos++;
+                    if (paramFlags & 1) result += "var ";
+                    if (paramFlags & 2) result += "const ";
+                    //ParamType
+                    typeAdr = *((DWORD*)(Code + pos)); pos += 4;
+                    //Name
+                    len = Code[pos]; pos++;
+                    result += String((char*)(Code + pos), len) + ":";
+                    pos += len;
+                    result += GetTypeName(typeAdr);
+                    if (i != paramCount - 1) result += "; ";
+                    //AttrData
+                    dw = *((WORD*)(Code + pos));
+                    pos += dw;//ATR!!
+                }
+                if (paramCount) result += ")";
+
+                if (resultTypeAdr) result += ":" + GetTypeName(resultTypeAdr);
+                result += ";";
+                switch (callConv)
+                {
+                case 1:
+                    result += " cdecl;";
+                    break;
+                case 2:
+                    result += " pascal;";
+                    break;
+                case 3:
+                    result += " stdcall;";
+                    break;
+                case 4:
+                    result += " safecall;";
+                    break;
+                }
+            }
+        }
+        break;
+    case ikVMT:
+        fieldsList = new TList;
+        fieldsNum = FMain_11011981->LoadAllFields(adr, fieldsList);
+        //Add fields from Interface Table
+        intfList = new TStringList;
+        intfNum = FMain_11011981->LoadIntfTable(adr, intfList);
+        prevOfs = -1;
+        for (m = 0; m < intfNum; m++)
+        {
+            //item has format "ADDRESS OFFSET GUID"
+            item = intfList->Strings[m];
+            //pos points to OFFSET
+            item = item.SubString(item.Pos(' ') + 1, 4);
+            curOfs = StrToInt("$" + item);
+            //Check repeated fields
+            if (prevOfs == -1 || prevOfs != curOfs)
+            {
+                fInfo = new FIELDINFO;
+                fInfo->Name = "Interface_table";
+                fInfo->Offset = curOfs;
+                fInfo->Type = "IInterface";
+                fieldsList->Add((void*)fInfo);
+                prevOfs = curOfs;
+            }
+        }
+
+        fieldsList->Sort(FieldsCmpFunction);
+        //struct begins from pointer to vmt
+        result += "struct " + RTTIName + "_vmt* v;\n";
+        curOfs = 4;
+        for (m = 0; m < fieldsList->Count; m++)
+        {
+            fInfo = (PFIELDINFO)fieldsList->Items[m];
+            elOff = fInfo->Offset;
+            //Skip big offsets (who knows about it's appearence, for example in TComponent)
+            if (elOff > GetClassSize(adr))
+                break;
+
+            //Check long types like double, that has two referenced parts (or records and so on)
+            if (elOff < curOfs)
+                continue;
+
+            if (elOff > curOfs)
+            {
+                result += "BYTE gap" + Val2Str0(curOfs) + "[0x" + Val2Str0(elOff - curOfs) + "];\n";
+                curOfs = elOff;
+            }
+
+            if (fInfo->Type != "?" && fInfo->Type != "")
+            {
+                typeKind = GetTypeKind(fInfo->Type, &size);
+                //We don't know real size of enum or set, so better add gap than skip some fields
+                if (typeKind == ikEnumeration || typeKind == ikSet) size = 1;
+                if (typeKind == ikMethod) size = 16;
+                if (typeKind == ikInterface) size = 4;
+                if (typeKind == ikRecord || typeKind == ikVMT)
+                    result += "struct ";
+                result += fInfo->Type;
+                if (typeKind == ikVMT)
+                    result += "*";
+            }
+            else
+            {
+                size = 1;
+                result += "BYTE";
+            }
+            result += " f" + Val2Str0(fInfo->Offset);
+            if (fInfo->Name != "")
+                result += "_" + fInfo->Name;
+            result += ";\n";
+
+            curOfs += size;
+        }
+        size = GetClassSize(adr);
+        if (curOfs < size)
+            result += "BYTE gap" + Val2Str0(curOfs) + "[0x" + Val2Str0(size - curOfs) + "];\n";
+
+        fieldsList->Clear();
+        delete fieldsList;
+        intfList->Clear();
+        delete intfList;
+        break;
+    }
+    return result;
+}
+//---------------------------------------------------------------------------

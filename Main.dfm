@@ -54,9 +54,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 764
     Height = 647
-    ActivePage = tsCodeView
+    ActivePage = tsClassView
     Align = alClient
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 1
     OnChange = pcWorkAreaChange
     object tsCodeView: TTabSheet
@@ -470,9 +470,9 @@ object FMain_11011981: TFMain_11011981
     Top = 0
     Width = 250
     Height = 647
-    ActivePage = tsUnits
+    ActivePage = tsRTTIs
     Align = alLeft
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 0
     OnChange = pcInfoChange
     object tsUnits: TTabSheet
@@ -648,7 +648,7 @@ object FMain_11011981: TFMain_11011981
             Font.Height = -12
             Font.Name = 'Courier New'
             Font.Style = []
-            ItemHeight = 15
+            ItemHeight = 0
             ParentFont = False
             Sorted = True
             TabOrder = 0
@@ -919,6 +919,10 @@ object FMain_11011981: TFMain_11011981
       object miHex2Double: TMenuItem
         Caption = '&Hex->Double'
         OnClick = miHex2DoubleClick
+      end
+      object mCreateCHeaderFile: TMenuItem
+        Caption = 'Create C header file'
+        OnClick = mCreateCHeaderFileClick
       end
     end
     object miTabs: TMenuItem

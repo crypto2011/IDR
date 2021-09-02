@@ -515,6 +515,7 @@ __published:	// IDE-managed Components
     TMenuItem *mniShellIntegration1;
         TMenuItem *mniN3;
         TMenuItem *mniN4;
+    TMenuItem *mCreateCHeaderFile;
     void __fastcall miExitClick(TObject *Sender);
     void __fastcall miAutodetectVersionClick(TObject *Sender);
     void __fastcall FormCreate(TObject *Sender);
@@ -707,6 +708,10 @@ __published:	// IDE-managed Components
     void __fastcall miCopytoClipboardNamesClick(TObject *Sender);
     void __fastcall miHiewGeneratorClick(TObject *Sender);
     void __fastcall mniShellIntegration1Click(TObject *Sender);
+    void __fastcall mCreateCHeaderFileClick(TObject *Sender);
+    void __fastcall OutputForwardDeclarationsHeader(FILE* hF);
+    void __fastcall OutputForwardDeclarationsOfKind(FILE* hF, BYTE kind);    
+    void __fastcall CreateCppHeaderFile(FILE* hF);
         //void __fastcall mniMap1Click(TObject *Sender);
         //void __fastcall mniCopyAllToClipboardClick(TObject *Sender);
         //void __fastcall lstMapDblClick(TObject *Sender);
@@ -872,6 +877,7 @@ public:		// User declarations
     int __fastcall LoadIntfTable(DWORD adr, TStringList* dstList);
     int __fastcall LoadAutoTable(DWORD adr, TStringList* dstList);
     int __fastcall LoadFieldTable(DWORD adr, TList* dstList);
+    int __fastcall LoadAllFields(DWORD adr, TList* dstList);
     int __fastcall LoadMethodTable(DWORD adr, TList* dstList);
     int __fastcall LoadMethodTable(DWORD adr, TStringList* dstList);
     int __fastcall LoadDynamicTable(DWORD adr, TList* dstList);

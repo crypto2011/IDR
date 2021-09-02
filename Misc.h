@@ -12,7 +12,14 @@
 #define     FT_REAL         4
 #define     FT_COMP         5
 #define     FT_CURRENCY     6
-
+//---------------------------------------------------------------------------
+typedef struct
+{
+    int     Offset;
+    int     Size;
+    String  Name;
+    String  Type;
+} FIELD_INFO, *PFIELD_INFO;
 //Add by ZGL-----------------------------------------------------------------
 class TUnicodeClipboard : public TClipboard
 {
@@ -37,13 +44,11 @@ PInfoRec __fastcall AddToBSSInfos(DWORD Adr, String AName, String ATypeName);
 void __fastcall AddClassAdr(DWORD Adr, const String& AName);
 void __fastcall AddFieldXref(PFIELDINFO fInfo, DWORD ProcAdr, int ProcOfs, char type);
 void __fastcall AddPicode(int Pos, BYTE Op, String Name, int Ofs);
-int __fastcall ArgsCmpFunction(void *item1, void *item2);
 int __fastcall BranchGetPrevInstructionType(DWORD fromAdr, DWORD* jmpAdr, PLoopInfo loopInfo);
 bool __fastcall CanReplace(const String& fromName, const String& toName);
 void __fastcall ClearFlag(DWORD flag, int pos);
 void __fastcall ClearFlags(DWORD flag, int pos, int num);
 void __fastcall Copy2Clipboard(TStrings* items, int leftMargin, bool asmCode);
-int __fastcall ExportsCmpFunction(void *item1, void *item2);
 String __fastcall ExtractClassName(const String& AName);
 String __fastcall ExtractProcName(const String& AName);
 String __fastcall ExtractName(const String& AName);
@@ -97,12 +102,13 @@ DWORD __fastcall GetStopAt(DWORD vmtAdr);
 DWORD __fastcall GetOwnTypeAdr(String AName);
 PTypeRec __fastcall GetOwnTypeByName(String AName);
 String __fastcall GetTypeDeref(String ATypeName);
+BYTE __fastcall GetTypeKind(DWORD Adr);
 BYTE __fastcall GetTypeKind(String AName, int* size);
 int __fastcall GetRTTIRecordSize(DWORD adr);
 int __fastcall GetPackedTypeSize(String AName);
 String __fastcall GetTypeName(DWORD TypeAdr);
+String __fastcall GetTypeNameForVMT(DWORD TypeAdr);
 int __fastcall GetTypeSize(String AName);
-int __fastcall ImportsCmpFunction(void *item1, void *item2);
 bool __fastcall IsADC(int Idx);
 int __fastcall IsBoundErr(DWORD fromAdr);
 bool __fastcall IsConnected(DWORD fromAdr, DWORD toAdr);
@@ -125,7 +131,6 @@ bool __fastcall IsValidString(int len, int pos);
 bool __fastcall IsXorMayBeSkipped(DWORD fromAdr);
 void __fastcall MakeGvar(PInfoRec recN, DWORD adr, DWORD xrefAdr);
 String __fastcall MakeGvarName(DWORD adr);
-int __fastcall MethodsCmpFunction(void *item1, void *item2);
 void __fastcall OutputDecompilerHeader(FILE* f);
 bool __fastcall IsFlagSet(DWORD flag, int pos);
 void __fastcall SetFlag(DWORD flag, int pos);
@@ -133,11 +138,15 @@ void __fastcall SetFlags(DWORD flag, int pos, int num);
 int __fastcall SortUnitsByAdr(void *item1, void* item2);
 int __fastcall SortUnitsByNam(void *item1, void* item2);
 int __fastcall SortUnitsByOrd(void *item1, void* item2);
+bool __fastcall LineContainsShadowName(String line);
+int __fastcall GetAdrOfsFromShadowName(String name);
+String __fastcall SanitizeName(String name);
+String __fastcall TransformShadowName(String name, BYTE typeKind, DWORD typeAdr);
 String __fastcall TransformString(char* str, int len);
 String __fastcall TransformUString(WORD codePage, wchar_t* data, int len);
 String __fastcall TrimTypeName(const String& TypeName);
 String __fastcall TypeKind2Name(BYTE kind);
-String __fastcall UnmangleName(String Name);
+//String __fastcall UnmangleName(String Name);
 //Decompiler
 int __fastcall IsAbs(DWORD fromAdr);
 int _fastcall IsIntOver(DWORD fromAdr);
@@ -171,5 +180,13 @@ int __fastcall IsTryEndJump(DWORD fromAdr, DWORD* endAdr);
 PFIELDINFO __fastcall GetClassField(String TypeName, int Offset);
 int __fastcall GetRecordField(String ARecType, int AOfs, String& name, String& type);
 int __fastcall GetField(String TypeName, int Offset, String& name, String& type);
+
+int __fastcall ArgsCmpFunction(void *item1, void *item2);
+int __fastcall ExportsCmpFunction(void *item1, void *item2);
+int __fastcall FieldInfoCmpFunction(void* item1, void* item2);
+int __fastcall FieldsCmpFunction(void *item1, void *item2);
+int __fastcall ImportsCmpFunction(void *item1, void *item2);
+int __fastcall LocalsCmpFunction(void *item1, void *item2);
+int __fastcall MethodsCmpFunction(void *item1, void *item2);
 //---------------------------------------------------------------------------
 #endif

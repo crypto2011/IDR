@@ -21,25 +21,6 @@ extern  char        StringBuf[MAXSTRBUFFER];
 //as some statistics for memory leaks detection (remove it when fixed)
 long stat_InfosOverride = 0;
 //---------------------------------------------------------------------------
-int __fastcall FieldsCmpFunction(void *item1, void *item2)
-{
-    PFIELDINFO rec1 = (PFIELDINFO)item1;
-    PFIELDINFO rec2 = (PFIELDINFO)item2;
-    if (rec1->Offset > rec2->Offset) return 1;
-    if (rec1->Offset < rec2->Offset) return -1;
-    return 0;
-}
-//---------------------------------------------------------------------------
-int __fastcall LocalsCmpFunction(void *item1, void *item2)
-{
-    PLOCALINFO rec1 = (PLOCALINFO)item1;
-    PLOCALINFO rec2 = (PLOCALINFO)item2;
-
-    if (rec1->Ofs > rec2->Ofs) return 1;
-    if (rec1->Ofs < rec2->Ofs) return -1;
-    return 0;
-}
-//---------------------------------------------------------------------------
 __fastcall InfoVmtInfo::InfoVmtInfo()
 {
 	interfaces = 0;

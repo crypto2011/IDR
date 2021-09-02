@@ -3,7 +3,7 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="C:\PAPA\IDR\bin\Idr.exe"/>
+    <PROJECT value="C:\PAPA\IDR\Idr.exe"/>
     <OBJFILES value="obj\Idr.obj obj\Main.obj obj\TypeInfo.obj obj\StringInfo.obj 
       obj\Explorer.obj obj\KnowledgeBase.obj obj\Disasm.obj obj\Threads.obj 
       obj\InputDlg.obj obj\FindDlg.obj obj\Infos.obj obj\EditFunctionDlg.obj 
@@ -203,10 +203,13 @@ Item0=obj
 Item1=C:\Program Files\Borland\CBuilder6\Projects\IDR
 
 [HistoryLists\hlFinalOutputDir]
-Count=3
-Item0=C:\PAPA\IDR\bin
-Item1=G:\IDR\
-Item2=G:\IDR
+Count=6
+Item0=C:\PAPA\IDR\
+Item1=C:\PAPA\IDR
+Item2=C:\PAPA\IDR\bin\
+Item3=C:\PAPA\IDR\bin
+Item4=G:\IDR\
+Item5=G:\IDR
 
 [Debugging]
 DebugSourceDirs=$(BCB)\source\vcl

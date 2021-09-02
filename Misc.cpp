@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 #include <vcl.h>
 #pragma hdrstop
- 
+
 #include "Misc.h"
 #include <Imagehlp.h>
 #include "assert.h"
@@ -1395,30 +1395,29 @@ String __fastcall GetTypeName(DWORD adr)
     BYTE kind = *(Code + pos); pos++;
     BYTE len = *(Code + pos); pos++;
     String Result = String((char*)(Code + pos), len);
-    if (Result[1] == '.')
+    if (Result.Pos(":") > 0)
+        Result = TransformShadowName(Result, kind, adr);//SHADOW
+    return Result;
+}
+//---------------------------------------------------------------------------
+String __fastcall GetTypeNameForVMT(DWORD adr)
+{
+	if (!IsValidImageAdr(adr)) return "?";
+    if (IsFlagSet(cfImport, Adr2Pos(adr)))
     {
-        PUnitRec recU = FMain_11011981->GetUnit(adr);
-        if (recU)
-        {
-            String prefix;
-            switch (kind)
-            {
-            case ikEnumeration:
-                prefix = "_Enum_";
-                break;
-            case ikArray:
-                prefix = "_Arr_";
-                break;
-            case ikDynArray:
-                prefix = "_DynArr_";
-                break;
-            default:
-                prefix = FMain_11011981->GetUnitName(recU);
-                break;
-            }
-            Result = prefix + String((int)recU->iniOrder) + "_" + Result.SubString(2, len);
-        }
+        PInfoRec recN = GetInfoRec(adr);
+        return recN->GetName();
     }
+    
+    int pos = Adr2Pos(adr);
+    if (IsFlagSet(cfRTTI, pos))
+        pos += 4;
+    //TypeKind
+    BYTE kind = *(Code + pos); pos++;
+    BYTE len = *(Code + pos); pos++;
+    String Result = String((char*)(Code + pos), len);
+    if (Result.Pos(":") > 0)
+        Result = TransformShadowName(Result, kind, adr + 4);//SHADOW
     return Result;
 }
 //---------------------------------------------------------------------------
@@ -1582,10 +1581,18 @@ int __fastcall GetRTTIRecordSize(DWORD adr)
         return 0;
 }
 //---------------------------------------------------------------------------
+BYTE __fastcall GetTypeKind(DWORD Adr)
+{
+    int _ap = Adr2Pos(Adr);
+    int pos = _ap;
+    pos += 4;
+    return Code[pos];
+}
+//---------------------------------------------------------------------------
 BYTE __fastcall GetTypeKind(String AName, int* size)
 {
-    BYTE        res;
-    int         pos, idx = -1, kind;
+    BYTE        res, kind;
+    int         pos, idx = -1;
     WORD*       uses;
     MTypeInfo   tInfo;
     String      name, typeName, str, sz;
@@ -1605,35 +1612,47 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
         else
             name = AName;
 
+        if (SameText(name, "Byte"))
+        {
+            *size = 1;
+            return ikInteger;
+        }
+        if (SameText(name, "Word"))
+        {
+            *size = 2;
+            return ikInteger;
+        }
+
+        if (SameText(name, "Dword"))
+            return ikInteger;
+
         if (name[1] == '^' || SameText(name, "Pointer"))
             return ikPointer;
 
-        if (SameText(name, "Boolean") ||
-            SameText(name, "ByteBool") ||
-            SameText(name, "WordBool") ||
-            SameText(name, "LongBool"))
+        if (SameText(name, "ShortString"))
         {
-            return ikEnumeration;
+            *size = 256;
+            return ikString;
         }
-        if (SameText(name, "ShortInt") ||
-            SameText(name, "Byte")     ||
-            SameText(name, "SmallInt") ||
-            SameText(name, "Word")     ||
-            SameText(name, "Dword")    ||
-            SameText(name, "Integer")  ||
-            SameText(name, "LongInt")  ||
-            SameText(name, "LongWord") ||
-            SameText(name, "Cardinal"))
+        if (SameText(name, "String") || SameText(name, "AnsiString"))
+            return ikLString;
+
+        if (SameText(name, "WideString"))
+            return ikWString;
+
+        if (SameText(name, "UnicodeString") || SameText(name, "UString"))
+            return ikUString;
+
+        if (SameText(name, "PChar") || SameText(name, "PAnsiChar"))
+            return ikCString;
+
+        if (SameText(name, "PWideChar"))
+            return ikWCString;
+
+        if (SameText(name, "Variant"))
         {
-            return ikInteger;
-        }
-        if (SameText(name, "Char"))
-        {
-            return ikChar;
-        }
-        if (SameText(name, "Text") || SameText(name, "File"))
-        {
-            return ikRecord;
+            *size = 16;
+            return ikVariant;
         }
 
         if (SameText(name, "Int64"))
@@ -1645,53 +1664,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
         {
             return ikFloat;
         }
-        if (SameText(name, "Real48")   ||
-            SameText(name, "Real")     ||
-            SameText(name, "Double")   ||
-            SameText(name, "TDate")    ||
-            SameText(name, "TTime")    ||
-            SameText(name, "TDateTime")||
-            SameText(name, "Comp")     ||
-            SameText(name, "Currency"))
-        {
-            *size = 8;
-            return ikFloat;
-        }
-        if (SameText(name, "Extended"))
-        {
-            *size = 12;
-            return ikFloat;
-        }
-        if (SameText(name, "ShortString")) return ikString;
-        if (SameText(name, "String") || SameText(name, "AnsiString")) return ikLString;
-        if (SameText(name, "WideString")) return ikWString;
-        if (SameText(name, "UnicodeString") || SameText(name, "UString")) return ikUString;
-        if (SameText(name, "PChar") || SameText(name, "PAnsiChar")) return ikCString;
-        if (SameText(name, "PWideChar")) return ikWCString;
-        if (SameText(name, "Variant")) return ikVariant;
-        //if (SameText(name, "Pointer")) return ikPointer;
 
-        //File
-        String recFileName = FMain_11011981->WrkDir + "\\types.idr";
-        FILE* recFile = fopen(recFileName.c_str(), "rt");
-        if (recFile)
-        {
-            while (1)
-            {
-                if (!fgets(StringBuf, 1024, recFile)) break;
-                str = String(StringBuf);
-                if (str.Pos(AName + "=") == 1)
-                {
-                    if (str.Pos("=record"))
-                    {
-                        *size = StrGetRecordSize(str);
-                        fclose(recFile);
-                        return ikRecord;
-                    }
-                }
-            }
-            fclose(recFile);
-        }
         //RTTI
         PTypeRec recT = GetOwnTypeByName(name);
         if (recT)
@@ -1700,6 +1673,7 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
             if (!*size) *size = 4;
             return recT->kind;
         }
+
         //Scan KB
         uses = KnowledgeBase.GetTypeUses(name.c_str());
         idx = KnowledgeBase.GetTypeIdxByModuleIds(uses, name.c_str());
@@ -1711,9 +1685,13 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
             if (KnowledgeBase.GetTypeInfo(idx, INFO_DUMP, &tInfo))
             {
                 if (tInfo.Kind == 'Z')  //drAlias???
+                {
+                    *size = 1;
                     return ikUnknown;
+                }
                 if (tInfo.Decl != "" && tInfo.Decl[1] == '^')
                 {
+                    *size = 1;
                     return ikUnknown;
                     //res = GetTypeKind(tInfo.Decl.SubString(2, tInfo.Decl.Length()), size);
                     //if (res) return res;
@@ -1735,22 +1713,97 @@ BYTE __fastcall GetTypeKind(String AName, int* size)
                 case drInterfaceDef:
                     return ikInterface;
                 }
-                if (tInfo.Decl != "")
+                if (tInfo.Decl != "" && tInfo.Decl != AName)
                 {
                     res = GetTypeKind(tInfo.Decl, size);
-                    if (res) return res;
+                    if (res)
+                    {
+                        return res;
+                    }
                 }
             }
         }
+
+        if (SameText(name, "Boolean") ||
+            SameText(name, "ByteBool") ||
+            SameText(name, "WordBool") ||
+            SameText(name, "LongBool"))
+        {
+            return ikEnumeration;
+        }
+        if (SameText(name, "ShortInt") ||
+            SameText(name, "SmallInt") ||
+            SameText(name, "Integer")  ||
+            SameText(name, "LongInt")  ||
+            SameText(name, "LongWord") ||
+            SameText(name, "Cardinal"))
+        {
+            return ikInteger;
+        }
+        if (SameText(name, "Char"))
+        {
+            return ikChar;
+        }
+        if (SameText(name, "Text") || SameText(name, "File"))
+        {
+            return ikRecord;
+        }
+
+        if (SameText(name, "Real48")   ||
+            SameText(name, "Real")     ||
+            SameText(name, "Double")   ||
+            SameText(name, "TDate")    ||
+            SameText(name, "TTime")    ||
+            SameText(name, "TDateTime")||
+            SameText(name, "Comp")     ||
+            SameText(name, "Currency"))
+        {
+            *size = 8;
+            return ikFloat;
+        }
+        if (SameText(name, "Extended"))
+        {
+            *size = 12;
+            return ikFloat;
+        }
+        //if (SameText(name, "Pointer")) return ikPointer;
+
+        //File
+        /*
+        String recFileName = FMain_11011981->WrkDir + "\\types.idr";
+        FILE* recFile = fopen(recFileName.c_str(), "rt");
+        if (recFile)
+        {
+            while (1)
+            {
+                if (!fgets(StringBuf, 1024, recFile)) break;
+                str = String(StringBuf);
+                if (str.Pos(AName + "=") == 1)
+                {
+                    if (str.Pos("=record"))
+                    {
+                        *size = StrGetRecordSize(str);
+                        fclose(recFile);
+                        return ikRecord;
+                    }
+                }
+            }
+            fclose(recFile);
+        }
+        */
+        //KB
         //May be Interface name
         if (AName[1] == 'I')
         {
             AName[1] = 'T';
-            if (GetTypeKind(AName, size) == ikVMT) return ikInterface;
+            if (GetTypeKind(AName, size) == ikVMT)
+            {
+                return ikInterface;
+            }
         }
-        //Manual
     }
-    return 0;
+    *size = 1;
+    return ikUnknown;
 }
 //---------------------------------------------------------------------------
 int __fastcall GetPackedTypeSize(String AName)
@@ -2865,6 +2918,7 @@ bool __fastcall IsXorMayBeSkipped(DWORD fromAdr)
     return false;
 }
 //---------------------------------------------------------------------------
+/*
 String __fastcall UnmangleName(String Name)
 {
     int     pos;
@@ -2903,6 +2957,7 @@ String __fastcall UnmangleName(String Name)
         LeftPart[pos + 1] = '@';
     }
 }
+*/
 //---------------------------------------------------------------------------
 //Check construction (after cdq)
 //xor eax, edx
@@ -4448,5 +4503,107 @@ int __fastcall IsInt64Shl(DWORD fromAdr)
     return 0;
 }
 //---------------------------------------------------------------------------
+bool __fastcall LineContainsShadowName(String line)
+{
+    if (line.Pos("Enum_")       ||
+        line.Pos("Array_")      ||
+        line.Pos("DynArray_")   ||
+        line.Pos("Set_")        ||
+        line.Pos("Record_")     ||
+        line.Pos("Unknown_"))
+        return true;
+    return false;
+}
+//---------------------------------------------------------------------------
+int __fastcall GetAdrOfsFromShadowName(String name)
+{
+    int pos = name.Pos("Enum_");
+    if (pos)
+        return pos + 5;
+    pos = name.Pos("DynArray_");
+    if (pos)
+        return pos + 9;
+    pos = name.Pos("Array_");
+    if (pos)
+        return pos + 6;
+    pos = name.Pos("Set_");
+    if (pos)
+        return pos + 4;
+    pos = name.Pos("Record_");
+    if (pos)
+        return pos + 7;
+    pos = name.Pos("Unknown_");
+    if (pos)
+        return pos + 8;
+    return -1;
+}
+//---------------------------------------------------------------------------
+//Replace symbols like '<', '>', ',', '.' to 'L', 'R', 'C', 'D'
+String __fastcall SanitizeName(String name)
+{
+    int     pos;
+    
+    while (pos = name.Pos("<")) name[pos] = 'L';
+    while (pos = name.Pos(">")) name[pos] = 'R';
+    while (pos = name.Pos(",")) name[pos] = 'C';
+    while (pos = name.Pos(".")) name[pos] = 'D';
+    return name;
+}
+//---------------------------------------------------------------------------
+//Shadow name is name like ":1"
+String __fastcall TransformShadowName(String name, BYTE typeKind, DWORD typeAdr)
+{
+    String prefix;
+    switch (typeKind)
+    {
+    case ikEnumeration:
+        prefix = "Enum_";
+        break;
+    case ikArray:
+        prefix = "Array_";
+        break;
+    case ikDynArray:
+        prefix = "DynArray_";
+        break;
+    case ikSet:
+        prefix = "Set_";
+        break;
+    case ikRecord:
+        prefix = "Record_";
+        break;
+    default:
+        prefix = "Unknown_";
+        break;
+    }
+    return prefix + Val2Str8(typeAdr - 4);
+}
+//---------------------------------------------------------------------------
+int __fastcall FieldsCmpFunction(void *item1, void *item2)
+{
+    PFIELDINFO rec1 = (PFIELDINFO)item1;
+    PFIELDINFO rec2 = (PFIELDINFO)item2;
+    if (rec1->Offset > rec2->Offset) return 1;
+    if (rec1->Offset < rec2->Offset) return -1;
+    return 0;
+}
+//---------------------------------------------------------------------------
+int __fastcall LocalsCmpFunction(void *item1, void *item2)
+{
+    PLOCALINFO rec1 = (PLOCALINFO)item1;
+    PLOCALINFO rec2 = (PLOCALINFO)item2;
 
+    if (rec1->Ofs > rec2->Ofs) return 1;
+    if (rec1->Ofs < rec2->Ofs) return -1;
+    return 0;
+}
+//---------------------------------------------------------------------------
+int __fastcall FieldInfoCmpFunction(void* item1, void* item2)
+{
+    if (((FIELD_INFO*)item1)->Offset > ((FIELD_INFO*)item2)->Offset)
+        return 1;
+    if (((FIELD_INFO*)item1)->Offset < ((FIELD_INFO*)item2)->Offset)
+        return -1;
+    return 0;
+}
+//---------------------------------------------------------------------------
 

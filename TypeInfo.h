@@ -29,6 +29,7 @@ public:		// User declarations
 	__fastcall TFTypeInfo_11011981(TComponent* Owner);
     void __fastcall ShowKbInfo(MTypeInfo* tInfo);
     String __fastcall GetRTTI(DWORD adr);
+    String __fastcall GetCppTypeInfo(DWORD adr, int* size, int action);
     void __fastcall ShowRTTI(DWORD adr);
 };
 //---------------------------------------------------------------------------

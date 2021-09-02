@@ -390,29 +390,6 @@ void __fastcall TAnalyzeThread::FindRTTIs()
 
             String TypeName = GetTypeName(adr);
             UpdateStatusBar(TypeName);
-            /*
-            //Names that begins with '.'
-            if (TypeName[1] == '.')
-            {
-                String prefix;
-                switch (typeKind)
-                {
-                case ikEnumeration:
-                    prefix = "_Enumeration_";
-                    break;
-                case ikArray:
-                    prefix = "_Array_";
-                    break;
-                case ikDynArray:
-                    prefix = "_DynArray_";
-                    break;
-                default:
-                    prefix = form->GetUnitName(recU);
-                    break;
-                }
-                TypeName = prefix + Val2Str0(recU->iniOrder) + "_" + TypeName.SubString(2, len);
-            }
-            */
 
             n = i + 6 + len;
             SetFlag(cfRTTI, i);
@@ -985,7 +962,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             PTypeRec recT = new TypeRec;
             recT->kind = typeKind;
             recT->adr = typeAdr;
-            if (unitName != "") TypeName += " (" + unitName + ")";
+            //if (unitName != "") TypeName += " (" + unitName + ")";
             recT->name = TypeName;
             OwnTypeList->Add(recT);
         }

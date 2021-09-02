@@ -570,6 +570,7 @@ void __fastcall TResourceInfo::ReopenAllForms()
 //---------------------------------------------------------------------------
 void __fastcall TResourceInfo::InitAliases()
 {
+    //return;
     int cnt = Aliases->Count;
     for (int n = 0; n < cnt; n++)
     {
