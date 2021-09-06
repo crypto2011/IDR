@@ -1387,37 +1387,18 @@ String __fastcall GetTypeName(DWORD adr)
         PInfoRec recN = GetInfoRec(adr);
         return recN->GetName();
     }
-    
+
     int pos = Adr2Pos(adr);
     if (IsFlagSet(cfRTTI, pos))
         pos += 4;
+    else
+        adr -= 4;
     //TypeKind
     BYTE kind = *(Code + pos); pos++;
     BYTE len = *(Code + pos); pos++;
     String Result = String((char*)(Code + pos), len);
     if (Result.Pos(":") > 0)
         Result = TransformShadowName(Result, kind, adr);//SHADOW
-    return Result;
-}
-//---------------------------------------------------------------------------
-String __fastcall GetTypeNameForVMT(DWORD adr)
-{
-	if (!IsValidImageAdr(adr)) return "?";
-    if (IsFlagSet(cfImport, Adr2Pos(adr)))
-    {
-        PInfoRec recN = GetInfoRec(adr);
-        return recN->GetName();
-    }
-    
-    int pos = Adr2Pos(adr);
-    if (IsFlagSet(cfRTTI, pos))
-        pos += 4;
-    //TypeKind
-    BYTE kind = *(Code + pos); pos++;
-    BYTE len = *(Code + pos); pos++;
-    String Result = String((char*)(Code + pos), len);
-    if (Result.Pos(":") > 0)
-        Result = TransformShadowName(Result, kind, adr + 4);//SHADOW
     return Result;
 }
 //---------------------------------------------------------------------------
@@ -4575,7 +4556,7 @@ String __fastcall TransformShadowName(String name, BYTE typeKind, DWORD typeAdr)
         prefix = "Unknown_";
         break;
     }
-    return prefix + Val2Str8(typeAdr - 4);
+    return prefix + Val2Str8(typeAdr);// - 4
 }
 //---------------------------------------------------------------------------
 int __fastcall FieldsCmpFunction(void *item1, void *item2)

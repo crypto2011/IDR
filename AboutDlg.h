@@ -37,14 +37,10 @@ __published:
     TLabel *Label5;
     TLabel *Label6;
     TImage *Image1;
-    TBitBtn *bDonate;
     TLabel *Label7;
     TLabel *Label8;
     TLabel *lblHint;
 	void __fastcall FormCreate(TObject *Sender);
-	void __fastcall lEmailClick(TObject *Sender);
-	void __fastcall lWWWClick(TObject *Sender);
-    void __fastcall bDonateClick(TObject *Sender);
 private:
 public:
 	virtual __fastcall TFAboutDlg_11011981(TComponent* AOwner);

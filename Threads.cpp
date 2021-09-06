@@ -388,12 +388,12 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             BYTE len = Code[i + 5];
             if (!IsValidName(len, i + 6)) continue;
 
-            String TypeName = GetTypeName(adr);
-            UpdateStatusBar(TypeName);
-
             n = i + 6 + len;
             SetFlag(cfRTTI, i);
             unitName = "";
+
+            String TypeName = GetTypeName(adr);
+            UpdateStatusBar(TypeName);
 
             switch (typeKind)
             {

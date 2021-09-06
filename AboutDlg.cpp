@@ -20,19 +20,3 @@ void __fastcall TFAboutDlg_11011981::FormCreate(TObject *Sender)
     ScaleForm(this);
 }
 //---------------------------------------------------------------------------
-void __fastcall TFAboutDlg_11011981::lEmailClick(TObject *Sender)
-{
-	ShellExecute(Handle, "open", "mailto:crypto2011@gmail.com", 0, 0, 1);
-}
-//---------------------------------------------------------------------------
-void __fastcall TFAboutDlg_11011981::lWWWClick(TObject *Sender)
-{
-	ShellExecute(Handle, "open", "http://kpnc.org/idr32/en/", 0, 0, 1);
-}
-//---------------------------------------------------------------------------
-void __fastcall TFAboutDlg_11011981::bDonateClick(TObject *Sender)
-{
-	ShellExecute(Handle, "open", "http://kpnc.org/idr32/en/donation.htm", 0, 0, 1);
-}
-//---------------------------------------------------------------------------
-

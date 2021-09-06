@@ -1408,15 +1408,12 @@ String __fastcall InfoRec::MakePrototype(int adr, bool showKind, bool showTail, 
         for (n = 0; n < argsNum; n++)
         {
             argInfo = (PARGINFO)procInfo->args->Items[n];
-            //if (!callKind)
-            //{
-                if (argInfo->Ndx == 0)
-                    argres += "A";
-                else if (argInfo->Ndx == 1)
-                    argres += "D";
-                else if (argInfo->Ndx == 2)
-                    argres += "C";
-            //}
+            if (argInfo->Ndx == 0)
+                argres += "A";
+            else if (argInfo->Ndx == 1)
+                argres += "D";
+            else if (argInfo->Ndx == 2)
+                argres += "C";
         }
     }
     if (showTail)
@@ -1627,6 +1624,49 @@ String __fastcall InfoRec::MakeMultilinePrototype(int Adr, int* ArgsBytes, Strin
     }
     result += ";";
     *ArgsBytes = argsBytes;
+    return result;
+}
+//---------------------------------------------------------------------------
+String __fastcall InfoRec::MakeCppPrototype(int Adr)
+{
+    int         n, argsNum, typeKind, size;
+    PARGINFO    argInfo;
+    String      argType, result = "";
+
+    if (kind == ikFunc)
+    {
+        if (type != "")
+            result = TrimTypeName(type);
+        else
+            result = "DWORD";
+    }
+    else
+        result = "void";
+
+    result += " __fastcall (*)(";
+
+    argsNum = (procInfo->args) ? procInfo->args->Count : 0;
+    for (n = 0; n < argsNum; n++)
+    {
+        if (n) result += ", ";
+        argInfo = (PARGINFO)procInfo->args->Items[n];
+        argType = argInfo->TypeDef;
+        if (argType != "" && argType != "?")
+        {
+            typeKind = GetTypeKind(argType, &size);
+            if (typeKind == ikRecord || typeKind == ikVMT)
+                result += "struct ";
+            result += argType;
+            if (typeKind == ikVMT)
+                result += "*";
+        }
+        else
+        {
+            result += "DWORD";
+        }
+        if (argInfo->Tag == 0x22) result += "*";
+    }
+    result += ")";
     return result;
 }
 //---------------------------------------------------------------------------

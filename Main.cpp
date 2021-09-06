@@ -3870,7 +3870,7 @@ void __fastcall TFMain_11011981::ScanInitTable(DWORD Adr)
         if (typeName.Pos(":") > 0)
         {
             BYTE typeKind = GetTypeKind(typeAdr);
-            typeName = TransformShadowName(typeName, typeKind, typeAdr + 4);//SHADOW
+            typeName = TransformShadowName(typeName, typeKind, typeAdr);//SHADOW
         }
         int fieldOfs = *((int*)(Code + pos)); pos += 4;
         recN->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, "", typeName);
@@ -3940,7 +3940,7 @@ void __fastcall TFMain_11011981::ScanFieldTable(DWORD Adr)
             BYTE len = Code[pos]; pos++;
             String name = String((char*)(Code + pos), len); pos += len;
             WORD dw = *((WORD*)(Code + pos)); pos += dw;
-            recN->vmtInfo->AddField(0, 0, FIELD_PUBLISHED, offset, -1, name, GetTypeNameForVMT(typeRef));
+            recN->vmtInfo->AddField(0, 0, FIELD_PUBLISHED, offset, -1, name, GetTypeName(typeRef));
         }
     }
 }
@@ -13618,12 +13618,12 @@ bool __fastcall IsStandardForwardDeclaration(String name)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::OutputForwardDeclarationsHeader(FILE* hF)
 {
-    fprintf(hF, "This file was created by IDR.\n");
-    fprintf(hF, "It may require manually editing, because of arrays and order mismatching.\n");
-    fprintf(hF, "It is not so hard.\n");
-    fprintf(hF, "But You reach main goal - decompilation with IDA!\n\n");
-    fprintf(hF, "Symbol | points to places in records that belongs to union.\n");
-    fprintf(hF, "You can leave only one variant or try convert to union (question is why?).\n\n");
+    fprintf(hF, "//This file was created by IDR.\n");
+    fprintf(hF, "//It may require manually editing, because of arrays and order mismatching.\n");
+    fprintf(hF, "//It is not so hard.\n");
+    fprintf(hF, "//But You reach main goal - decompilation with IDA!\n\n");
+    fprintf(hF, "//Symbol | points to places in records that belongs to union.\n");
+    fprintf(hF, "//You can leave only one variant or try convert to union (question is why?).\n\n");
 
     OutputStandardForwardDeclarations(hF);
     fprintf(hF, "\n");
@@ -13646,7 +13646,7 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsHeader(FILE* hF)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE kind)
 {
-    int         n, size;
+    int         n, size, typeKind;
     DWORD       adr;
     PTypeRec    recT;
     String      str, RTTIName;
@@ -13659,7 +13659,7 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
             adr = recT->adr;
             RTTIName = recT->name;
             if (IsStandardForwardDeclaration(RTTIName))
-                break;
+                continue;
 
             RTTIName = SanitizeName(RTTIName);
             switch (kind)
@@ -13667,8 +13667,8 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
             case ikInteger:
             case ikChar:
             case ikWChar:
-                    str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                    fprintf(hF, "typedef %s %s;\n", str.c_str(), RTTIName.c_str());
+                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
+                fprintf(hF, "typedef %s %s;\n", str.c_str(), RTTIName.c_str());
                 break;
             case ikEnumeration:
                 //shadow name
@@ -13726,12 +13726,38 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
                 str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
                 fprintf(hF, "typedef %s *%s;\n", str.c_str(), RTTIName.c_str());
                 break;
+            case ikDynArray:
+                if (RTTIName.Pos(":") > 0)
+                    RTTIName = "DynArray_" + Val2Str8(adr);
+                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
+                typeKind = GetTypeKind(str, &size);
+                fprintf(hF, "typedef ");
+                if (typeKind == ikRecord || typeKind == ikVMT)
+                    fprintf(hF, "struct ");
+                fprintf(hF, "%s *", str.c_str());
+                if (typeKind == ikVMT)
+                    fprintf(hF, "*");
+                fprintf(hF, "%s;\n\n", RTTIName.c_str());
+                break;
+            case ikArray:
+                if (RTTIName.Pos(":") > 0)
+                    RTTIName = "Array_" + Val2Str8(adr);
+                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
+                fprintf(hF, str.c_str(), RTTIName.c_str());
+                break;
             case ikProcedure:
+                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
+                fprintf(hF, "typedef %s;\n", str.c_str());
+                break;
             case ikMethod:
-                fprintf(hF, "typedef void* %s;\n", RTTIName.c_str());
+                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
+                fprintf(hF, "struct %s\n", RTTIName.c_str());
+                fprintf(hF, "{\n");
+                fprintf(hF, "%s p;\n", str.c_str());
+                fprintf(hF, "DWORD m;\n");
+                fprintf(hF, "};\n\n");
                 break;
             case ikInterface:
-                //str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
                 fprintf(hF, "struct %s_vt\n", RTTIName.c_str());
                 fprintf(hF, "{\n");
                 fprintf(hF, "void* QueryInterface;\n");
@@ -13751,10 +13777,10 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
 void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
 {
     BYTE        len, RTTIKind;
-    int         n, m, adr, kind, pos, size, sort, virtNum;
+    int         n, m, id, adr, kind, pos, size, sort, virtNum;
     PUnitRec    recU;
     PInfoRec    recN;
-    String      unitName, RTTIName, str;
+    String      unitName, RTTIName, str, name;
     PFIELDINFO  fInfo;
     TList*      virtList;
     PMethodRec  recM;
@@ -13787,12 +13813,16 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
     OutputForwardDeclarationsOfKind(hF, ikClass);
     fprintf(hF, "//<Record>\n");
     OutputForwardDeclarationsOfKind(hF, ikRecord);
+    fprintf(hF, "//<Interface>\n");
+    OutputForwardDeclarationsOfKind(hF, ikInterface);
+    fprintf(hF, "//<DynArray>\n");
+    OutputForwardDeclarationsOfKind(hF, ikDynArray);
+    fprintf(hF, "//<Array>\n");
+    OutputForwardDeclarationsOfKind(hF, ikArray);
     fprintf(hF, "//<Procedure>\n");
     OutputForwardDeclarationsOfKind(hF, ikProcedure);
     fprintf(hF, "//<Method>\n");
     OutputForwardDeclarationsOfKind(hF, ikMethod);
-    fprintf(hF, "//<Interface>\n");
-    OutputForwardDeclarationsOfKind(hF, ikInterface);
     //Restore old sort style
     RTTISortField = sort;
     switch (RTTISortField)
@@ -13847,14 +13877,10 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 break;
             case ikSet:
                 break;
+            case ikProcedure:
             case ikMethod:
                 break;
             case ikArray:
-                //shadow name
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Array_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, str.c_str(), RTTIName.c_str());
                 break;
             case ikRecord:
                 //These names already present
@@ -13865,7 +13891,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 }
                 //shadow name
                 if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Record_" + Val2Str8(adr);
+                    RTTIName = "Record_" + Val2Str8(adr);//SHADOW + 4
                 str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
                 if (size > 10000) fprintf(hF, "//Big size!\n");
                 fprintf(hF, "struct %s//size=0x%s\n", RTTIName.c_str(), Val2Str0(size));
@@ -13878,17 +13904,6 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 fprintf(hF, "typedef %s %s;\n\n", str.c_str(), RTTIName.c_str());
                 break;
             case ikDynArray:
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "DynArray_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                kind = GetTypeKind(str, &size);
-                fprintf(hF, "typedef ");
-                if (kind == ikRecord || kind == ikVMT)
-                    fprintf(hF, "struct ");
-                fprintf(hF, "%s *", str.c_str());
-                if (kind == ikVMT)
-                    fprintf(hF, "*");
-                fprintf(hF, "%s;\n\n", RTTIName.c_str());
                 break;
             case ikPointer:
                 if (!SameText(RTTIName, "Pointer"))
@@ -13897,7 +13912,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                     kind = GetTypeKind(str, &size);
                     fprintf(hF, "typedef ");
                     if (kind == ikRecord || kind == ikVMT)
-                    fprintf(hF, "%s *%s;\n\n", str.c_str(), RTTIName.c_str());
+                        fprintf(hF, "%s *%s;\n\n", str.c_str(), RTTIName.c_str());
                 }
                 break;
             case ikClassRef:
@@ -13911,20 +13926,36 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 fprintf(hF, "struct %s_vmt\n", RTTIName.c_str());
                 fprintf(hF, "{\n");
 
-                for (m = 0; m < virtNum; m++)
+                for (m = 0, id = 0; m < virtNum; m++)
                 {
                     recM = (PMethodRec)virtList->Items[m];
-                    fprintf(hF, "void* ");
-                    if (recM->name != "")
-                        fprintf(hF, "%s", recM->name);
-                    else
-                        fprintf(hF, "sub_%08lX", recM->address);
-                    fprintf(hF, ";//%d\n", 4 * m);
+                    if (recM->id >= 0)
+                    {
+                        fprintf(hF, "/*%lX*/", id); id += 4;
+                        name = recM->name;
+                        recN = GetInfoRec(recM->address);
+                        if (recN)
+                        {
+                            if (name == "")
+                                name = recN->GetName();
+                            str = recN->MakeCppPrototype(recM->address);
+                            fprintf(hF, "%s sub_%08lX;", str.c_str(), recM->address);
+                            if (name != "")
+                                fprintf(hF, "//%s", name.c_str());
+                        }
+                        else
+                        {
+                            fprintf(hF, "DWORD __fastcall (*) sub_%08lX;", recM->address);
+                            if (name != "")
+                                fprintf(hF, "//%s", name.c_str());
+                        }
+                        fprintf(hF, "\n");
+                    }
                 }
-                
+
                 fprintf(hF, "};\n\n");
                 delete virtList;
-                
+
                 //Output fields
                 str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
                 fprintf(hF, "struct %s//size = 0x%lX\n", RTTIName.c_str(), GetClassSize(adr));

@@ -1295,7 +1295,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
     DWORD       typeAdr, classVMT, parentAdr, elNum, elOff, resultTypeAdr;
     DWORD       propType, getProc, setProc, storedProc, methAdr, procSig;
     BYTE        GUID[16];
-    String		typname, name, FldFileName, bfZeroes, result, proto, item;
+    String		typname, name, FldFileName, bfZeroes, result, item;
     FILE        *fldf;
     PInfoRec    recN;
     MTypeInfo   tInfo;
@@ -1405,62 +1405,29 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         result = GetCppTypeInfo(typeAdr, o_pSize, 1);
         break;
     case ikMethod:
+        result = "__fastcall (*)(";
         methodKind = Code[pos]; pos++;
-        switch (methodKind)
-        {
-        case MkProcedure:
-            result = "procedure";
-            break;
-        case MkFunction:
-            result = "function";
-            break;
-        case MkConstructor:
-            result = "constructor";
-            break;
-        case MkDestructor:
-            result = "destructor";
-            break;
-        case MkClassProcedure:
-            result = "class procedure";
-            break;
-        case MkClassFunction:
-            result = "class function";
-            break;
-        case 6:
-            if (DelphiVersion < 2009)
-                result = "safeprocedure";
-            else
-                result = "class constructor";
-            break;
-        case 7:
-            if (DelphiVersion < 2009)
-                result = "safefunction";
-            else
-                result = "operator overload";
-            break;
-        }
-
         paramCount = Code[pos]; pos++;
-        if (paramCount > 0) proto = "(";
 
         for (i = 0; i < paramCount; i++)
         {
+            if (i) result += ", ";
             BYTE paramFlags = Code[pos]; pos++;
+            len = Code[pos]; pos++;
+            name = String((char*)(Code + pos), len); pos += len;
+            len = Code[pos]; pos++;
+            typname = String((char*)(Code + pos), len); pos += len;
+            typeKind = GetTypeKind(typname, &size);
+            if (typeKind == ikVMT || typeKind == ikProcedure)
+                result += "struct ";
+            result += typname;
+            if (typeKind == ikVMT)
+                result += "*";
             if (paramFlags & PfVar)
-                proto += "var ";
-            else if (paramFlags & PfConst)
-                proto += "const ";
-            else if (paramFlags & PfArray)
-                proto += "array ";
-            len = Code[pos]; pos++;
-            name = String((char*)(Code + pos), len); pos += len;
-            proto += name + ":";
-            len = Code[pos]; pos++;
-            name = String((char*)(Code + pos), len); pos += len;
-            proto += name;
-            if (i != paramCount - 1) proto += "; ";
+                result += "*";
+            result += " " + name;
         }
-        if (paramCount > 0) proto += ")";
+        result += ")";
 
         if (methodKind)
         {
@@ -1471,7 +1438,11 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 typeAdr = *((DWORD*)(Code + pos)); pos += 4;
                 name = GetTypeName(typeAdr);
             }
-            proto += ":" + name;
+            typeKind = GetTypeKind(name, &size);
+            if (typeKind == ikVMT)
+                result = name + "* " + result;
+            else
+                result = name + " " + result;
         }
         if (DelphiVersion > 6)
         {
@@ -1503,32 +1474,42 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                         resultTypeAdr = *((DWORD*)(Code + posn)); posn += 4;
                         //ParamCount
                         paramCount = Code[posn]; posn++;
-                        if (paramCount > 0) proto = "(";
+                        result = "__fastcall (*)(";
                         for (i = 0; i < paramCount; i++)
                         {
+                            if (i) result += ", ";
                             BYTE paramFlags = Code[posn]; posn++;
-                            if (paramFlags & PfVar)
-                                proto += "var ";
-                            else if (paramFlags & PfConst)
-                                proto += "const ";
-                            else if (paramFlags & PfArray)
-                                proto += "array ";
                             typeAdr = *((DWORD*)(Code + posn)); posn += 4;
                             len = Code[posn]; posn++;
                             name = String((char*)(Code + posn), len); posn += len;
-                            proto += name + ":" + GetTypeName(typeAdr);
-                            if (i != paramCount - 1) proto += "; ";
+                            typname = GetTypeName(typeAdr);
+                            typeKind = GetTypeKind(typname, &size);
+                            if (typeKind == ikVMT || typeKind == ikProcedure)
+                                result += "struct ";
+                            result += typname;
+                            if (typeKind == ikVMT)
+                                result += "*";
+                            if (paramFlags & PfVar)
+                                result += "*";
+                            result += " " + name;
                             //AttrData
                             dw = *((WORD*)(Code + posn));
                             posn += dw;//ATR!!
                         }
-                        if (paramCount > 0) proto += ")";
-                        if (resultTypeAdr) proto += ":" + GetTypeName(resultTypeAdr);
+                        result += ")";
+                        if (resultTypeAdr)
+                        {
+                            typname = GetTypeName(resultTypeAdr);
+                            typeKind = GetTypeKind(typname, &size);
+                            if (typeKind == ikVMT)
+                                result = typname + "* " + result;
+                            else
+                                result = typname + " " + result;
+                        }
                     }
                 }
             }
         }
-        result += proto + " of object;";
         break;
     case ikLString:
         result = "String";
@@ -1551,22 +1532,29 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 result += "[";
                 typeAdr = *((DWORD*)(Code + pos)); pos += 4;
                 if (IsValidImageAdr(typeAdr))
-                    result += GetTypeName(typeAdr);
+                {
+                    typname = GetTypeName(typeAdr);
+                    if (SameText(typname, "Boolean"))
+                        result += "0x2";
+                    else
+                        result += typname;
+                }
                 else
                 {
                     if (!typeAdr)
                     {
                         if (dimCount == 1)
-                            result += String(elNum);
+                            result += "0x" + Val2Str0(elNum);
                         else
                             result += "?";
                     }
                     else
                         result += Val2Str8(typeAdr);
                 }
-                result += "];//size=0x" + Val2Str0(*o_pSize) + "\n\n";
+                result += "]";
             }
         }
+        result += ";//size=0x" + Val2Str0(*o_pSize) + "\n\n";
         break;
     case ikRecord:
         fieldsList = new TList;
@@ -1719,8 +1707,9 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
             if (FieldInfo->Type != "?" && FieldInfo->Type != "")
             {
                 typeKind = GetTypeKind(FieldInfo->Type, &size);
-                if (typeKind == ikEnumeration || typeKind == ikSet) size = 1;
-                if (typeKind == ikMethod) size = 16;
+                if (typeKind == ikEnumeration) size = 1;
+                //if (typeKind == ikSet) size = 1;
+                if (typeKind == ikMethod) size = 8;
                 if (typeKind == ikInterface) size = 4;
                 if (typeKind == ikRecord || typeKind == ikVMT)
                     result += "struct ";
@@ -1871,7 +1860,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         if (typeAdr) result = GetTypeName(typeAdr);
         break;
     case ikProcedure:   //0x15
-        result = RTTIName;
+        result = "__fastcall (*" + RTTIName + ")";
         //MethSig
         procSig = *((DWORD*)(Code + pos)); pos += 4;
         //AttrData
@@ -1892,53 +1881,35 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 callConv = Code[pos]; pos++;
                 //ResultType
                 resultTypeAdr = *((DWORD*)(Code + pos)); pos += 4;
-                if (resultTypeAdr)
-                    result = "function ";
-                else
-                    result = "procedure ";
-                result += RTTIName;
-
+                result += "(";
                 //ParamCount
                 paramCount = Code[pos]; pos++;
-
-                if (paramCount) result += "(";
                 for (i = 0; i < paramCount; i++)
                 {
+                    if (i) result += " ,";
                     //Flags
                     paramFlags = Code[pos]; pos++;
-                    if (paramFlags & 1) result += "var ";
-                    if (paramFlags & 2) result += "const ";
                     //ParamType
                     typeAdr = *((DWORD*)(Code + pos)); pos += 4;
                     //Name
                     len = Code[pos]; pos++;
-                    result += String((char*)(Code + pos), len) + ":";
-                    pos += len;
-                    result += GetTypeName(typeAdr);
-                    if (i != paramCount - 1) result += "; ";
+                    name = String((char*)(Code + pos), len); pos += len;
+                    typname = GetTypeName(typeAdr);
+                    typeKind = GetTypeKind(typname, &size);
+                    if (typeKind == ikRecord || typeKind == ikVMT)
+                        result += "struct ";
+                    result += typname;
+                    if (typeKind == ikVMT)
+                        result += "*";
+                    if (paramFlags & 1) result += "*";
+                    result += " " + name;
                     //AttrData
                     dw = *((WORD*)(Code + pos));
                     pos += dw;//ATR!!
                 }
-                if (paramCount) result += ")";
+                result += ")";
 
-                if (resultTypeAdr) result += ":" + GetTypeName(resultTypeAdr);
-                result += ";";
-                switch (callConv)
-                {
-                case 1:
-                    result += " cdecl;";
-                    break;
-                case 2:
-                    result += " pascal;";
-                    break;
-                case 3:
-                    result += " stdcall;";
-                    break;
-                case 4:
-                    result += " safecall;";
-                    break;
-                }
+                if (resultTypeAdr) result = GetTypeName(resultTypeAdr) + " " + result;
             }
         }
         break;
@@ -1993,9 +1964,8 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
             if (fInfo->Type != "?" && fInfo->Type != "")
             {
                 typeKind = GetTypeKind(fInfo->Type, &size);
-                //We don't know real size of enum or set, so better add gap than skip some fields
-                if (typeKind == ikEnumeration || typeKind == ikSet) size = 1;
-                if (typeKind == ikMethod) size = 16;
+                if (typeKind == ikEnumeration) size = 1;
+                if (typeKind == ikMethod) size = 8;
                 if (typeKind == ikInterface) size = 4;
                 if (typeKind == ikRecord || typeKind == ikVMT)
                     result += "struct ";

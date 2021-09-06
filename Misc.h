@@ -107,7 +107,6 @@ BYTE __fastcall GetTypeKind(String AName, int* size);
 int __fastcall GetRTTIRecordSize(DWORD adr);
 int __fastcall GetPackedTypeSize(String AName);
 String __fastcall GetTypeName(DWORD TypeAdr);
-String __fastcall GetTypeNameForVMT(DWORD TypeAdr);
 int __fastcall GetTypeSize(String AName);
 bool __fastcall IsADC(int Idx);
 int __fastcall IsBoundErr(DWORD fromAdr);

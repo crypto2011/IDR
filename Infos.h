@@ -144,6 +144,7 @@ public:
     String __fastcall MakeMultilinePrototype(int Adr, int* ArgsBytes, String MethodType);
     String __fastcall MakeMapName(int Adr);
     bool __fastcall MakeArgsManually();
+    String __fastcall MakeCppPrototype(int Adr);
 };
 
 typedef InfoRec *PInfoRec;
