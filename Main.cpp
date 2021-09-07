@@ -13821,6 +13821,8 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
     OutputForwardDeclarationsOfKind(hF, ikArray);
     fprintf(hF, "//<Procedure>\n");
     OutputForwardDeclarationsOfKind(hF, ikProcedure);
+    fprintf(hF, "//<Pointer>\n");
+    OutputForwardDeclarationsOfKind(hF, ikPointer);
     fprintf(hF, "//<Method>\n");
     OutputForwardDeclarationsOfKind(hF, ikMethod);
     //Restore old sort style
@@ -13906,14 +13908,6 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
             case ikDynArray:
                 break;
             case ikPointer:
-                if (!SameText(RTTIName, "Pointer"))
-                {
-                    str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                    kind = GetTypeKind(str, &size);
-                    fprintf(hF, "typedef ");
-                    if (kind == ikRecord || kind == ikVMT)
-                        fprintf(hF, "%s *%s;\n\n", str.c_str(), RTTIName.c_str());
-                }
                 break;
             case ikClassRef:
                 str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
