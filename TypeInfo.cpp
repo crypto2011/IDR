@@ -1405,7 +1405,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         result = GetCppTypeInfo(typeAdr, o_pSize, 1);
         break;
     case ikMethod:
-        result = "__fastcall (*)(";
+        result = "void __fastcall (*P" + RTTIName + ")(";
         methodKind = Code[pos]; pos++;
         paramCount = Code[pos]; pos++;
 
@@ -1474,7 +1474,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                         resultTypeAdr = *((DWORD*)(Code + posn)); posn += 4;
                         //ParamCount
                         paramCount = Code[posn]; posn++;
-                        result = "__fastcall (*)(";
+                        result = "void __fastcall (*P" + RTTIName + ")(";
                         for (i = 0; i < paramCount; i++)
                         {
                             if (i) result += ", ";
@@ -1909,7 +1909,10 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 }
                 result += ")";
 
-                if (resultTypeAdr) result = GetTypeName(resultTypeAdr) + " " + result;
+                if (resultTypeAdr)
+                    result = GetTypeName(resultTypeAdr) + " " + result;
+                else
+                    result = "void " + result;
             }
         }
         break;

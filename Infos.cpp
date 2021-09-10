@@ -1627,7 +1627,7 @@ String __fastcall InfoRec::MakeMultilinePrototype(int Adr, int* ArgsBytes, Strin
     return result;
 }
 //---------------------------------------------------------------------------
-String __fastcall InfoRec::MakeCppPrototype(int Adr)
+String __fastcall InfoRec::MakeCppPrototype(int Adr, String FType)
 {
     int         n, argsNum, typeKind, size;
     PARGINFO    argInfo;
@@ -1643,7 +1643,10 @@ String __fastcall InfoRec::MakeCppPrototype(int Adr)
     else
         result = "void";
 
-    result += " __fastcall (*)(";
+    result += " __fastcall (*";
+    if (FType != "")
+        result += "P" + FType;
+    result += ")(";
 
     argsNum = (procInfo->args) ? procInfo->args->Count : 0;
     for (n = 0; n < argsNum; n++)
