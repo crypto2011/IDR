@@ -13575,6 +13575,7 @@ CPPvsDELPHIdecl ForwardDeclarations[] = {
     {"wchar_t*", "string"},
     {"wchar_t*", "WideString"},
     {"wchar_t*", "UString"},
+    {"wchar_t*", "UnicodeString"},
     {"wchar_t", "Char"},
     {"wchar_t", "WideChar"},
     {"void*", "Pointer"},
@@ -13720,6 +13721,7 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
                 break;
             case ikRecord:
             case ikClass:
+            case ikMethod:
                 fprintf(hF, "struct %s;\n", RTTIName.c_str());
                 break;
             case ikPointer:
@@ -13729,8 +13731,6 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
             case ikArray:
                 break;
             case ikProcedure:
-                break;
-            case ikMethod:
                 break;
             case ikInterface:
                 fprintf(hF, "struct %s_vt\n", RTTIName.c_str());
@@ -13749,16 +13749,41 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
     }
 }
 //---------------------------------------------------------------------------
+typedef struct _VMT_PROC
+{
+    DWORD   Adr;
+    int     CurIdx;
+    BYTE    Multiple;
+} VMT_PROC, *PVMT_PROC;
+//---------------------------------------------------------------------------
+PVMT_PROC __fastcall GetProcFromVmtList(TList* list, DWORD procAdr)
+{
+    PVMT_PROC   Result = 0;
+
+    for (int n = 0; n < list->Count; n++)
+    {
+        PVMT_PROC vmtProc = (PVMT_PROC)list->Items[n];
+        if (vmtProc->Adr == procAdr)
+        {
+            Result = vmtProc;
+            break;
+        }
+    }
+    return Result;
+}
+//---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
 {
     BYTE        len, RTTIKind;
-    int         n, m, id, adr, kind, pos, size, sort, virtNum;
+    int         n, m, id, adr, kind, pos, size, sort, virtNum, idx;
     PUnitRec    recU;
     PInfoRec    recN;
     String      unitName, RTTIName, str, name;
     PFIELDINFO  fInfo;
     TList*      virtList;
+    TList*      vmtProcs;
     PMethodRec  recM;
+    PVMT_PROC   vmtProc;
 
     //Save sort style
     sort = RTTISortField;
@@ -13788,6 +13813,8 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
     OutputForwardDeclarationsOfKind(hF, ikClass);
     fprintf(hF, "//<Record>\n");
     OutputForwardDeclarationsOfKind(hF, ikRecord);
+    fprintf(hF, "//<Method>\n");
+    OutputForwardDeclarationsOfKind(hF, ikMethod);
     fprintf(hF, "//<Interface>\n");
     OutputForwardDeclarationsOfKind(hF, ikInterface);
     //Restore old sort style
@@ -13913,6 +13940,28 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 //Output virtual functions
                 virtList = new TList;
                 virtNum = LoadVirtualTable(adr, virtList);
+                //Fill VMT_PROCS list
+                vmtProcs = new TList;
+                for (m = 0, id = 0; m < virtNum; m++)
+                {
+                    recM = (PMethodRec)virtList->Items[m];
+                    if (recM->id >= 0)
+                    {
+                        vmtProc = GetProcFromVmtList(vmtProcs, recM->address);
+                        if (!vmtProc)
+                        {
+                            vmtProc = new VMT_PROC;
+                            vmtProc->Adr = recM->address;
+                            vmtProc->CurIdx = 0;
+                            vmtProc->Multiple = 0;
+                            vmtProcs->Add((void*)vmtProc);
+                        }
+                        else
+                        {
+                            vmtProc->Multiple = 1;
+                        }
+                    }
+                }
                 //Output function prorotype declarations
                 for (m = 0, id = 0; m < virtNum; m++)
                 {
@@ -13943,17 +13992,30 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                     {
                         name = recM->name;
                         recN = GetInfoRec(recM->address);
+                        vmtProc = GetProcFromVmtList(vmtProcs, recM->address);
+                        idx = -1;
+                        if (vmtProc && vmtProc->Multiple)
+                        {
+                            idx = vmtProc->CurIdx;
+                            vmtProc->CurIdx++;
+                        }
                         if (recN)
                         {
                             if (name == "")
                                 name = recN->GetName();
-                            fprintf(hF, "P%s_m%lX sub_%08lX;", RTTIName.c_str(), id, recM->address);
+                            fprintf(hF, "P%s_m%lX %s_sub_%08lX", RTTIName.c_str(), id, RTTIName.c_str(), recM->address);
+                            if (idx >= 0)
+                                fprintf(hF, "_%d", idx);
+                            fprintf(hF, ";");
                             if (name != "")
                                 fprintf(hF, "//%s", name.c_str());
                         }
                         else
                         {
-                            fprintf(hF, "P%s_m%lX sub_%08lX;", RTTIName.c_str(), id, recM->address);
+                            fprintf(hF, "P%s_m%lX %s_sub_%08lX", RTTIName.c_str(), id, RTTIName.c_str(), recM->address);
+                            if (idx >= 0)
+                                fprintf(hF, "_%d", idx);
+                            fprintf(hF, ";");
                             if (name != "")
                                 fprintf(hF, "//%s", name.c_str());
                         }
@@ -13962,6 +14024,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                     }
                 }
                 fprintf(hF, "};\n\n");
+                delete vmtProcs;
                 delete virtList;
 
                 //Output fields

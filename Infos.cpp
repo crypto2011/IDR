@@ -1636,7 +1636,12 @@ String __fastcall InfoRec::MakeCppPrototype(int Adr, String FType)
     if (kind == ikFunc)
     {
         if (type != "")
-            result = TrimTypeName(type);
+        {
+            result = SanitizeName(TrimTypeName(type));
+            typeKind = GetTypeKind(result, &size);
+            if (typeKind == ikRecord || typeKind == ikVMT)
+                result = "struct " + result + "*";
+        }
         else
             result = "DWORD";
     }
@@ -1659,7 +1664,7 @@ String __fastcall InfoRec::MakeCppPrototype(int Adr, String FType)
             typeKind = GetTypeKind(argType, &size);
             if (typeKind == ikRecord || typeKind == ikVMT)
                 result += "struct ";
-            result += argType;
+            result += SanitizeName(argType);
             if (typeKind == ikVMT)
                 result += "*";
         }

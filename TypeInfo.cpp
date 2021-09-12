@@ -1420,7 +1420,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
             typeKind = GetTypeKind(typname, &size);
             if (typeKind == ikVMT || typeKind == ikProcedure)
                 result += "struct ";
-            result += typname;
+            result += SanitizeName(typname);
             if (typeKind == ikVMT)
                 result += "*";
             if (paramFlags & PfVar)
@@ -1440,9 +1440,9 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
             }
             typeKind = GetTypeKind(name, &size);
             if (typeKind == ikVMT)
-                result = name + "* " + result;
+                result = SanitizeName(name) + "* " + result;
             else
-                result = name + " " + result;
+                result = SanitizeName(name) + " " + result;
         }
         if (DelphiVersion > 6)
         {
@@ -1486,7 +1486,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                             typeKind = GetTypeKind(typname, &size);
                             if (typeKind == ikVMT || typeKind == ikProcedure)
                                 result += "struct ";
-                            result += typname;
+                            result += SanitizeName(typname);
                             if (typeKind == ikVMT)
                                 result += "*";
                             if (paramFlags & PfVar)
@@ -1502,9 +1502,9 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                             typname = GetTypeName(resultTypeAdr);
                             typeKind = GetTypeKind(typname, &size);
                             if (typeKind == ikVMT)
-                                result = typname + "* " + result;
+                                result = SanitizeName(typname) + "* " + result;
                             else
-                                result = typname + " " + result;
+                                result = SanitizeName(typname) + " " + result;
                         }
                     }
                 }
@@ -1713,7 +1713,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 if (typeKind == ikInterface) size = 4;
                 if (typeKind == ikRecord || typeKind == ikVMT)
                     result += "struct ";
-                result += FieldInfo->Type;
+                result += SanitizeName(FieldInfo->Type);
                 if (typeKind == ikVMT)
                     result += "*";
             }
@@ -1830,7 +1830,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         pos += 4;
         //elType
         elType = *((DWORD*)(Code + pos)); pos += 4;
-        result = GetTypeName(elType);
+        result = SanitizeName(GetTypeName(elType));
         //varType
         pos += 4;
         if (DelphiVersion >= 6)
@@ -1845,7 +1845,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         {
             //DynArrElType
             elType = *((DWORD*)(Code + pos));
-            result = GetTypeName(elType);
+            result = SanitizeName(GetTypeName(elType));
         }
         break;
     case ikUString:
@@ -1898,7 +1898,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                     typeKind = GetTypeKind(typname, &size);
                     if (typeKind == ikRecord || typeKind == ikVMT)
                         result += "struct ";
-                    result += typname;
+                    result += SanitizeName(typname);
                     if (typeKind == ikVMT)
                         result += "*";
                     if (paramFlags & 1) result += "*";
@@ -1910,7 +1910,14 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 result += ")";
 
                 if (resultTypeAdr)
-                    result = GetTypeName(resultTypeAdr) + " " + result;
+                {
+                    typname = GetTypeName(resultTypeAdr);
+                    typeKind = GetTypeKind(typname, &size);
+                    if (typeKind == ikRecord || typeKind == ikVMT)
+                        result = "struct " + SanitizeName(typname) + "* " + result;
+                    else
+                        result = SanitizeName(typname) + " " + result;
+                }
                 else
                     result = "void " + result;
             }
@@ -1972,7 +1979,7 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
                 if (typeKind == ikInterface) size = 4;
                 if (typeKind == ikRecord || typeKind == ikVMT)
                     result += "struct ";
-                result += fInfo->Type;
+                result += SanitizeName(fInfo->Type);
                 if (typeKind == ikVMT)
                     result += "*";
             }
