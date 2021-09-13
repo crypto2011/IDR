@@ -13721,8 +13721,14 @@ void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE 
                 break;
             case ikRecord:
             case ikClass:
-            case ikMethod:
                 fprintf(hF, "struct %s;\n", RTTIName.c_str());
+                break;
+            case ikMethod:
+                fprintf(hF, "struct %s\n", RTTIName.c_str());
+                fprintf(hF, "{\n");
+                fprintf(hF, "void* p;\n");
+                fprintf(hF, "DWORD m;\n");
+                fprintf(hF, "};\n\n");
                 break;
             case ikPointer:
                 break;
