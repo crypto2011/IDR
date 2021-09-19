@@ -27,7 +27,7 @@ to IDR home directory. Message "Cannot Initialize Disasm" means that file dis.dl
 
 !!!
 Knowledge bases for various Delphi versions can be found at:
-https://www.dropbox.com/sh/9ran313nidqtagb/AADl_m_9GVYSiXUviZtDQWQHa?dl=0
+https://drive.google.com/drive/folders/1IBsO1_O9xGHkPPV9Pnqkq2uoFmuak5C7?usp=sharing
 
 TntControls can be found at https://github.com/rofl0r/TntUnicode
 
