@@ -7107,7 +7107,8 @@ int __fastcall TFMain_11011981::LoadVirtualTable(DWORD adr, TList* dstList)
             PMethodRec recM = (PMethodRec)recN->vmtInfo->methods->Items[n];
             if (recM->kind == 'V')
             {
-                if (recM->name.Pos(".") == 0 || recM->name.Pos(className) == 1) dstList->Add((void*)recM);
+                //if (recM->name.Pos(".") == 0 || recM->name.Pos(className) == 1) dstList->Add((void*)recM);
+                dstList->Add((void*)recM);
             }
         }
     }
@@ -13989,6 +13990,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                         id += 4;
                     }
                 }
+
                 fprintf(hF, "struct %s_vmt\n", RTTIName.c_str());
                 fprintf(hF, "{\n");
                 for (m = 0, id = 0; m < virtNum; m++)
