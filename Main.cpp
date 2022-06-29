@@ -13816,8 +13816,8 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
     OutputForwardDeclarationsOfKind(hF, ikEnumeration);
     fprintf(hF, "//<Set>\n");
     OutputForwardDeclarationsOfKind(hF, ikSet);
-    fprintf(hF, "//<Class>\n");
-    OutputForwardDeclarationsOfKind(hF, ikClass);
+    //fprintf(hF, "//<Class>\n");
+    //OutputForwardDeclarationsOfKind(hF, ikClass);
     fprintf(hF, "//<Record>\n");
     OutputForwardDeclarationsOfKind(hF, ikRecord);
     fprintf(hF, "//<Method>\n");
@@ -13866,6 +13866,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
 
             RTTIName = SanitizeName(RTTIName);
             size = 0;
+            if (kind != ikVMT) continue;
             switch (kind)
             {
             case ikInteger:
@@ -13984,7 +13985,7 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                         }
                         else
                         {
-                            fprintf(hF, "DWORD __fastcall (*P%s_m%d)", RTTIName.c_str(), id);
+                            fprintf(hF, "DWORD (__usercall *P%s_m%d)@<eax>", RTTIName.c_str(), id);
                         }
                         fprintf(hF, ";\n");
                         id += 4;
