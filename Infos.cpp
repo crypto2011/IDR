@@ -1648,10 +1648,14 @@ String __fastcall InfoRec::MakeCppPrototype(int Adr, String FType)
     else
         result = "void";
 
-    result += " __fastcall (*";
+    result += " __usercall (*";
     if (FType != "")
         result += "P" + FType;
-    result += ")(";
+    result += ")";
+
+    if (kind == ikFunc)
+        result += "@<eax>";
+    result += "(";
 
     argsNum = (procInfo->args) ? procInfo->args->Count : 0;
     for (n = 0; n < argsNum; n++)
@@ -1673,6 +1677,12 @@ String __fastcall InfoRec::MakeCppPrototype(int Adr, String FType)
             result += "DWORD";
         }
         if (argInfo->Tag == 0x22) result += "*";
+        if (n == 0)
+            result += "@<eax>";
+        else if (n == 1)
+            result += "@<edx>";
+        else if (n == 2)
+            result += "@<ecx>";
     }
     result += ")";
     return result;
