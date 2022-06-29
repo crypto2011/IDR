@@ -13816,8 +13816,8 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
     OutputForwardDeclarationsOfKind(hF, ikEnumeration);
     fprintf(hF, "//<Set>\n");
     OutputForwardDeclarationsOfKind(hF, ikSet);
-    //fprintf(hF, "//<Class>\n");
-    //OutputForwardDeclarationsOfKind(hF, ikClass);
+    fprintf(hF, "//<Class>\n");
+    OutputForwardDeclarationsOfKind(hF, ikClass);
     fprintf(hF, "//<Record>\n");
     OutputForwardDeclarationsOfKind(hF, ikRecord);
     fprintf(hF, "//<Method>\n");
