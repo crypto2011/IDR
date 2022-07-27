@@ -1322,8 +1322,6 @@ String __fastcall TFTypeInfo_11011981::GetCppTypeInfo(DWORD adr, int* o_pSize, i
         RTTIName = recN->GetName();
     }
     RTTIName = SanitizeName(RTTIName);
-if (SameText(RTTIName, "TLBFindDataEvent"))
-pos = pos;
 
     result = "";
     switch (RTTIKind)

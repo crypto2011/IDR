@@ -13782,13 +13782,15 @@ PVMT_PROC __fastcall GetProcFromVmtList(TList* list, DWORD procAdr)
 void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
 {
     BYTE        len, RTTIKind;
-    int         n, m, id, adr, kind, pos, size, sort, virtNum, idx;
+    int         n, m, k, id, adr, kind, pos, size, sort, virtNum, idx, intfNum, curOfs, nxtOfs, iAdr;
+    DWORD*      intfOfsets;
     PUnitRec    recU;
     PInfoRec    recN;
-    String      unitName, RTTIName, str, name;
+    String      unitName, RTTIName, str, name, item;
     PFIELDINFO  fInfo;
     TList*      virtList;
     TList*      vmtProcs;
+    TStringList*    intfList;
     PMethodRec  recM;
     PVMT_PROC   vmtProc;
 
@@ -14042,6 +14044,67 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                 fprintf(hF, "{\n");
                 fprintf(hF, "%s", str.c_str());
                 fprintf(hF, "};\n\n");
+
+                //Output Interfaces
+                intfList = new TStringList;
+                intfNum = FMain_11011981->LoadIntfTable(adr, intfList);
+                if (intfNum > 0)
+                {
+                    intfOfsets = new DWORD[intfNum];
+                    for (m = 0; m < intfNum; m++)
+                    {
+                        item = intfList->Strings[m];
+                        item = item.SubString(1, item.Pos(' ') - 1);
+                        //Offset of interface table
+                        intfOfsets[m] = StrToInt("$" + item);
+                    }
+                    if (intfNum > 1)
+                    {
+                        for (m = 0; m < intfNum - 1; m++)
+                        {
+                            curOfs = intfOfsets[m];
+                            nxtOfs = intfOfsets[m + 1];
+                            if (curOfs == nxtOfs) continue;
+
+                            fprintf(hF, "struct Interface_%08lX\n", curOfs);
+                            fprintf(hF, "{\n");
+                            fprintf(hF, "struct Interface_%08lX_vt* v;\n", curOfs);
+                            fprintf(hF, "};\n\n");
+
+                            fprintf(hF, "struct Interface_%08lX_vt\n", curOfs);
+                            fprintf(hF, "{\n");
+
+                            for (k = curOfs; k < nxtOfs; k += 4)
+                            {
+                                iAdr = *((DWORD*)(Code + Adr2Pos(k)));
+                                fprintf(hF, "void* sub_%08lX;\n", iAdr);
+                            }
+
+                            fprintf(hF, "};\n\n");
+                        }
+                    }
+                    curOfs = intfOfsets[intfNum - 1];
+                    fprintf(hF, "struct Interface_%08lX\n", curOfs);
+                    fprintf(hF, "{\n");
+                    fprintf(hF, "struct Interface_%08lX_vt* v;\n", curOfs);
+                    fprintf(hF, "};\n\n");
+                    
+                    fprintf(hF, "struct Interface_%08lX_vt\n", curOfs);
+                    fprintf(hF, "{\n");
+
+                    for (k = curOfs;; k += 4)
+                    {
+                        iAdr = *((DWORD*)(Code + Adr2Pos(k)));
+                        if (!IsValidCodeAdr(iAdr))
+                            break;
+
+                        fprintf(hF, "void* sub_%08lX;\n", iAdr);
+                    }
+
+                    fprintf(hF, "};\n\n");
+                    delete[] intfOfsets;
+                }
+                delete intfList;
                 break;
             }
         }
