@@ -14063,9 +14063,9 @@ void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
                         for (m = 0; m < intfNum - 1; m++)
                         {
                             curOfs = intfOfsets[m];
+                            nxtOfs = intfOfsets[m + 1];
                             if (!curOfs || curOfs == nxtOfs)
                                 continue;
-                            nxtOfs = intfOfsets[m + 1];
 
                             fprintf(hF, "struct Interface_%08lX\n", curOfs);
                             fprintf(hF, "{\n");
