@@ -26,8 +26,7 @@ IDR dont require any installations, just copy idr.exe, dis.dll, icons.dll, idr.i
 to IDR home directory. Message "Cannot Initialize Disasm" means that file dis.dll is absent.
 
 !!!
-Knowledge bases for various Delphi versions can be found at:
-https://drive.google.com/drive/folders/1IBsO1_O9xGHkPPV9Pnqkq2uoFmuak5C7?usp=sharing
+Knowledge bases for various Delphi versions can be found here.
 
 TntControls can be found at https://github.com/rofl0r/TntUnicode
 
