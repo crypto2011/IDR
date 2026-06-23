@@ -32,3 +32,16 @@ TntControls can be found at https://github.com/rofl0r/TntUnicode
 
 !!!
 In project options use build Release version with no Optimization.
+
+## Modern CLI (community)
+
+A cross-platform, headless command-line port of IDR — for automation, CI, and AI agents (no VCL / no GUI):
+
+| | |
+|---|---|
+| **Repository** | https://github.com/2003magic/idr-cli |
+| **Build** | CMake + C++17; Windows / macOS / Linux |
+| **Commands** | `analyze` (JSON on stdout), `info`, `export` (lst / idc / pas / idp) |
+| **License** | MIT (same as IDR); uses the same `syskb*.bin` knowledge bases |
+
+This repository remains the reference for the interactive GUI. Script and headless users may prefer **idr-cli**.
