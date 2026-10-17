@@ -1033,6 +1033,7 @@ int __fastcall GetField(String TypeName, int Offset, String& name, String& type)
         {
             if (!Offset) return 0;
             fInfo = GetClassField(_type, Offset);
+            if (!fInfo) return -1;
             if (name != "")
                 name += ".";
             if (fInfo->Name != "")
