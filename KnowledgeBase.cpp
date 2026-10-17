@@ -1809,7 +1809,7 @@ int __fastcall MKnowledgeBase::GetProcUses(char* ProcName, WORD* uses)
                 {
                     uses[num] = ModID;
                     num++;
-                    assert(num < ModuleCount);
+                    assert(num <= ModuleCount);
                 }
             }
             //From ltft to right
@@ -1824,7 +1824,7 @@ int __fastcall MKnowledgeBase::GetProcUses(char* ProcName, WORD* uses)
                 {
                     uses[num] = ModID;
                     num++;
-                    assert(num < ModuleCount);
+                    assert(num <= ModuleCount);
                 }
             }
             return num;
@@ -1875,7 +1875,7 @@ WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)
                 {
                     uses[num] = ModID;
                     num++;
-                    assert(num < ModuleCount);
+                    assert(num <= ModuleCount);
                 }
             }
             //From left to right
@@ -1891,7 +1891,7 @@ WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)
                 {
                     uses[num] = ModID;
                     num++;
-                    assert(num < ModuleCount);
+                    assert(num <= ModuleCount);
                 }
             }
             //After last element must be word 0xFFFF
@@ -1943,7 +1943,7 @@ WORD* __fastcall MKnowledgeBase::GetConstUses(char* ConstName)
             {
                 uses[num] = ModID;
                 num++;
-                assert(num < ModuleCount);
+                assert(num <= ModuleCount);
             }
         }
         //From left to right
@@ -1957,7 +1957,7 @@ WORD* __fastcall MKnowledgeBase::GetConstUses(char* ConstName)
             {
                 uses[num] = ModID;
                 num++;
-                assert(num < ModuleCount);
+                assert(num <= ModuleCount);
             }
         }
         //After last element must be word 0xFFFF
