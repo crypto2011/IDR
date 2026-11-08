@@ -27,6 +27,7 @@
 #define     IF_INTERFACE        512
 #define     IF_EXTERN_VAR       1024    //User for embedded procedures
 #define     IF_RECORD_FOFS      2048    //Offset inside record
+#define     IF_UNRESOLVED       0x00000800   // pick an unused bit My Code
 
 #define     CF_CONSTRUCTOR      1
 #define     CF_DESTRUCTOR       2

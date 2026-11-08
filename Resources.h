@@ -83,6 +83,14 @@ public:
     String      FormPluginName;
     TList       *FormList;      //Form names list
     TStringList *Aliases;       //Aliases list
+    // --- ADD THESE NEW DECLARATIONS HERE --- My Code 01.08.26
+    bool __fastcall ExportDfmToFile(TDfm* Dfm, String FolderPath);
+    bool __fastcall ExportPasUnitToFile(TDfm* Dfm, String FolderPath);
+    void __fastcall ExportAllForms(String TargetDirectory);
+    bool __fastcall ExportCppUnitToFile(TDfm* Dfm, String FolderPath);
+    void __fastcall ExportAllFormsEx(String TargetDirectory, int LanguageMode); // 0 = Pascal, 1 = C++
+    bool __fastcall ExportCppProjectFile(String TargetDirectory, String ProjectName);
+    bool __fastcall ExportCppMainFile(String TargetDirectory, String ProjectName);
 };
 
 class TMyControl : public TControl
