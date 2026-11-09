@@ -8,9 +8,9 @@
 #include <io.h>
 #include <stdio.h>
 #include <winnt.h>
-#include <winnls.h>
 #include "Main.h"
 #include "Misc.h"
+#include <FileCtrl.hpp> 
 #include "Threads.h"
 #include "ProgressBar.h"
 #include "TypeInfo.h"
@@ -47,7 +47,6 @@ int         DelphiThemesCount;
 */
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
-#pragma link "TntStdCtrls"
 #pragma resource "*.dfm"
 #pragma resource "idr_manifest.res"
 //---------------------------------------------------------------------------
@@ -109,7 +108,6 @@ bool            UserKnowledgeBase = false;
 bool            SplitIDC = false;
 bool            BCB = false;
 int             SplitSize = 0;
-UINT            CodePage;
 //Common variables
 String          IDPFile;
 int             MaxBufLen;      //Максимальная длина буфера (для загрузки)
@@ -472,6 +470,10 @@ void __fastcall TFMain_11011981::Init()
     lbStrings->Clear();
     miSearchString->Enabled = false;
     tsStrings->Enabled = false;
+
+    //Init Map
+    lstMap->Clear();
+    tsMap->Enabled = false;
 
     //Init Names
     lbNames->Clear();
@@ -3867,11 +3869,6 @@ void __fastcall TFMain_11011981::ScanInitTable(DWORD Adr)
         post++;     //skip tkKind
         BYTE len = *(Code + post); post++;
         String typeName = String((char*)&Code[post], len);
-        if (typeName.Pos(":") > 0)
-        {
-            BYTE typeKind = GetTypeKind(typeAdr);
-            typeName = TransformShadowName(typeName, typeKind, typeAdr);//SHADOW
-        }
         int fieldOfs = *((int*)(Code + pos)); pos += 4;
         recN->vmtInfo->AddField(0, 0, FIELD_PUBLIC, fieldOfs, -1, "", typeName);
     }
@@ -4690,10 +4687,10 @@ String __fastcall TFMain_11011981::GetCommonType(String Name1, String Name2)
     return GetClsName(adr1);
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::FormCreate(TObject *Sender)
+void __fastcall TFMain_11011981::FormCreate(TObject* Sender)
 {
     int         n;
-    TMenuItem*  mi;
+    TMenuItem* mi;
     LPCSTR      buf[256];
 
     if (!Disasm.Init())
@@ -4749,39 +4746,46 @@ void __fastcall TFMain_11011981::FormCreate(TObject *Sender)
     lbSourceCode->Canvas->Font->Assign(lbSourceCode->Font);
 
     lbCXrefs->Canvas->Font->Assign(lbCXrefs->Font);
-    lbCXrefs->Width = lbCXrefs->Canvas->TextWidth("T")*14;
+    lbCXrefs->Width = lbCXrefs->Canvas->TextWidth("T") * 14;
     ShowCXrefs->Width = lbCXrefs->Width;
 
     lbSXrefs->Canvas->Font->Assign(lbSXrefs->Font);
-    lbSXrefs->Width = lbSXrefs->Canvas->TextWidth("T")*14;
+    lbSXrefs->Width = lbSXrefs->Canvas->TextWidth("T") * 14;
     ShowSXrefs->Width = lbSXrefs->Width;
 
+    // Menu Item Creation
     lbNXrefs->Canvas->Font->Assign(lbNXrefs->Font);
-    lbNXrefs->Width = lbNXrefs->Canvas->TextWidth("T")*14;
+    lbNXrefs->Width = lbNXrefs->Canvas->TextWidth("T") * 14;
     ShowNXrefs->Width = lbNXrefs->Width;
-/*
-//----Highlighting-----------------------------------------------------------
-	if (InitHighlight())
+    // 24.07.26 My Code
+    // Create Export Forms Root Menu Item
+    TMenuItem* miExportRoot = new TMenuItem(MainMenu);
+    miExportRoot->Caption = "Export All Forms";
+
+    // Delphi Sub-item
+    TMenuItem* miExportPas = new TMenuItem(MainMenu);
+    miExportPas->Caption = "As Delphi Project (.pas / .dfm)...";
+    miExportPas->OnClick = ExportFormsPasClick;
+
+    // C++Builder Sub-item
+    TMenuItem* miExportCpp = new TMenuItem(MainMenu);
+    miExportCpp->Caption = "As C++Builder Project (.cpp / .h / .dfm)...";
+    miExportCpp->OnClick = ExportFormsCppClick;
+
+    miExportRoot->Add(miExportPas);
+    miExportRoot->Add(miExportCpp);
+
+    if (miTools)
     {
-        lbSourceCode->Style = lbOwnerDrawFixed;
-        DelphiLbId          = CreateHighlight(lbSourceCode->Handle, ID_DELPHI);
-        DelphiThemesCount   = GetThemesCount(ID_DELPHI);
-        for (n = 0; n < DelphiThemesCount; n++)
-        {
-            mi = new TMenuItem(pmCode->Items);
-            GetThemeName(ID_DELPHI, (DWORD)n,(LPCSTR)buf, 256);
-            mi->Caption = String((char *)buf);
-            mi->Tag = n;
-            mi->OnClick = ChangeDelphiHighlightTheme;
-            miDelphiAppearance->Add(mi);
-        }
-	};
-//----Highlighting-----------------------------------------------------------
-*/
+        miTools->Add(miExportRoot);
+    }
+
     ScaleForm(this);
-}
+} // <--- ENSURE THIS CLOSING BRACE IS PRESENT!
+
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::FormDestroy(TObject *Sender)
+void __fastcall TFMain_11011981::FormDestroy(TObject* Sender)
+
 {
     CloseProject();
 
@@ -5079,7 +5083,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
     if (fromPos < 0) return;
 
     bool selectByAdr = (IsValidImageAdr(SelectedIdx) == true);
-    /*
     //If procedure is the same then move selection and not update Xrefs
     if (fromAdr == CurProcAdr)
     {
@@ -5110,7 +5113,6 @@ void __fastcall TFMain_11011981::ShowCode(DWORD fromAdr, int SelectedIdx, int Xr
         pcWorkArea->ActivePage = tsCodeView;
         return;
     }
-    */
     if (!AnalyzeThread)//Clear all Items (used in highlighting)
     {
         //AnalyzeProc1(fromAdr, 0, 0, 0, false);//!!!
@@ -6985,35 +6987,23 @@ int __fastcall TFMain_11011981::LoadFieldTable(DWORD adr, TList* dstList)
             }
         }
     }
-    return dstList->Count;
-}
-//---------------------------------------------------------------------------
-int __fastcall TFMain_11011981::LoadAllFields(DWORD adr, TList* dstList)
-{
+    /*
     while (1)
     {
         PInfoRec recN = GetInfoRec(adr);
-        if (recN && recN->vmtInfo && recN->vmtInfo->fields)
+        if (recN && recN->info && recN->info.vmtInfo->fields)
         {
-            for (int n = 0; n < recN->vmtInfo->fields->Count; n++)
+            for (int n = recN->info.vmtInfo->fields->Count - 1; n >= 0; n--)
             {
-                PFIELDINFO fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[n];
-                bool exist = false;
-                for (int m = 0; m < dstList->Count; m++)
-                {
-                    PFIELDINFO fInfo1 = (PFIELDINFO)dstList->Items[m];
-                    if (fInfo1->Offset == fInfo->Offset)
-                    {
-                        exist = true;
-                        break;
-                    }
-                }
-                if (!exist) dstList->Add((void*)fInfo);
+                PFIELDINFO fInfo = (PFIELDINFO)recN->info.vmtInfo->fields->Items[n];
+                if (!GetVMTField(dstList, fInfo->offset)) dstList->Add((void*)fInfo);
             }
         }
+        //ParentAdr
         adr = GetParentAdr(adr);
         if (!adr) break;
     }
+    */
     return dstList->Count;
 }
 //---------------------------------------------------------------------------
@@ -7107,8 +7097,7 @@ int __fastcall TFMain_11011981::LoadVirtualTable(DWORD adr, TList* dstList)
             PMethodRec recM = (PMethodRec)recN->vmtInfo->methods->Items[n];
             if (recM->kind == 'V')
             {
-                //if (recM->name.Pos(".") == 0 || recM->name.Pos(className) == 1) dstList->Add((void*)recM);
-                dstList->Add((void*)recM);
+                if (recM->name.Pos(".") == 0 || recM->name.Pos(className) == 1) dstList->Add((void*)recM);
             }
         }
     }
@@ -7301,7 +7290,7 @@ void __fastcall TFMain_11011981::tvClassesDblClick(TObject *Sender)
         DWORD adr;
         String line = node->Text;
         int pos = line.Pos("#");
-        //Given address
+        //Указан адрес
         if (pos && !line.Pos("Sz="))
         {
             sscanf(line.c_str() + pos, "%lX", &adr);
@@ -7316,23 +7305,11 @@ void __fastcall TFMain_11011981::tvClassesDblClick(TObject *Sender)
             }
             return;
         }
-        //Given field type
+        //Указан тип поля
         if (line.Pos(":"))
         {
-            //Line contains shadow name
-            if (LineContainsShadowName(line))
-            {
-                int adrOfs = GetAdrOfsFromShadowName(line);
-                if (adrOfs != -1)
-                {
-                    String adrStr = line.SubString(adrOfs, line.Length() - adrOfs + 1);
-                    adr = StrToInt("$" + adrStr);
-                    FTypeInfo_11011981->ShowRTTI(adr);//SHADOW
-                    return;
-                }
-            }
             String typeName = ExtractType(line);
-            //Type given as Unit.TypeName
+            //Если тип задан в виде Unit.TypeName
             if (typeName.Pos(".")) typeName = ExtractProcName(typeName);
 
             adr = GetClassAdr(typeName);
@@ -8048,7 +8025,6 @@ void __fastcall TFMain_11011981::IniFileRead()
 
     iniFile = new TIniFile(ChangeFileExt(Application->ExeName, ".ini"));
 
-    CodePage = iniFile->ReadInteger("Settings", "CodePage", 1251);
     _font = new TFont;
     _font->Name = iniFile->ReadString("Settings", "FontName", "Fixedsys");
     _font->Charset = iniFile->ReadInteger("Settings", "FontCharset", 1);
@@ -8131,7 +8107,6 @@ void __fastcall TFMain_11011981::IniFileRead()
 void __fastcall TFMain_11011981::IniFileWrite()
 {
     TIniFile *iniFile = new TIniFile(ChangeFileExt(Application->ExeName, ".ini"));
-    iniFile->WriteInteger("Settings", "CodePage", CodePage);
     iniFile->WriteString("Settings", "FontName", lbCode->Font->Name);
     iniFile->WriteInteger("Settings", "FontCharset", lbCode->Font->Charset);
     iniFile->WriteInteger("Settings", "FontSize", lbCode->Font->Size);
@@ -8385,7 +8360,7 @@ void __fastcall TFMain_11011981::LoadDelphiFile1(String FileName, int version, b
     FILE *f = fopen(FileName.c_str(), "rb");
 
     Screen->Cursor = crHourGlass;
-    int res = LoadImage(f, version, loadExp, loadImp);
+    int res = LoadImage(f, loadExp, loadImp);
     fclose(f);
 
     if (res <= 0)
@@ -8567,6 +8542,8 @@ void __fastcall TFMain_11011981::AnalyzeThreadDone(TObject* Sender)
 
     delete AnalyzeThread;
     AnalyzeThread = 0;
+
+    MapGenerator();
 }
 //---------------------------------------------------------------------------
 bool __fastcall TFMain_11011981::ImportsValid(DWORD ImpRVA, DWORD ImpSize)
@@ -8599,7 +8576,7 @@ bool __fastcall TFMain_11011981::ImportsValid(DWORD ImpRVA, DWORD ImpSize)
     return true;
 }
 //---------------------------------------------------------------------------
-int __fastcall TFMain_11011981::LoadImage(FILE* f, int version, bool loadExp, bool loadImp)
+int __fastcall TFMain_11011981::LoadImage(FILE* f, bool loadExp, bool loadImp)
 {
     int         	        i, n, m, bytes, pos, SectionsNum, ExpNum, NameLength;
     DWORD       	        DataEnd, Items;
@@ -8731,57 +8708,47 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, int version, bool loadExp, bo
     EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;//temporary assignment to evaluate BCB ini and fin tables
     BCB = false;
 
-    if (version != 2)
+    DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
+    if (!evalInitTable)
     {
-        DWORD evalInitTable = EvaluateInitTable(Image, TotalSize, CodeBase);
-        if (!evalInitTable)
-        {
-            ShowMessage("Cannot find initialization table");
-            delete[] SectionHeaders;
-            delete[] Image;
-            Image = 0;
-            return 0;
-        }
+        ShowMessage("Cannot find initialization table");
+        delete[] SectionHeaders;
+        delete[] Image;
+        Image = 0;
+        return 0;
+    }
 
-        DWORD evalEP = 0;
-        //Find instruction mov eax,offset InitTable
-        for (n = 0; n < TotalSize - 5; n++)
+    DWORD evalEP = 0;
+    //Find instruction mov eax,offset InitTable
+    for (n = 0; n < TotalSize - 5; n++)
+    {
+        if (Image[n] == 0xB8 && *((DWORD*)(Image + n + 1)) == evalInitTable)
         {
-            if (Image[n] == 0xB8 && *((DWORD*)(Image + n + 1)) == evalInitTable)
-            {
-                evalEP = n;
+            evalEP = n;
+            break;
+        }
+    }
+    //Scan up until bytes 0x55 (push ebp) and 0x8B,0xEC (mov ebp,esp)
+    if (evalEP)
+    {
+        while (evalEP != 0)
+        {
+            if (Image[evalEP] == 0x55 && Image[evalEP + 1] == 0x8B && Image[evalEP + 2] == 0xEC)
                 break;
-            }
+            evalEP--;
         }
-        //Scan up until bytes 0x55 (push ebp) and 0x8B,0xEC (mov ebp,esp)
-        if (evalEP)
+    }
+    //Check evalEP
+    if (evalEP + CodeBase != NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase)
+    {
+        sprintf(msg, "Possible invalid EP (NTHeader:%lX, Evaluated:%lX). Input valid EP?", NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase, evalEP + CodeBase);
+        if (Application->MessageBox(msg, "Confirmation", MB_YESNO) == IDYES)
         {
-            while (evalEP != 0)
+            sEP = InputDialogExec("New EP", "EP:", Val2Str0(NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase));
+            if (sEP != "")
             {
-                if (Image[evalEP] == 0x55 && Image[evalEP + 1] == 0x8B && Image[evalEP + 2] == 0xEC)
-                    break;
-                evalEP--;
-            }
-        }
-        //Check evalEP
-        if (evalEP + CodeBase != NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase)
-        {
-            sprintf(msg, "Possible invalid EP (NTHeader:%lX, Evaluated:%lX). Input valid EP?", NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase, evalEP + CodeBase);
-            if (Application->MessageBox(msg, "Confirmation", MB_YESNO) == IDYES)
-            {
-                sEP = InputDialogExec("New EP", "EP:", Val2Str0(NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase));
-                if (sEP != "")
-                {
-                    sscanf(sEP.c_str(), "%lX", &EP);
-                    if (!IsValidImageAdr(EP))
-                    {
-                        delete[] SectionHeaders;
-                        delete[] Image;
-                        Image = 0;
-                        return 0;
-                    }
-                }
-                else
+                sscanf(sEP.c_str(), "%lX", &EP);
+                if (!IsValidImageAdr(EP))
                 {
                     delete[] SectionHeaders;
                     delete[] Image;
@@ -8799,8 +8766,15 @@ int __fastcall TFMain_11011981::LoadImage(FILE* f, int version, bool loadExp, bo
         }
         else
         {
-            EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;
+            delete[] SectionHeaders;
+            delete[] Image;
+            Image = 0;
+            return 0;
         }
+    }
+    else
+    {
+        EP = NTHeaders.OptionalHeader.AddressOfEntryPoint + ImageBase;
     }
     //Find DataStart
     //DWORD _codeEnd = DataEnd;
@@ -9033,24 +9007,23 @@ void __fastcall TFMain_11011981::DoOpenProjectFile(String FileName)
     }
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::ReadNode(FILE* fIn, TTreeNode* node, char* buf)
-//void __fastcall TFMain_11011981::ReadNode(TStream* stream, TTreeNode* node, char* buf)
+void __fastcall TFMain_11011981::ReadNode(TStream* stream, TTreeNode* node, char* buf)
 {
     //Count
     int itemsCount;
-    fread(&itemsCount, sizeof(itemsCount), 1, fIn);//stream->Read(&itemsCount, sizeof(itemsCount));
+    stream->Read(&itemsCount, sizeof(itemsCount));
 
     //Text
     int len;
-    fread(&len, sizeof(len), 1, fIn);//stream->Read(&len, sizeof(len));
-    fread(buf, len, 1, fIn);//stream->Read(buf, len);
+    stream->Read(&len, sizeof(len));
+    stream->Read(buf, len);
     node->Text = String(buf, len);
     FProgressBar->pb->StepIt();
 
     for (int n = 0; n < itemsCount; n++)
     {
         TTreeNode* snode = node->Owner->AddChild(node, "");
-        ReadNode(fIn, snode, buf);//ReadNode(stream, snode, buf);
+        ReadNode(stream, snode, buf);
     }
     Application->ProcessMessages();
 }
@@ -9120,410 +9093,407 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     Update();
 
     char* buf = new BYTE[MaxBufLen];
-    FILE* fIn = fopen(IDPFile.c_str(), "rb");
-    if (fIn)
-    {
-        //TMemoryStream* inStream = new TMemoryStream();
-        //inStream->LoadFromFile(IDPFile);
+    TMemoryStream* inStream = new TMemoryStream();
+    inStream->LoadFromFile(IDPFile);
 
-        char magic[12];
-        fread(magic, 12, 1, fIn);//inStream->Read(magic, 12);
-        fread(&_ver, sizeof(_ver), 1, fIn);//inStream->Read(&_ver, sizeof(_ver));
-        DelphiVersion = _ver & ~(USER_KNOWLEDGEBASE | SOURCE_LIBRARY);
+    char magic[12];
+    inStream->Read(magic, 12);
+    inStream->Read(&_ver, sizeof(_ver));
+    DelphiVersion = _ver & ~(USER_KNOWLEDGEBASE | SOURCE_LIBRARY);
 
-        fread(&EP, sizeof(EP), 1, fIn);//inStream->Read(&EP, sizeof(EP));
-        fread(&ImageBase, sizeof(ImageBase), 1, fIn);//inStream->Read(&ImageBase, sizeof(ImageBase));
-        fread(&ImageSize, sizeof(ImageSize), 1, fIn);//inStream->Read(&ImageSize, sizeof(ImageSize));
-        fread(&TotalSize, sizeof(TotalSize), 1, fIn);//inStream->Read(&TotalSize, sizeof(TotalSize));
-        fread(&CodeBase, sizeof(CodeBase), 1, fIn);//inStream->Read(&CodeBase, sizeof(CodeBase));
-        fread(&CodeSize, sizeof(CodeSize), 1, fIn);//inStream->Read(&CodeSize, sizeof(CodeSize));
-        fread(&CodeStart, sizeof(CodeStart), 1, fIn);//inStream->Read(&CodeStart, sizeof(CodeStart));
+    inStream->Read(&EP, sizeof(EP));
+    inStream->Read(&ImageBase, sizeof(ImageBase));
+    inStream->Read(&ImageSize, sizeof(ImageSize));
+    inStream->Read(&TotalSize, sizeof(TotalSize));
+    inStream->Read(&CodeBase, sizeof(CodeBase));
+    inStream->Read(&CodeSize, sizeof(CodeSize));
+    inStream->Read(&CodeStart, sizeof(CodeStart));
 
-        fread(&DataBase, sizeof(DataBase), 1, fIn);//inStream->Read(&DataBase, sizeof(DataBase));
-        fread(&DataSize, sizeof(DataSize), 1, fIn);//inStream->Read(&DataSize, sizeof(DataSize));
-        fread(&DataStart, sizeof(DataStart), 1, fIn);//inStream->Read(&DataStart, sizeof(DataStart));
-
-        //SegmentList
-        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            PSegmentInfo segInfo = new SegmentInfo;
-            fread(&segInfo->Start, sizeof(segInfo->Start), 1, fIn);//inStream->Read(&segInfo->Start, sizeof(segInfo->Start));
-            fread(&segInfo->Size, sizeof(segInfo->Size), 1, fIn);//inStream->Read(&segInfo->Size, sizeof(segInfo->Size));
-            fread(&segInfo->Flags, sizeof(segInfo->Flags), 1, fIn);//inStream->Read(&segInfo->Flags, sizeof(segInfo->Flags));
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            segInfo->Name = String(buf, len);
-            SegmentList->Add((void*)segInfo);
-        }
-
-        Image = new BYTE[TotalSize];
-        Code = Image + CodeStart;
-        Data = Image + DataStart;
-        DWORD Items = TotalSize;
-        BYTE* pImage = Image;
-
-        while (Items >= MAX_ITEMS)
-        {
-            fread(pImage, MAX_ITEMS, 1, fIn);//inStream->Read(pImage, MAX_ITEMS);
-            pImage += MAX_ITEMS;
-            Items -= MAX_ITEMS;
-        }
-        if (Items) fread(pImage, Items, 1, fIn);//inStream->Read(pImage, Items);
-
-        Flags = new DWORD[TotalSize];
-        Items = TotalSize;
-        DWORD* pFlags = Flags;
-
-        while (Items >= MAX_ITEMS)
-        {
-            fread(pFlags, sizeof(DWORD)*MAX_ITEMS, 1, fIn);//inStream->Read(pFlags, sizeof(DWORD)*MAX_ITEMS);
-            pFlags += MAX_ITEMS;
-            Items -= MAX_ITEMS;
-        }
-        if (Items) fread(pFlags, sizeof(DWORD)*Items, 1, fIn);//inStream->Read(pFlags, sizeof(DWORD)*Items);
-
-        Infos = new PInfoRec[TotalSize];
-        memset((void*)Infos, 0, sizeof(PInfoRec)*TotalSize);
-
-        fread(&infosCnt, sizeof(infosCnt), 1, fIn);//inStream->Read(&infosCnt, sizeof(infosCnt));
-        BYTE kind;
-        for (n = 0; n < TotalSize; n++)
-        {
-            fread(&pos, sizeof(pos), 1, fIn);//inStream->Read(&pos, sizeof(pos));
-            if (pos == -1) break;
-            fread(&kind, sizeof(kind), 1, fIn);//inStream->Read(&kind, sizeof(kind));
-            recN = new InfoRec(pos, kind);
-            recN->Load(fIn, buf);//recN->Load(inStream, buf);
-        }
-        //BSSInfos
-        BSSInfos = new TStringList;
-        fread(&bssCnt, sizeof(bssCnt), 1, fIn);//inStream->Read(&bssCnt, sizeof(bssCnt));
-        for (n = 0; n < bssCnt; n++)
-        {
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            String _adr = String(buf, len);
-            fread(&kind, sizeof(kind), 1, fIn);//inStream->Read(&kind, sizeof(kind));
-            recN = new InfoRec(-1, kind);
-            recN->Load(fIn, buf);//recN->Load(inStream, buf);
-            BSSInfos->AddObject(_adr, (TObject*)recN);
-        }
-        BSSInfos->Sorted = true;
-        lbCXrefs->Enabled = true;
-
-        //Units
-        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
-
-        UnitsNum = num;
-        for (n = 0; n < UnitsNum; n++)
-        {
-            PUnitRec recU = new UnitRec;
-            fread(&recU->trivial, sizeof(recU->trivial), 1, fIn);//inStream->Read(&recU->trivial, sizeof(recU->trivial));
-            fread(&recU->trivialIni, sizeof(recU->trivialIni), 1, fIn);//inStream->Read(&recU->trivialIni, sizeof(recU->trivialIni));
-            fread(&recU->trivialFin, sizeof(recU->trivialFin), 1, fIn);//inStream->Read(&recU->trivialFin, sizeof(recU->trivialFin));
-            fread(&recU->kb, sizeof(recU->kb), 1, fIn);//inStream->Read(&recU->kb, sizeof(recU->kb));
-            fread(&recU->fromAdr, sizeof(recU->fromAdr), 1, fIn);//inStream->Read(&recU->fromAdr, sizeof(recU->fromAdr));
-            fread(&recU->toAdr, sizeof(recU->toAdr), 1, fIn);//inStream->Read(&recU->toAdr, sizeof(recU->toAdr));
-            fread(&recU->finadr, sizeof(recU->finadr), 1, fIn);//inStream->Read(&recU->finadr, sizeof(recU->finadr));
-            fread(&recU->finSize, sizeof(recU->finSize), 1, fIn);//inStream->Read(&recU->finSize, sizeof(recU->finSize));
-            fread(&recU->iniadr, sizeof(recU->iniadr), 1, fIn);//inStream->Read(&recU->iniadr, sizeof(recU->iniadr));
-            fread(&recU->iniSize, sizeof(recU->iniSize), 1, fIn);//inStream->Read(&recU->iniSize, sizeof(recU->iniSize));
-            recU->matchedPercent = 0.0;
-            fread(&recU->iniOrder, sizeof(recU->iniOrder), 1, fIn);//inStream->Read(&recU->iniOrder, sizeof(recU->iniOrder));
-            recU->names = new TStringList;
-            int namesNum = 0;
-            fread(&namesNum, sizeof(namesNum), 1, fIn);//inStream->Read(&namesNum, sizeof(namesNum));
-            for (u = 0; u < namesNum; u++)
-            {
-                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                SetUnitName(recU, String(buf, len));
-            }
-            Units->Add((void*)recU);
-        }
-        UnitSortField = 0;
-        CurUnitAdr = 0;
-        topIdxU = 0; itemIdxU = -1;
-        topIdxI = 0; itemIdxI = -1;
+    inStream->Read(&DataBase, sizeof(DataBase));
+    inStream->Read(&DataSize, sizeof(DataSize));
+    inStream->Read(&DataStart, sizeof(DataStart));
     
-        if (UnitsNum)
-        {
-            fread(&UnitSortField, sizeof(UnitSortField), 1, fIn);//inStream->Read(&UnitSortField, sizeof(UnitSortField));
-            fread(&CurUnitAdr, sizeof(CurUnitAdr), 1, fIn);//inStream->Read(&CurUnitAdr, sizeof(CurUnitAdr));
-            fread(&topIdxU, sizeof(topIdxU), 1, fIn);//inStream->Read(&topIdxU, sizeof(topIdxU));
-            fread(&itemIdxU, sizeof(itemIdxU), 1, fIn);//inStream->Read(&itemIdxU, sizeof(itemIdxU));
-            //UnitItems
-            if (CurUnitAdr)
-            {
-                fread(&topIdxI, sizeof(topIdxI), 1, fIn);//inStream->Read(&topIdxI, sizeof(topIdxI));
-                fread(&itemIdxI, sizeof(itemIdxI), 1, fIn);//inStream->Read(&itemIdxI, sizeof(itemIdxI));
-            }
-        }
 
-        tsUnits->Enabled = true;
-        switch (UnitSortField)
-        {
-        case 0:
-            miSortUnitsByAdr->Checked = true;
-            miSortUnitsByOrd->Checked = false;
-            miSortUnitsByNam->Checked = false;
-            break;
-        case 1:
-            miSortUnitsByAdr->Checked = false;
-            miSortUnitsByOrd->Checked = true;
-            miSortUnitsByNam->Checked = false;
-            break;
-        case 2:
-            miSortUnitsByAdr->Checked = false;
-            miSortUnitsByOrd->Checked = false;
-            miSortUnitsByNam->Checked = true;
-            break;
-        }
-        ShowUnits(true);
-        lbUnits->TopIndex = topIdxU;
-        lbUnits->ItemIndex = itemIdxU;
-
-        ShowUnitItems(GetUnit(CurUnitAdr), topIdxI, itemIdxI);
-
-        miRenameUnit->Enabled = true;
-        miSearchUnit->Enabled = true;
-        miSortUnits->Enabled = true;
-        miCopyList->Enabled = true;
-
-        miEditFunctionC->Enabled = true;
-        miEditFunctionI->Enabled = true;
-        miFuzzyScanKB->Enabled = true;
-        miSearchItem->Enabled = true;
-
-        //Types
-        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            PTypeRec recT = new TypeRec;
-            fread(&recT->kind, sizeof(recT->kind), 1, fIn);//inStream->Read(&recT->kind, sizeof(recT->kind));
-            fread(&recT->adr, sizeof(recT->adr), 1, fIn);//inStream->Read(&recT->adr, sizeof(recT->adr));
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            recT->name = String(buf, len);
-            OwnTypeList->Add((void*)recT);
-        }
-        RTTISortField = 0;
-        if (num) fread(&RTTISortField, sizeof(RTTISortField), 1, fIn);//inStream->Read(&RTTISortField, sizeof(RTTISortField));
-        //UpdateRTTIs
-        tsRTTIs->Enabled = true;
-        miSearchRTTI->Enabled = true;
-        miSortRTTI->Enabled = true;
-
-        switch (RTTISortField)
-        {
-        case 0:
-            miSortRTTIsByAdr->Checked = true;
-            miSortRTTIsByKnd->Checked = false;
-            miSortRTTIsByNam->Checked = false;
-            break;
-        case 1:
-            miSortRTTIsByAdr->Checked = false;
-            miSortRTTIsByKnd->Checked = true;
-            miSortRTTIsByNam->Checked = false;
-            break;
-        case 2:
-            miSortRTTIsByAdr->Checked = false;
-            miSortRTTIsByKnd->Checked = false;
-            miSortRTTIsByNam->Checked = true;
-            break;
-        }
-        ShowRTTIs();
-
-        //Forms
-        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            TDfm* dfm = new TDfm;
-            //Flags
-            fread(&dfm->Flags, sizeof(dfm->Flags), 1, fIn);//inStream->Read(&dfm->Flags, sizeof(dfm->Flags));
-            //ResName
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            dfm->ResName = String(buf, len);
-            //Name
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            dfm->Name = String(buf, len);
-            //ClassName
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            dfm->ClassName = String(buf, len);
-            //MemStream
-            fread(&size, sizeof(size), 1, fIn);//inStream->Read(&size, sizeof(size));
-            dfm->MemStream->Size = size;
-            while (size >= 4096)
-            {
-                fread(buf, 4096, 1, fIn);//inStream->Read(buf, 4096);
-                dfm->MemStream->Write(buf, 4096);
-                size -= 4096;
-            }
-            if (size)
-            {
-                fread(buf, size, 1, fIn);//inStream->Read(buf, size);
-                dfm->MemStream->Write(buf, size);
-            }
-            //Events
-            dfm->Events = new TList;
-            fread(&evnum, sizeof(evnum), 1, fIn);//inStream->Read(&evnum, sizeof(evnum));
-            for (m = 0; m < evnum; m++)
-            {
-                PEventInfo eInfo = new EventInfo;
-                //EventName
-                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                eInfo->EventName = String(buf, len);
-                //ProcName
-                fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                eInfo->ProcName = String(buf, len);
-                dfm->Events->Add((void*)eInfo);
-            }
-            //Components
-            fread(&cnum, sizeof(cnum), 1, fIn);//inStream->Read(&cnum, sizeof(cnum));
-            if (cnum)
-            {
-                dfm->Components = new TList;
-                for (m = 0; m < cnum; m++)
-                {
-                    PComponentInfo cInfo = new ComponentInfo;
-                    //Inherited
-                    fread(&cInfo->Inherit, sizeof(cInfo->Inherit), 1, fIn);//inStream->Read(&cInfo->Inherit, sizeof(cInfo->Inherit));
-                    //HasGlyph
-                    fread(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph), 1, fIn);//inStream->Read(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
-                    //Name
-                    fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                    fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                    cInfo->Name = String(buf, len);
-                    //ClassName
-                    fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                    fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                    cInfo->ClassName = String(buf, len);
-                    //Events
-                    cInfo->Events = new TList;
-                    fread(&evnum, sizeof(evnum), 1, fIn);//inStream->Read(&evnum, sizeof(evnum));
-                    for (k = 0; k < evnum; k++)
-                    {
-                        PEventInfo eInfo = new EventInfo;
-                        //EventName
-                        fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                        fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                        eInfo->EventName = String(buf, len);
-                        //ProcName
-                        fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-                        fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-                        eInfo->ProcName = String(buf, len);
-                        cInfo->Events->Add((void*)eInfo);
-                    }
-                    dfm->Components->Add((void*)cInfo);
-                }
-            }
-            ResInfo->FormList->Add((void*)dfm);
-        }
-        //UpdateForms
-        ResInfo->ShowResources(lbForms);
-        //Aliases
-        fread(&num, sizeof(num), 1, fIn);//inStream->Read(&num, sizeof(num));
-        for (n = 0; n < num; n++)
-        {
-            fread(&len, sizeof(len), 1, fIn);//inStream->Read(&len, sizeof(len));
-            fread(buf, len, 1, fIn);//inStream->Read(buf, len);
-            ResInfo->Aliases->Add(String(buf, len));
-        }
-        InitAliases(false);
-        tsForms->Enabled = (lbForms->Items->Count > 0);
-
-        //CodeHistory
-        fread(&CodeHistorySize, sizeof(CodeHistorySize), 1, fIn);//inStream->Read(&CodeHistorySize, sizeof(CodeHistorySize));
-        fread(&CodeHistoryPtr, sizeof(CodeHistoryPtr), 1, fIn);//inStream->Read(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
-        fread(&CodeHistoryMax, sizeof(CodeHistoryMax), 1, fIn);//inStream->Read(&CodeHistoryMax, sizeof(CodeHistoryMax));
-        bCodePrev->Enabled = (CodeHistoryPtr >= 0);
-        bCodeNext->Enabled = (CodeHistoryPtr < CodeHistoryMax);
-
-        CodeHistory.Length = CodeHistorySize;
-        for (n = 0; n < CodeHistorySize; n++)
-            fread(&CodeHistory[n], sizeof(PROCHISTORYREC), 1, fIn);//inStream->Read(&CodeHistory[n], sizeof(PROCHISTORYREC));
-
-        fread(&CurProcAdr, sizeof(CurProcAdr), 1, fIn);//inStream->Read(&CurProcAdr, sizeof(CurProcAdr));
-        fread(&topIdxC, sizeof(topIdxC), 1, fIn);//inStream->Read(&topIdxC, sizeof(topIdxC));
-
-        //Important variables
-        fread(&HInstanceVarAdr, sizeof(HInstanceVarAdr), 1, fIn);//inStream->Read(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
-        fread(&LastTls, sizeof(LastTls), 1, fIn);//inStream->Read(&LastTls, sizeof(LastTls));
-
-        fread(&Reserved, sizeof(Reserved), 1, fIn);//inStream->Read(&Reserved, sizeof(Reserved));
-        fread(&LastResStrNo, sizeof(LastResStrNo), 1, fIn);//inStream->Read(&LastResStrNo, sizeof(LastResStrNo));
-
-        fread(&CtdRegAdr, sizeof(CtdRegAdr), 1, fIn);//inStream->Read(&CtdRegAdr, sizeof(CtdRegAdr));
-
-        //UpdateVmtList
-        FillVmtList();
-        //UpdateCode
-        tsCodeView->Enabled = true;
-        miGoTo->Enabled = true;
-        miExploreAdr->Enabled = true;
-        miSwitchFlag->Enabled = cbMultipleSelection->Checked;
-        bEP->Enabled = true;
-        DWORD adr = CurProcAdr;
-        CurProcAdr = 0;
-        ShowCode(adr, 0, -1, topIdxC);
-        //UpdateStrings
-        tsStrings->Enabled = true;
-        miSearchString->Enabled = true;
-        ShowStrings(0);
-        //UpdateNames
-        tsNames->Enabled = true;
-        ShowNames(0);
-
-        Update();
-
-        //Class Viewer
-        //Total nodes num (for progress bar)
-        int nodesNum;
-        fread(&nodesNum, sizeof(nodesNum), 1, fIn);//inStream->Read(&nodesNum, sizeof(nodesNum));
-        if (nodesNum)
-        {
-            tvClassesFull->Items->BeginUpdate();
-            TTreeNode* root = tvClassesFull->Items->Add(0, "");
-            ReadNode(fIn, root, buf);//ReadNode(inStream, root, buf);
-            tvClassesFull->Items->EndUpdate();
-            ClassTreeDone = true;
-        }
-        //UpdateClassViewer
-        tsClassView->Enabled = true;
-        miViewClass->Enabled = true;
-        miSearchVMT->Enabled = true;
-        miCollapseAll->Enabled = true;
-        miEditClass->Enabled = true;
-
-        if (ClassTreeDone)
-        {
-            TTreeNode *root = tvClassesFull->Items->Item[0];
-            root->Expanded = true;
-            rgViewerMode->ItemIndex = 0;
-            rgViewerMode->Enabled = true;
-            tvClassesFull->BringToFront();
-        }
-        else
-        {
-            rgViewerMode->ItemIndex = 1;
-            rgViewerMode->Enabled = false;
-            tvClassesShort->BringToFront();
-        }
-        miClassTreeBuilder->Enabled = true;
-
-        //Just cheking
-        fread(&MaxBufLen, sizeof(MaxBufLen), 1, fIn);//inStream->Read(&MaxBufLen, sizeof(MaxBufLen));
-        fclose(fIn);
+    //SegmentList
+    inStream->Read(&num, sizeof(num));
+    for (n = 0; n < num; n++)
+    {
+        PSegmentInfo segInfo = new SegmentInfo;
+        inStream->Read(&segInfo->Start, sizeof(segInfo->Start));
+        inStream->Read(&segInfo->Size, sizeof(segInfo->Size));
+        inStream->Read(&segInfo->Flags, sizeof(segInfo->Flags));
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        segInfo->Name = String(buf, len);
+        SegmentList->Add((void*)segInfo);
     }
 
+    Image = new BYTE[TotalSize];
+    Code = Image + CodeStart;
+    Data = Image + DataStart;
+    DWORD Items = TotalSize;
+    BYTE* pImage = Image;
+
+    while (Items >= MAX_ITEMS)
+    {
+        inStream->Read(pImage, MAX_ITEMS);
+        pImage += MAX_ITEMS;
+        Items -= MAX_ITEMS;
+    }
+    if (Items) inStream->Read(pImage, Items);
+
+    Flags = new DWORD[TotalSize];
+    Items = TotalSize;
+    DWORD* pFlags = Flags;
+
+    while (Items >= MAX_ITEMS)
+    {
+        inStream->Read(pFlags, sizeof(DWORD)*MAX_ITEMS);
+        pFlags += MAX_ITEMS;
+        Items -= MAX_ITEMS;
+    }
+    if (Items) inStream->Read(pFlags, sizeof(DWORD)*Items);
+
+    Infos = new PInfoRec[TotalSize];
+    memset((void*)Infos, 0, sizeof(PInfoRec)*TotalSize);
+
+    inStream->Read(&infosCnt, sizeof(infosCnt));
+    BYTE kind;
+    for (n = 0; n < TotalSize; n++)
+    {
+        inStream->Read(&pos, sizeof(pos));
+        if (pos == -1) break;
+        inStream->Read(&kind, sizeof(kind));
+        recN = new InfoRec(pos, kind);
+        recN->Load(inStream, buf);
+    }
+    //BSSInfos
+    BSSInfos = new TStringList;
+    inStream->Read(&bssCnt, sizeof(bssCnt));
+    for (n = 0; n < bssCnt; n++)
+    {
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        String _adr = String(buf, len);
+        inStream->Read(&kind, sizeof(kind));
+        recN = new InfoRec(-1, kind);
+        recN->Load(inStream, buf);
+        BSSInfos->AddObject(_adr, (TObject*)recN);
+    }
+    BSSInfos->Sorted = true;
+
+    lbCXrefs->Enabled = true;
+
+    //Units
+    inStream->Read(&num, sizeof(num));
+
+    UnitsNum = num;
+    for (n = 0; n < UnitsNum; n++)
+    {
+        PUnitRec recU = new UnitRec;
+        inStream->Read(&recU->trivial, sizeof(recU->trivial));
+        inStream->Read(&recU->trivialIni, sizeof(recU->trivialIni));
+        inStream->Read(&recU->trivialFin, sizeof(recU->trivialFin));
+        inStream->Read(&recU->kb, sizeof(recU->kb));
+        inStream->Read(&recU->fromAdr, sizeof(recU->fromAdr));
+        inStream->Read(&recU->toAdr, sizeof(recU->toAdr));
+        inStream->Read(&recU->finadr, sizeof(recU->finadr));
+        inStream->Read(&recU->finSize, sizeof(recU->finSize));
+        inStream->Read(&recU->iniadr, sizeof(recU->iniadr));
+        inStream->Read(&recU->iniSize, sizeof(recU->iniSize));
+        recU->matchedPercent = 0.0;
+        inStream->Read(&recU->iniOrder, sizeof(recU->iniOrder));
+        recU->names = new TStringList;
+        int namesNum = 0;
+        inStream->Read(&namesNum, sizeof(namesNum));
+        for (u = 0; u < namesNum; u++)
+        {
+            inStream->Read(&len, sizeof(len));
+            inStream->Read(buf, len);
+            SetUnitName(recU, String(buf, len));
+        }
+        Units->Add((void*)recU);
+    }
+    UnitSortField = 0;
+    CurUnitAdr = 0;
+    topIdxU = 0; itemIdxU = -1;
+    topIdxI = 0; itemIdxI = -1;
+    
+    if (UnitsNum)
+    {
+        inStream->Read(&UnitSortField, sizeof(UnitSortField));
+        inStream->Read(&CurUnitAdr, sizeof(CurUnitAdr));
+        inStream->Read(&topIdxU, sizeof(topIdxU));
+        inStream->Read(&itemIdxU, sizeof(itemIdxU));
+        //UnitItems
+        if (CurUnitAdr)
+        {
+      	  	inStream->Read(&topIdxI, sizeof(topIdxI));
+        	inStream->Read(&itemIdxI, sizeof(itemIdxI));
+        }
+    }
+
+    tsUnits->Enabled = true;
+    switch (UnitSortField)
+    {
+    case 0:
+        miSortUnitsByAdr->Checked = true;
+        miSortUnitsByOrd->Checked = false;
+        miSortUnitsByNam->Checked = false;
+        break;
+    case 1:
+        miSortUnitsByAdr->Checked = false;
+        miSortUnitsByOrd->Checked = true;
+        miSortUnitsByNam->Checked = false;
+        break;
+    case 2:
+        miSortUnitsByAdr->Checked = false;
+        miSortUnitsByOrd->Checked = false;
+        miSortUnitsByNam->Checked = true;
+        break;
+    }
+    ShowUnits(true);
+    lbUnits->TopIndex = topIdxU;
+    lbUnits->ItemIndex = itemIdxU;
+
+    ShowUnitItems(GetUnit(CurUnitAdr), topIdxI, itemIdxI);
+
+    miRenameUnit->Enabled = true;
+    miSearchUnit->Enabled = true;
+    miSortUnits->Enabled = true;
+    miCopyList->Enabled = true;
+
+    miEditFunctionC->Enabled = true;
+    miEditFunctionI->Enabled = true;
+    miFuzzyScanKB->Enabled = true;
+    miSearchItem->Enabled = true;
+
+    //Types
+    inStream->Read(&num, sizeof(num));
+    for (n = 0; n < num; n++)
+    {
+        PTypeRec recT = new TypeRec;
+        inStream->Read(&recT->kind, sizeof(recT->kind));
+        inStream->Read(&recT->adr, sizeof(recT->adr));
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        recT->name = String(buf, len);
+        OwnTypeList->Add((void*)recT);
+    }
+    RTTISortField = 0;
+    if (num) inStream->Read(&RTTISortField, sizeof(RTTISortField));
+    //UpdateRTTIs
+    tsRTTIs->Enabled = true;
+    miSearchRTTI->Enabled = true;
+    miSortRTTI->Enabled = true;
+
+    switch (RTTISortField)
+    {
+    case 0:
+        miSortRTTIsByAdr->Checked = true;
+        miSortRTTIsByKnd->Checked = false;
+        miSortRTTIsByNam->Checked = false;
+        break;
+    case 1:
+        miSortRTTIsByAdr->Checked = false;
+        miSortRTTIsByKnd->Checked = true;
+        miSortRTTIsByNam->Checked = false;
+        break;
+    case 2:
+        miSortRTTIsByAdr->Checked = false;
+        miSortRTTIsByKnd->Checked = false;
+        miSortRTTIsByNam->Checked = true;
+        break;
+    }
+    ShowRTTIs();
+
+    //Forms
+    inStream->Read(&num, sizeof(num));
+    for (n = 0; n < num; n++)
+    {
+        TDfm* dfm = new TDfm;
+        //Flags
+        inStream->Read(&dfm->Flags, sizeof(dfm->Flags));
+        //ResName
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        dfm->ResName = String(buf, len);
+        //Name
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        dfm->Name = String(buf, len);
+        //ClassName
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        dfm->ClassName = String(buf, len);
+        //MemStream
+        inStream->Read(&size, sizeof(size));
+        dfm->MemStream->Size = size;
+        while (size >= 4096)
+        {
+            inStream->Read(buf, 4096);
+            dfm->MemStream->Write(buf, 4096);
+            size -= 4096;
+        }
+        if (size)
+        {
+            inStream->Read(buf, size);
+            dfm->MemStream->Write(buf, size);
+        }
+        //Events
+        dfm->Events = new TList;
+        inStream->Read(&evnum, sizeof(evnum));
+        for (m = 0; m < evnum; m++)
+        {
+            PEventInfo eInfo = new EventInfo;
+            //EventName
+            inStream->Read(&len, sizeof(len));
+            inStream->Read(buf, len);
+            eInfo->EventName = String(buf, len);
+            //ProcName
+            inStream->Read(&len, sizeof(len));
+            inStream->Read(buf, len);
+            eInfo->ProcName = String(buf, len);
+            dfm->Events->Add((void*)eInfo);
+        }
+        //Components
+        inStream->Read(&cnum, sizeof(cnum));
+        if (cnum)
+        {
+        	dfm->Components = new TList;
+            for (m = 0; m < cnum; m++)
+            {
+                PComponentInfo cInfo = new ComponentInfo;
+                //Inherited
+                inStream->Read(&cInfo->Inherit, sizeof(cInfo->Inherit));
+                //HasGlyph
+                inStream->Read(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
+                //Name
+                inStream->Read(&len, sizeof(len));
+                inStream->Read(buf, len);
+                cInfo->Name = String(buf, len);
+                //ClassName
+                inStream->Read(&len, sizeof(len));
+                inStream->Read(buf, len);
+                cInfo->ClassName = String(buf, len);
+                //Events
+                cInfo->Events = new TList;
+                inStream->Read(&evnum, sizeof(evnum));
+                for (k = 0; k < evnum; k++)
+                {
+                    PEventInfo eInfo = new EventInfo;
+                    //EventName
+                    inStream->Read(&len, sizeof(len));
+                    inStream->Read(buf, len);
+                    eInfo->EventName = String(buf, len);
+                    //ProcName
+                    inStream->Read(&len, sizeof(len));
+                    inStream->Read(buf, len);
+                    eInfo->ProcName = String(buf, len);
+                    cInfo->Events->Add((void*)eInfo);
+                }
+                dfm->Components->Add((void*)cInfo);
+            }
+        }
+        ResInfo->FormList->Add((void*)dfm);
+    }
+    //UpdateForms
+    ResInfo->ShowResources(lbForms);
+    //Aliases
+    inStream->Read(&num, sizeof(num));
+    for (n = 0; n < num; n++)
+    {
+        inStream->Read(&len, sizeof(len));
+        inStream->Read(buf, len);
+        ResInfo->Aliases->Add(String(buf, len));
+    }
+    InitAliases(false);
+    tsForms->Enabled = (lbForms->Items->Count > 0);
+
+    //CodeHistory
+    inStream->Read(&CodeHistorySize, sizeof(CodeHistorySize));
+    inStream->Read(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
+    inStream->Read(&CodeHistoryMax, sizeof(CodeHistoryMax));
+    bCodePrev->Enabled = (CodeHistoryPtr >= 0);
+    bCodeNext->Enabled = (CodeHistoryPtr < CodeHistoryMax);
+
+    CodeHistory.Length = CodeHistorySize;
+    for (n = 0; n < CodeHistorySize; n++)
+        inStream->Read(&CodeHistory[n], sizeof(PROCHISTORYREC));
+
+    inStream->Read(&CurProcAdr, sizeof(CurProcAdr));
+    inStream->Read(&topIdxC, sizeof(topIdxC));
+
+    //Important variables
+    inStream->Read(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
+    inStream->Read(&LastTls, sizeof(LastTls));
+
+    inStream->Read(&Reserved, sizeof(Reserved));
+    inStream->Read(&LastResStrNo, sizeof(LastResStrNo));
+
+	inStream->Read(&CtdRegAdr, sizeof(CtdRegAdr));
+
+    //UpdateVmtList
+    FillVmtList();
+    //UpdateCode
+    tsCodeView->Enabled = true;
+    miGoTo->Enabled = true;
+    miExploreAdr->Enabled = true;
+    miSwitchFlag->Enabled = cbMultipleSelection->Checked;
+    bEP->Enabled = true;
+    DWORD adr = CurProcAdr;
+    CurProcAdr = 0;
+    ShowCode(adr, 0, -1, topIdxC);
+    //UpdateStrings
+    tsStrings->Enabled = true;
+    miSearchString->Enabled = true;
+    ShowStrings(0);
+    //UpdateNames
+    tsNames->Enabled = true;
+    ShowNames(0);
+
+    Update();
+
+    //Class Viewer
+    //Total nodes num (for progress bar)
+    int nodesNum;
+    inStream->Read(&nodesNum, sizeof(nodesNum));
+    if (nodesNum)
+    {
+        tvClassesFull->Items->BeginUpdate();
+        TTreeNode* root = tvClassesFull->Items->Add(0, "");
+        ReadNode(inStream, root, buf);
+        tvClassesFull->Items->EndUpdate();
+        ClassTreeDone = true;
+    }
+    //UpdateClassViewer
+    tsClassView->Enabled = true;
+    miViewClass->Enabled = true;
+    miSearchVMT->Enabled = true;
+    miCollapseAll->Enabled = true;
+    miEditClass->Enabled = true;
+
+    if (ClassTreeDone)
+    {
+        TTreeNode *root = tvClassesFull->Items->Item[0];
+        root->Expanded = true;
+        rgViewerMode->ItemIndex = 0;
+        rgViewerMode->Enabled = true;
+        tvClassesFull->BringToFront();
+    }
+    else
+    {
+        rgViewerMode->ItemIndex = 1;
+        rgViewerMode->Enabled = false;
+        tvClassesShort->BringToFront();
+    }
+    miClassTreeBuilder->Enabled = true;
+
+    //Just cheking
+    inStream->Read(&MaxBufLen, sizeof(MaxBufLen));
+
     if (buf) delete[] buf;
-    //delete inStream;
+    delete inStream;
 
     ProjectLoaded = true;
     ProjectModified = false;
@@ -9555,6 +9525,7 @@ void __fastcall TFMain_11011981::OpenProject(String FileName)
     miHex2Double->Enabled = true;
 
     WrkDir = ExtractFileDir(FileName);
+    MapGenerator();
     Screen->Cursor = crDefault;
 }
 //---------------------------------------------------------------------------
@@ -9651,22 +9622,21 @@ void __fastcall TFMain_11011981::miSaveProjectClick(TObject *Sender)
     if (SaveDlg->Execute()) SaveProject(SaveDlg->FileName);
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::WriteNode(FILE* f, TTreeNode* node)
-//void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
+void __fastcall TFMain_11011981::WriteNode(TStream* stream, TTreeNode* node)
 {
     //Count
     int itemsCount = node->Count;
-    fwrite(&itemsCount, sizeof(itemsCount), 1, f);//stream->Write(&itemsCount, sizeof(itemsCount));
+    stream->Write(&itemsCount, sizeof(itemsCount));
     FProgressBar->pb->StepIt();
 
     //Text
     int len = node->Text.Length(); if (len > MaxBufLen) MaxBufLen = len;
-    fwrite(&len, sizeof(len), 1, f);//stream->Write(&len, sizeof(len));
-    fwrite(node->Text.c_str(), len, 1, f);//stream->Write(node->Text.c_str(), len);
+    stream->Write(&len, sizeof(len));
+    stream->Write(node->Text.c_str(), len);
 
     for (int n = 0; n < itemsCount; n++)
     {
-        WriteNode(f, node->Item[n]);//WriteNode(stream, node->Item[n]);
+        WriteNode(stream, node->Item[n]);
     }
     Application->ProcessMessages();
 }
@@ -9674,7 +9644,7 @@ void __fastcall TFMain_11011981::WriteNode(FILE* f, TTreeNode* node)
 void __fastcall TFMain_11011981::SaveProject(String FileName)
 {
     int             n, m, k, len, num, cnum, evnum, size, pos, res, infosCnt, topIdx, itemIdx;
-    FILE*           outF;//TMemoryStream*    outStream = 0;
+    TMemoryStream*    outStream = 0;
     BYTE            buf[4096];
 
     if (FileExists(FileName))
@@ -9687,342 +9657,338 @@ void __fastcall TFMain_11011981::SaveProject(String FileName)
 
     try
     {
-        outF = fopen(IDPFile.c_str(), "wb+");//outStream = new TMemoryStream();
-        if (outF)
+        outStream = new TMemoryStream();
+
+        FProgressBar->Show();
+
+        char* magic = "IDR proj v.3";
+        outStream->Write(magic, 12);
+        int _ver = DelphiVersion;
+        if (UserKnowledgeBase) _ver |= USER_KNOWLEDGEBASE;
+        if (SourceIsLibrary) _ver |= SOURCE_LIBRARY;
+        outStream->Write(&_ver, sizeof(_ver));
+
+        outStream->Write(&EP, sizeof(EP));
+        outStream->Write(&ImageBase, sizeof(ImageBase));
+        outStream->Write(&ImageSize, sizeof(ImageSize));
+        outStream->Write(&TotalSize, sizeof(TotalSize));
+        outStream->Write(&CodeBase, sizeof(CodeBase));
+        outStream->Write(&CodeSize, sizeof(CodeSize));
+        outStream->Write(&CodeStart, sizeof(CodeStart));
+
+        outStream->Write(&DataBase, sizeof(DataBase));
+        outStream->Write(&DataSize, sizeof(DataSize));
+        outStream->Write(&DataStart, sizeof(DataStart));
+        //SegmentList
+        num = SegmentList->Count;
+        outStream->Write(&num, sizeof(num));
+        for (n = 0; n < num; n++)
         {
+            PSegmentInfo segInfo = (PSegmentInfo)SegmentList->Items[n];
+            outStream->Write(&segInfo->Start, sizeof(segInfo->Start));
+            outStream->Write(&segInfo->Size, sizeof(segInfo->Size));
+            outStream->Write(&segInfo->Flags, sizeof(segInfo->Flags));
+            len = segInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(segInfo->Name.c_str(), len);
+        }
 
-            FProgressBar->Show();
+        DWORD Items = TotalSize;
+        BYTE *pImage = Image;
+        FProgressBar->StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+        while (Items >= MAX_ITEMS)
+        {
+            FProgressBar->pb->StepIt();
+            outStream->Write(pImage, MAX_ITEMS);
+            pImage += MAX_ITEMS;
+            Items -= MAX_ITEMS;
+        }
+        if (Items) outStream->Write(pImage, Items);
 
-            char* magic = "IDR proj v.3";
-            fwrite(magic, 12, 1, outF);//outStream->Write(magic, 12);
-            int _ver = DelphiVersion;
-            if (UserKnowledgeBase) _ver |= USER_KNOWLEDGEBASE;
-            if (SourceIsLibrary) _ver |= SOURCE_LIBRARY;
-            fwrite(&_ver, sizeof(_ver), 1, outF);//outStream->Write(&_ver, sizeof(_ver));
+        Items = TotalSize;
+        DWORD *pFlags = Flags;
+        FProgressBar->StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
+        while (Items >= MAX_ITEMS)
+        {
+            FProgressBar->pb->StepIt();
+            outStream->Write(pFlags, sizeof(DWORD)*MAX_ITEMS);
+            pFlags += MAX_ITEMS;
+            Items -= MAX_ITEMS;
+        }
+        if (Items) outStream->Write(pFlags, sizeof(DWORD)*Items);
 
-            fwrite(&EP, sizeof(EP), 1, outF);//outStream->Write(&EP, sizeof(EP));
-            fwrite(&ImageBase, sizeof(ImageBase), 1, outF);//outStream->Write(&ImageBase, sizeof(ImageBase));
-            fwrite(&ImageSize, sizeof(ImageSize), 1, outF);//outStream->Write(&ImageSize, sizeof(ImageSize));
-            fwrite(&TotalSize, sizeof(TotalSize), 1, outF);//outStream->Write(&TotalSize, sizeof(TotalSize));
-            fwrite(&CodeBase, sizeof(CodeBase), 1, outF);//outStream->Write(&CodeBase, sizeof(CodeBase));
-            fwrite(&CodeSize, sizeof(CodeSize), 1, outF);//outStream->Write(&CodeSize, sizeof(CodeSize));
-            fwrite(&CodeStart, sizeof(CodeStart), 1, outF);//outStream->Write(&CodeStart, sizeof(CodeStart));
+        infosCnt = 0;
+        for (n = 0; n < TotalSize; n++)
+        {
+            PInfoRec recN = GetInfoRec(Pos2Adr(n));
+            if (recN) infosCnt++;
+        }
+        outStream->Write(&infosCnt, sizeof(infosCnt));
 
-            fwrite(&DataBase, sizeof(DataBase), 1, outF);//outStream->Write(&DataBase, sizeof(DataBase));
-            fwrite(&DataSize, sizeof(DataSize), 1, outF);//outStream->Write(&DataSize, sizeof(DataSize));
-            fwrite(&DataStart, sizeof(DataStart), 1, outF);//outStream->Write(&DataStart, sizeof(DataStart));
-            //SegmentList
-            num = SegmentList->Count;
-            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            for (n = 0; n < num; n++)
-            {
-                PSegmentInfo segInfo = (PSegmentInfo)SegmentList->Items[n];
-                fwrite(&segInfo->Start, sizeof(segInfo->Start), 1, outF);//outStream->Write(&segInfo->Start, sizeof(segInfo->Start));
-                fwrite(&segInfo->Size, sizeof(segInfo->Size), 1, outF);//outStream->Write(&segInfo->Size, sizeof(segInfo->Size));
-                fwrite(&segInfo->Flags, sizeof(segInfo->Flags), 1, outF);//outStream->Write(&segInfo->Flags, sizeof(segInfo->Flags));
-                len = segInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(segInfo->Name.c_str(), len, 1, outF);//outStream->Write(segInfo->Name.c_str(), len);
-            }
-
-            DWORD Items = TotalSize;
-            BYTE *pImage = Image;
-            FProgressBar->StartProgress("Writing Image...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
-            while (Items >= MAX_ITEMS)
-            {
-                FProgressBar->pb->StepIt();
-                fwrite(pImage, MAX_ITEMS, 1, outF);//outStream->Write(pImage, MAX_ITEMS);
-                pImage += MAX_ITEMS;
-                Items -= MAX_ITEMS;
-            }
-            if (Items) fwrite(pImage, Items, 1, outF);//outStream->Write(pImage, Items);
-
-            Items = TotalSize;
-            DWORD *pFlags = Flags;
-            FProgressBar->StartProgress("Writing Flags...", "", (Items + MAX_ITEMS - 1)/MAX_ITEMS);
-            while (Items >= MAX_ITEMS)
-            {
-                FProgressBar->pb->StepIt();
-                fwrite(pFlags, sizeof(DWORD), MAX_ITEMS, outF);//outStream->Write(pFlags, sizeof(DWORD)*MAX_ITEMS);
-                pFlags += MAX_ITEMS;
-                Items -= MAX_ITEMS;
-            }
-            if (Items) fwrite(pFlags, sizeof(DWORD), Items, outF);//outStream->Write(pFlags, sizeof(DWORD)*Items);
-
-            infosCnt = 0;
+        FProgressBar->StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
+        MaxBufLen = 0;
+        BYTE kind;
+        try
+        {
             for (n = 0; n < TotalSize; n++)
             {
+                if ((n & 4095) == 0)
+                {
+                    FProgressBar->pb->StepIt();
+                    Application->ProcessMessages();
+                }
+
                 PInfoRec recN = GetInfoRec(Pos2Adr(n));
-                if (recN) infosCnt++;
-            }
-            fwrite(&infosCnt, sizeof(infosCnt), 1, outF);//outStream->Write(&infosCnt, sizeof(infosCnt));
-
-            FProgressBar->StartProgress("Writing Infos Objects (number = " + String(infosCnt) + ")...", "", TotalSize / 4096);
-            MaxBufLen = 0;
-            BYTE kind;
-            try
-            {
-                for (n = 0; n < TotalSize; n++)
+                if (recN)
                 {
-                    if ((n & 4095) == 0)
-                    {
-                        FProgressBar->pb->StepIt();
-                        Application->ProcessMessages();
-                    }
-
-                    PInfoRec recN = GetInfoRec(Pos2Adr(n));
-                    if (recN)
-                    {
-                        //Position
-                        pos = n;
-                        fwrite(&pos, sizeof(pos), 1, outF);//outStream->Write(&pos, sizeof(pos));
-                        kind = recN->kind;
-                        fwrite(&kind, sizeof(kind), 1, outF);//outStream->Write(&kind, sizeof(kind));
-                        recN->Save(outF);//recN->Save(outStream);
-                    }
+                    //Position
+                    pos = n;
+                    outStream->Write(&pos, sizeof(pos));
+                    kind = recN->kind;
+                    outStream->Write(&kind, sizeof(kind));
+                    recN->Save(outStream);
                 }
             }
-            catch (Exception &exception)
-            {
-                ShowMessage("Error at " + Val2Str8(Pos2Adr(n)));
-            }
-            //Last position = -1 -> end of items
-            pos = -1; fwrite(&pos, sizeof(pos), 1, outF);//outStream->Write(&pos, sizeof(pos));
+        }
+        catch (Exception &exception)
+        {
+            ShowMessage("Error at " + Val2Str8(Pos2Adr(n)));
+        }
+        //Last position = -1 -> end of items
+        pos = -1; outStream->Write(&pos, sizeof(pos));
 
-            //BSSInfos
-            String _adr;
-            int bssCnt = BSSInfos->Count;
-            fwrite(&bssCnt, sizeof(bssCnt), 1, outF);//outStream->Write(&bssCnt, sizeof(bssCnt));
-            for (n = 0; n < bssCnt; n++)
-            {
-                _adr = BSSInfos->Strings[n];
-                len = _adr.Length();  if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(_adr.c_str(), len, 1, outF);//outStream->Write(_adr.c_str(), len);
-                PInfoRec recN = (PInfoRec)BSSInfos->Objects[n];
-                kind = recN->kind;
-                fwrite(&kind, sizeof(kind), 1, outF);//outStream->Write(&kind, sizeof(kind));
-                recN->Save(outF);//recN->Save(outStream);
-            }
+        //BSSInfos
+        String _adr;
+        int bssCnt = BSSInfos->Count;
+        outStream->Write(&bssCnt, sizeof(bssCnt));
+        for (n = 0; n < bssCnt; n++)
+        {
+            _adr = BSSInfos->Strings[n];
+            len = _adr.Length();  if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(_adr.c_str(), len);
+            PInfoRec recN = (PInfoRec)BSSInfos->Objects[n];
+            kind = recN->kind;
+            outStream->Write(&kind, sizeof(kind));
+            recN->Save(outStream);
+        }
 
-            //Units
-            num = UnitsNum;
-            FProgressBar->StartProgress("Writing Units (number = "+String(num)+")...", "", num);
-            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            for (n = 0; n < num; n++)
+        //Units
+        num = UnitsNum;
+        FProgressBar->StartProgress("Writing Units (number = "+String(num)+")...", "", num);
+        outStream->Write(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            FProgressBar->pb->StepIt();
+            Application->ProcessMessages();
+            PUnitRec recU = (PUnitRec)Units->Items[n];
+            outStream->Write(&recU->trivial, sizeof(recU->trivial));
+            outStream->Write(&recU->trivialIni, sizeof(recU->trivialIni));
+            outStream->Write(&recU->trivialFin, sizeof(recU->trivialFin));
+            outStream->Write(&recU->kb, sizeof(recU->kb));
+            outStream->Write(&recU->fromAdr, sizeof(recU->fromAdr));
+            outStream->Write(&recU->toAdr, sizeof(recU->toAdr));
+            outStream->Write(&recU->finadr, sizeof(recU->finadr));
+            outStream->Write(&recU->finSize, sizeof(recU->finSize));
+            outStream->Write(&recU->iniadr, sizeof(recU->iniadr));
+            outStream->Write(&recU->iniSize, sizeof(recU->iniSize));
+            outStream->Write(&recU->iniOrder, sizeof(recU->iniOrder));
+            int namesNum = recU->names->Count;
+            outStream->Write(&namesNum, sizeof(namesNum));
+            for (int u = 0; u < namesNum; u++)
             {
-                FProgressBar->pb->StepIt();
-                Application->ProcessMessages();
-                PUnitRec recU = (PUnitRec)Units->Items[n];
-                fwrite(&recU->trivial, sizeof(recU->trivial), 1, outF);//outStream->Write(&recU->trivial, sizeof(recU->trivial));
-                fwrite(&recU->trivialIni, sizeof(recU->trivialIni), 1, outF);//outStream->Write(&recU->trivialIni, sizeof(recU->trivialIni));
-                fwrite(&recU->trivialFin, sizeof(recU->trivialFin), 1, outF);//outStream->Write(&recU->trivialFin, sizeof(recU->trivialFin));
-                fwrite(&recU->kb, sizeof(recU->kb), 1, outF);//outStream->Write(&recU->kb, sizeof(recU->kb));
-                fwrite(&recU->fromAdr, sizeof(recU->fromAdr), 1, outF);//outStream->Write(&recU->fromAdr, sizeof(recU->fromAdr));
-                fwrite(&recU->toAdr, sizeof(recU->toAdr), 1, outF);//outStream->Write(&recU->toAdr, sizeof(recU->toAdr));
-                fwrite(&recU->finadr, sizeof(recU->finadr), 1, outF);//outStream->Write(&recU->finadr, sizeof(recU->finadr));
-                fwrite(&recU->finSize, sizeof(recU->finSize), 1, outF);//outStream->Write(&recU->finSize, sizeof(recU->finSize));
-                fwrite(&recU->iniadr, sizeof(recU->iniadr), 1, outF);//outStream->Write(&recU->iniadr, sizeof(recU->iniadr));
-                fwrite(&recU->iniSize, sizeof(recU->iniSize), 1, outF);//outStream->Write(&recU->iniSize, sizeof(recU->iniSize));
-                fwrite(&recU->iniOrder, sizeof(recU->iniOrder), 1, outF);//outStream->Write(&recU->iniOrder, sizeof(recU->iniOrder));
-                int namesNum = recU->names->Count;
-                fwrite(&namesNum, sizeof(namesNum), 1, outF);//outStream->Write(&namesNum, sizeof(namesNum));
-                for (int u = 0; u < namesNum; u++)
-                {
-                    len = recU->names->Strings[u].Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                    fwrite(recU->names->Strings[u].c_str(), len, 1, outF);//outStream->Write(recU->names->Strings[u].c_str(), len);
-                }
+                len = recU->names->Strings[u].Length(); if (len > MaxBufLen) MaxBufLen = len;
+                outStream->Write(&len, sizeof(len));
+                outStream->Write(recU->names->Strings[u].c_str(), len);
             }
-            if (num)
+        }
+        if (num)
+        {
+            outStream->Write(&UnitSortField, sizeof(UnitSortField));
+            outStream->Write(&CurUnitAdr, sizeof(CurUnitAdr));
+            topIdx = lbUnits->TopIndex;
+            outStream->Write(&topIdx, sizeof(topIdx));
+            itemIdx = lbUnits->ItemIndex;
+            outStream->Write(&itemIdx, sizeof(itemIdx));
+            //UnitItems
+            if (CurUnitAdr)
             {
-                fwrite(&UnitSortField, sizeof(UnitSortField), 1, outF);//outStream->Write(&UnitSortField, sizeof(UnitSortField));
-                fwrite(&CurUnitAdr, sizeof(CurUnitAdr), 1, outF);//outStream->Write(&CurUnitAdr, sizeof(CurUnitAdr));
-                topIdx = lbUnits->TopIndex;
-                fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
-                itemIdx = lbUnits->ItemIndex;
-                fwrite(&itemIdx, sizeof(itemIdx), 1, outF);//outStream->Write(&itemIdx, sizeof(itemIdx));
-                //UnitItems
-                if (CurUnitAdr)
-                {
-                    topIdx = lbUnitItems->TopIndex;
-                    fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
-                    itemIdx = lbUnitItems->ItemIndex;
-                    fwrite(&itemIdx, sizeof(itemIdx), 1, outF);//outStream->Write(&itemIdx, sizeof(itemIdx));
-                }
+            	topIdx = lbUnitItems->TopIndex;
+            	outStream->Write(&topIdx, sizeof(topIdx));
+                itemIdx = lbUnitItems->ItemIndex;
+                outStream->Write(&itemIdx, sizeof(itemIdx));
             }
+        }
 
-            //Types
-            num = OwnTypeList->Count;
-            FProgressBar->StartProgress("Writing Types (number = "+String(num)+")...", "", num);
-            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            for (n = 0; n < num; n++)
-            {
-                FProgressBar->pb->StepIt();
-                Application->ProcessMessages();
-                PTypeRec recT = (PTypeRec)OwnTypeList->Items[n];
-                fwrite(&recT->kind, sizeof(recT->kind), 1, outF);//outStream->Write(&recT->kind, sizeof(recT->kind));
-                fwrite(&recT->adr, sizeof(recT->adr), 1, outF);//outStream->Write(&recT->adr, sizeof(recT->adr));
-                len = recT->name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(recT->name.c_str(), len, 1, outF);//outStream->Write(recT->name.c_str(), len);
-            }
-            if (num) fwrite(&RTTISortField, sizeof(RTTISortField), 1, outF);//outStream->Write(&RTTISortField, sizeof(RTTISortField));
+        //Types
+        num = OwnTypeList->Count;
+        FProgressBar->StartProgress("Writing Types (number = "+String(num)+")...", "", num);
+        outStream->Write(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            FProgressBar->pb->StepIt();
+            Application->ProcessMessages();
+            PTypeRec recT = (PTypeRec)OwnTypeList->Items[n];
+            outStream->Write(&recT->kind, sizeof(recT->kind));
+            outStream->Write(&recT->adr, sizeof(recT->adr));
+            len = recT->name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(recT->name.c_str(), len);
+        }
+        if (num) outStream->Write(&RTTISortField, sizeof(RTTISortField));
 
-            //Forms
-            num = ResInfo->FormList->Count;
-            FProgressBar->StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
-            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            for (n = 0; n < num; n++)
+        //Forms
+        num = ResInfo->FormList->Count;
+        FProgressBar->StartProgress("Writing Forms (number = "+String(num)+")...", "", num);
+        outStream->Write(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            FProgressBar->pb->StepIt();
+            Application->ProcessMessages();
+            TDfm* dfm = (TDfm*)ResInfo->FormList->Items[n];
+            //Flags
+            outStream->Write(&dfm->Flags, sizeof(dfm->Flags));
+            //ResName
+            len = dfm->ResName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(dfm->ResName.c_str(), len);
+            //Name
+            len = dfm->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(dfm->Name.c_str(), len);
+            //ClassName
+            len = dfm->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(dfm->ClassName.c_str(), len);
+            //MemStream
+            size = dfm->MemStream->Size; if (4096 > MaxBufLen) MaxBufLen = 4096;
+            outStream->Write(&size, sizeof(size));
+            dfm->MemStream->Seek(0, soFromBeginning);
+            while (size >= 4096)
             {
-                FProgressBar->pb->StepIt();
-                Application->ProcessMessages();
-                TDfm* dfm = (TDfm*)ResInfo->FormList->Items[n];
-                //Flags
-                fwrite(&dfm->Flags, sizeof(dfm->Flags), 1, outF);//outStream->Write(&dfm->Flags, sizeof(dfm->Flags));
-                //ResName
-                len = dfm->ResName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(dfm->ResName.c_str(), len, 1, outF);//outStream->Write(dfm->ResName.c_str(), len);
+                dfm->MemStream->Read(buf, 4096);
+                outStream->Write(buf, 4096);
+                size -= 4096;
+            }
+            if (size)
+            {
+                dfm->MemStream->Read(buf, size);
+                outStream->Write(buf, size);
+            }
+            //Events
+            evnum = (dfm->Events) ? dfm->Events->Count : 0;
+            outStream->Write(&evnum, sizeof(evnum));
+            for (m = 0; m < evnum; m++)
+            {
+            	PEventInfo eInfo = (PEventInfo)dfm->Events->Items[m];
+                //EventName
+                len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                outStream->Write(&len, sizeof(len));
+                outStream->Write(eInfo->EventName.c_str(), len);
+                //ProcName
+                len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                outStream->Write(&len, sizeof(len));
+                outStream->Write(eInfo->ProcName.c_str(), len);
+            }
+            //Components
+            cnum = (dfm->Components) ? dfm->Components->Count : 0;
+            outStream->Write(&cnum, sizeof(cnum));
+            for (m = 0; m < cnum; m++)
+            {
+                PComponentInfo cInfo = (PComponentInfo)dfm->Components->Items[m];
+                //Inherited
+                outStream->Write(&cInfo->Inherit, sizeof(cInfo->Inherit));
+                //HasGlyph
+                outStream->Write(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
                 //Name
-                len = dfm->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(dfm->Name.c_str(), len, 1, outF);//outStream->Write(dfm->Name.c_str(), len);
+                len = cInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                outStream->Write(&len, sizeof(len));
+                outStream->Write(cInfo->Name.c_str(), len);
                 //ClassName
-                len = dfm->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(dfm->ClassName.c_str(), len, 1, outF);//outStream->Write(dfm->ClassName.c_str(), len);
-                //MemStream
-                size = dfm->MemStream->Size; if (4096 > MaxBufLen) MaxBufLen = 4096;
-                fwrite(&size, sizeof(size), 1, outF);//outStream->Write(&size, sizeof(size));
-                dfm->MemStream->Seek(0, soFromBeginning);
-                while (size >= 4096)
-                {
-                    dfm->MemStream->Read(buf, 4096);
-                    fwrite(buf, 4096, 1, outF);//outStream->Write(buf, 4096);
-                    size -= 4096;
-                }
-                if (size)
-                {
-                    dfm->MemStream->Read(buf, size);
-                    fwrite(buf, size, 1, outF);//outStream->Write(buf, size);
-                }
+                len = cInfo->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
+                outStream->Write(&len, sizeof(len));
+                outStream->Write(cInfo->ClassName.c_str(), len);
                 //Events
-                evnum = (dfm->Events) ? dfm->Events->Count : 0;
-                fwrite(&evnum, sizeof(evnum), 1, outF);//outStream->Write(&evnum, sizeof(evnum));
-                for (m = 0; m < evnum; m++)
+                evnum = (cInfo->Events) ? cInfo->Events->Count : 0;
+                outStream->Write(&evnum, sizeof(evnum));
+                for (k = 0; k < evnum; k++)
                 {
-                    PEventInfo eInfo = (PEventInfo)dfm->Events->Items[m];
+                    PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[k];
                     //EventName
                     len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                    fwrite(eInfo->EventName.c_str(), len, 1, outF);//outStream->Write(eInfo->EventName.c_str(), len);
+                    outStream->Write(&len, sizeof(len));
+                    outStream->Write(eInfo->EventName.c_str(), len);
                     //ProcName
                     len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                    fwrite(eInfo->ProcName.c_str(), len, 1, outF);//outStream->Write(eInfo->ProcName.c_str(), len);
-                }
-                //Components
-                cnum = (dfm->Components) ? dfm->Components->Count : 0;
-                fwrite(&cnum, sizeof(cnum), 1, outF);//outStream->Write(&cnum, sizeof(cnum));
-                for (m = 0; m < cnum; m++)
-                {
-                    PComponentInfo cInfo = (PComponentInfo)dfm->Components->Items[m];
-                    //Inherited
-                    fwrite(&cInfo->Inherit, sizeof(cInfo->Inherit), 1, outF);//outStream->Write(&cInfo->Inherit, sizeof(cInfo->Inherit));
-                    //HasGlyph
-                    fwrite(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph), 1, outF);//outStream->Write(&cInfo->HasGlyph, sizeof(cInfo->HasGlyph));
-                    //Name
-                    len = cInfo->Name.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                    fwrite(cInfo->Name.c_str(), len, 1, outF);//outStream->Write(cInfo->Name.c_str(), len);
-                    //ClassName
-                    len = cInfo->ClassName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                    fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                    fwrite(cInfo->ClassName.c_str(), len, 1, outF);//outStream->Write(cInfo->ClassName.c_str(), len);
-                    //Events
-                    evnum = (cInfo->Events) ? cInfo->Events->Count : 0;
-                    fwrite(&evnum, sizeof(evnum), 1, outF);//outStream->Write(&evnum, sizeof(evnum));
-                    for (k = 0; k < evnum; k++)
-                    {
-                        PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[k];
-                        //EventName
-                        len = eInfo->EventName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                        fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                        fwrite(eInfo->EventName.c_str(), len, 1, outF);//outStream->Write(eInfo->EventName.c_str(), len);
-                        //ProcName
-                        len = eInfo->ProcName.Length(); if (len > MaxBufLen) MaxBufLen = len;
-                        fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                        fwrite(eInfo->ProcName.c_str(), len, 1, outF);//outStream->Write(eInfo->ProcName.c_str(), len);
-                    }
+                    outStream->Write(&len, sizeof(len));
+                    outStream->Write(eInfo->ProcName.c_str(), len);
                 }
             }
-            //Aliases
-            num = ResInfo->Aliases->Count;
-            FProgressBar->StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
-            fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            for (n = 0; n < num; n++)
-            {
-                FProgressBar->pb->StepIt();
-                Application->ProcessMessages();
-                len = ResInfo->Aliases->Strings[n].Length(); if (len > MaxBufLen) MaxBufLen = len;
-                fwrite(&len, sizeof(len), 1, outF);//outStream->Write(&len, sizeof(len));
-                fwrite(ResInfo->Aliases->Strings[n].c_str(), len, 1, outF);//outStream->Write(ResInfo->Aliases->Strings[n].c_str(), len);
-            }
-
-            //CodeHistory
-            fwrite(&CodeHistorySize, sizeof(CodeHistorySize), 1, outF);//outStream->Write(&CodeHistorySize, sizeof(CodeHistorySize));
-            fwrite(&CodeHistoryPtr, sizeof(CodeHistoryPtr), 1, outF);//outStream->Write(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
-            fwrite(&CodeHistoryMax, sizeof(CodeHistoryMax), 1, outF);//outStream->Write(&CodeHistoryMax, sizeof(CodeHistoryMax));
-            PROCHISTORYREC phRec;
-            FProgressBar->StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
-            for (n = 0; n < CodeHistorySize; n++)
-            {
-                FProgressBar->pb->StepIt();
-                Application->ProcessMessages();
-                fwrite(&CodeHistory[n], sizeof(PROCHISTORYREC), 1, outF);//outStream->Write(&CodeHistory[n], sizeof(PROCHISTORYREC));
-            }
-
-            fwrite(&CurProcAdr, sizeof(CurProcAdr), 1, outF);//outStream->Write(&CurProcAdr, sizeof(CurProcAdr));
-            topIdx = lbCode->TopIndex;
-            fwrite(&topIdx, sizeof(topIdx), 1, outF);//outStream->Write(&topIdx, sizeof(topIdx));
-
-            //Important variables
-            fwrite(&HInstanceVarAdr, sizeof(HInstanceVarAdr), 1, outF);//outStream->Write(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
-            fwrite(&LastTls, sizeof(LastTls), 1, outF);//outStream->Write(&LastTls, sizeof(LastTls));
-
-            fwrite(&Reserved, sizeof(Reserved), 1, outF);//outStream->Write(&Reserved, sizeof(Reserved));
-            fwrite(&LastResStrNo, sizeof(LastResStrNo), 1, outF);//outStream->Write(&LastResStrNo, sizeof(LastResStrNo));
-
-            fwrite(&CtdRegAdr, sizeof(CtdRegAdr), 1, outF);//outStream->Write(&CtdRegAdr, sizeof(CtdRegAdr));
-
-            FProgressBar->Close();
-            //Class Viewer
-            //Total nodes (for progress)
-            num = 0; if (ClassTreeDone) num = tvClassesFull->Items->Count;
-            if (num && Application->MessageBox("Save full Tree of Classes?", "Warning", MB_YESNO) == IDYES)
-            {
-                FProgressBar->Show();
-                fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-                if (num)
-                {
-                    FProgressBar->StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
-                    TTreeNode* root = tvClassesFull->Items->GetFirstNode();
-                    WriteNode(outF, root);//WriteNode(outStream, root);
-                }
-                FProgressBar->Close();
-            }
-            else
-            {
-                num = 0;
-                fwrite(&num, sizeof(num), 1, outF);//outStream->Write(&num, sizeof(num));
-            }
-            //At end write MaxBufLen
-            fwrite(&MaxBufLen, sizeof(MaxBufLen), 1, outF);//outStream->Write(&MaxBufLen, sizeof(MaxBufLen));
-            fclose(outF);
         }
-        //outStream->SaveToFile(IDPFile);
-        //delete outStream;
+        //Aliases
+        num = ResInfo->Aliases->Count;
+        FProgressBar->StartProgress("Writing Aliases  (number = "+String(num)+")...", "", num);
+        outStream->Write(&num, sizeof(num));
+        for (n = 0; n < num; n++)
+        {
+            FProgressBar->pb->StepIt();
+            Application->ProcessMessages();
+            len = ResInfo->Aliases->Strings[n].Length(); if (len > MaxBufLen) MaxBufLen = len;
+            outStream->Write(&len, sizeof(len));
+            outStream->Write(ResInfo->Aliases->Strings[n].c_str(), len);
+        }
+
+        //CodeHistory
+        outStream->Write(&CodeHistorySize, sizeof(CodeHistorySize));
+        outStream->Write(&CodeHistoryPtr, sizeof(CodeHistoryPtr));
+        outStream->Write(&CodeHistoryMax, sizeof(CodeHistoryMax));
+        PROCHISTORYREC phRec;
+        FProgressBar->StartProgress("Writing Code History Items (number = "+String(CodeHistorySize)+")...", "", CodeHistorySize);
+        for (n = 0; n < CodeHistorySize; n++)
+        {
+            FProgressBar->pb->StepIt();
+            Application->ProcessMessages();
+            outStream->Write(&CodeHistory[n], sizeof(PROCHISTORYREC));
+        }
+
+        outStream->Write(&CurProcAdr, sizeof(CurProcAdr));
+        topIdx = lbCode->TopIndex;
+        outStream->Write(&topIdx, sizeof(topIdx));
+
+        //Important variables
+        outStream->Write(&HInstanceVarAdr, sizeof(HInstanceVarAdr));
+        outStream->Write(&LastTls, sizeof(LastTls));
+
+        outStream->Write(&Reserved, sizeof(Reserved));
+        outStream->Write(&LastResStrNo, sizeof(LastResStrNo));
+
+        outStream->Write(&CtdRegAdr, sizeof(CtdRegAdr));
+
+        FProgressBar->Close();
+        //Class Viewer
+        //Total nodes (for progress)
+        num = 0; if (ClassTreeDone) num = tvClassesFull->Items->Count;
+        if (num && Application->MessageBox("Save full Tree of Classes?", "Warning", MB_YESNO) == IDYES)
+        {
+            FProgressBar->Show();
+            outStream->Write(&num, sizeof(num));
+            if (num)
+            {
+                FProgressBar->StartProgress("Writing ClassViewer Tree Nodes (number = "+String(num)+")...", "", num);
+                TTreeNode* root = tvClassesFull->Items->GetFirstNode();
+                WriteNode(outStream, root);
+            }
+            FProgressBar->Close();
+        }
+        else
+        {
+            num = 0;
+            outStream->Write(&num, sizeof(num));
+        }
+        //At end write MaxBufLen
+        outStream->Write(&MaxBufLen, sizeof(MaxBufLen));
+        outStream->SaveToFile(IDPFile);
+        delete outStream;
 
         ProjectModified = false;
 
@@ -11733,7 +11699,6 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                     fInfo = (PFIELDINFO)recN->vmtInfo->fields->Items[0];
                     if (Offset == fInfo->Offset)
                     {
-                        if (prefix != "") //Add by ZGL
                         fInfo->Name = prefix + "." + fInfo->Name;
                         return fInfo;
                     }
@@ -11762,7 +11727,6 @@ PFIELDINFO __fastcall TFMain_11011981::GetField(String TypeName, int Offset, boo
                             if (fInfo)
                             {
                                 fInfo->Offset = Offset;
-                                if (prefix != "") //Add by ZGL
                                 fInfo->Name = prefix + "." + fInfo->Name;
                                 return fInfo;
                             }
@@ -12040,18 +12004,18 @@ void __fastcall TFMain_11011981::miLegendClick(TObject *Sender)
     FLegend_11011981->ShowModal();
 }
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::miCopyListClick(TObject *Sender)
+void __fastcall TFMain_11011981::miCopyListClick(TObject *Sender)                                                                                                                                                                                                                                                           
 {
     int         n, m, k, u, dot, idx, usesNum;
     PInfoRec    recN;
     PUnitRec    recU;
     MProcInfo   aInfo;
-    MProcInfo   *pInfo = &aInfo;
+    MProcInfo   *pInfo = &aInfo;                                                                                                        
     FILE        *outFile;
     TStringList *tmpList;
     String      moduleName, importName;
     WORD        uses[128];
-
+                                                                
     SaveDlg->InitialDir = WrkDir;
     SaveDlg->FileName = "units.lst";
 
@@ -12899,21 +12863,28 @@ void __fastcall TFMain_11011981::miSaveDelphiProjectClick(TObject *Sender)
     ChDir(curDir);
     Screen->Cursor = crDefault;
 }
-//---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::bDecompileClick(TObject *Sender)
+//---------------------------------------------------------------------------My Code
+void __fastcall TFMain_11011981::bDecompileClick(TObject* Sender)
 {
     int procSize = GetProcSize(CurProcAdr);
     if (procSize > 0)
     {
-        TDecompileEnv *DeEnv = new TDecompileEnv(CurProcAdr, procSize, GetInfoRec(CurProcAdr));
+        TDecompileEnv* DeEnv = new TDecompileEnv(CurProcAdr, procSize, GetInfoRec(CurProcAdr));
         try
         {
             DeEnv->DecompileProc();
         }
-        catch(Exception &exception)
+        catch (Exception& exception)
         {
             ShowCode(DeEnv->StartAdr, DeEnv->ErrAdr, lbCXrefs->ItemIndex, -1);
-            Application->ShowException(&exception);
+            ShowMessage(String(exception.ClassName()) + ": " +
+                (exception.Message != "" ? exception.Message : String("(no message)")) +
+                "\r\nErrAdr: " + Val2Str8(DeEnv->ErrAdr));
+        }
+        catch (...)
+        {
+            ShowCode(DeEnv->StartAdr, DeEnv->ErrAdr, lbCXrefs->ItemIndex, -1);
+            ShowMessage("Non-VCL exception, ErrAdr: " + Val2Str8(DeEnv->ErrAdr));
         }
         DeEnv->OutputSourceCode();
         if (DeEnv->Alarm)
@@ -12946,13 +12917,14 @@ void __fastcall TFMain_11011981::SetupAllFonts(TFont* font)
       lbForms,
       lbAliases,
       lbCode,
-      //lbStrings,
+      lbStrings,
       lbNames,
       lbNXrefs,
       lbSXrefs,
       lbCXrefs,
       lbSourceCode,
       lbUnitItems,
+      lstMap,
       0
     };
 
@@ -12973,12 +12945,16 @@ void __fastcall TFMain_11011981::SetupAllFonts(TFont* font)
         formTreeViews[n]->Font->Assign(font);
     }
 }
+// My Code Update to handle copy all data 04.08.26
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::pmUnitItemsPopup(TObject *Sender)
+void __fastcall TFMain_11011981::pmUnitItemsPopup(TObject* Sender)
 {
     miEditFunctionI->Enabled = (lbUnitItems->ItemIndex >= 0);
     miCopyAddressI->Enabled = (lbUnitItems->ItemIndex >= 0);
+    miCopyUnitItemLine->Enabled = (lbUnitItems->ItemIndex >= 0);
+    miCopyAllUnitItems->Enabled = (lbUnitItems->Items->Count > 0);
 }
+
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::CopyAddress(String line, int ofs, int bytes)
 {
@@ -12990,7 +12966,7 @@ void __fastcall TFMain_11011981::CopyAddress(String line, int ofs, int bytes)
         *p = line[n + ofs]; p++;
     }
     *p = 0;
-    ((TUnicodeClipboard *)Clipboard())->AsUnicodeText = buf;
+    Clipboard()->SetTextBuf(buf);
     Clipboard()->Close();
 }
 //---------------------------------------------------------------------------
@@ -13221,7 +13197,7 @@ void __fastcall TFMain_11011981::miPluginsClick(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miCopyStringsClick(TObject *Sender)
 {
-    //Copy2Clipboard(lbStrings->Items, 0, false);
+    Copy2Clipboard(lbStrings->Items, 0, false);
 }
 //---------------------------------------------------------------------------
 void __fastcall TFMain_11011981::miViewAllClick(TObject *Sender)
@@ -13508,607 +13484,360 @@ void __fastcall TFMain_11011981::mniShellIntegration1Click(TObject *Sender)
 }
 //TerminatorX code END
 //---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::mCreateCHeaderFileClick(TObject *Sender)
+//Added by TerminatorX 03.01.2019
+//TerminatorX code BEGIN
+void __fastcall TFMain_11011981::GoToAddressMap(String cmdAdr)
 {
-    String hName = "";
-    if (SourceFile != "")
+    int             pos;
+    DWORD           gotoAdr;
+    String          sAdr;
+    PROCHISTORYREC  rec;
+
+    // if (lbCode->ItemIndex <= 0) return;
+    if (cmdAdr != "") sAdr = cmdAdr;
+    else
+     sAdr = InputDialogExec("Enter Address", "Address:", "");
+    if (sAdr != "")
     {
-        hName = ChangeFileExt(SourceFile, ".h");
-    }
-    if (IDPFile != "")
-    {
-        hName = ChangeFileExt(IDPFile, ".h");
-    }
-
-    TSaveDialog* SaveHDialog = new TSaveDialog(this);
-    SaveHDialog-> InitialDir = WrkDir;
-    SaveHDialog->Filter = "H|*.h";
-    SaveHDialog->FileName = hName;
-
-    if (!SaveHDialog->Execute()) return;
-
-    hName = SaveHDialog->FileName;
-    delete SaveHDialog;
-
-    if (FileExists(hName))
-    {
-        if (Application->MessageBox("File already exists. Overwrite?", "Warning", MB_YESNO) == IDNO) return;
-    }
-
-	Screen->Cursor = crHourGlass;
-
-    FILE* hF = fopen(hName.c_str(), "wt+");
-    CreateCppHeaderFile(hF);
-    fclose(hF);
-    Screen->Cursor = crDefault;
-}
-//---------------------------------------------------------------------------
-typedef struct
-{
-    char* CppType;
-    char* DelphiType;
-} CPPvsDELPHIdecl;
-
-CPPvsDELPHIdecl ForwardDeclarations[] = {
-    {"bool", "Boolean"},
-    {"char", "AnsiChar"},
-    {"signed char", "ShortInt"},
-    {"unsigned char", "ByteBool"},
-    {"unsigned char", "Byte"},
-    {"short", "SmallInt"},
-    {"unsigned short", "Word"},
-    {"unsigned short", "word"},
-    {"unsigned short", "WordBool"},
-    {"int", "Integer"},
-    {"int", "NativeInt"},
-    {"int", "LongInt"},
-    {"int", "FixedInt"},
-    {"unsigned", "Dword"},
-    {"unsigned", "dword"},
-    {"unsigned", "LongBool"},
-    {"unsigned", "Cardinal"},
-    {"unsigned int", "NativeUInt"},
-    {"unsigned", "LongWord"},
-    {"unsigned int", "FixedUInt"},
-    {"char*", "AnsiString"},
-    {"char*", "OpenString"},
-    {"wchar_t*", "String"},
-    {"wchar_t*", "string"},
-    {"wchar_t*", "WideString"},
-    {"wchar_t*", "UString"},
-    {"wchar_t*", "UnicodeString"},
-    {"wchar_t", "Char"},
-    {"wchar_t", "WideChar"},
-    {"void*", "Pointer"},
-    {"__int64", "Int64"},
-    {"unsigned __int64", "UInt64"},
-    {"unsigned __int64", "Currency"},
-    {"unsigned __int64", "Comp"},
-    {"unsigned __int64", "TDateTime"},
-    {"unsigned __int64", "TDate"},
-    {"unsigned __int64", "TTime"},
-    {"float", "Single"},
-    {"double", "Double"},
-    {"long double", "Extended"},
-    {"double", "Real"},
-    {NULL, NULL}
-};
-//---------------------------------------------------------------------------
-void __fastcall OutputStandardForwardDeclarations(FILE* hF)
-{
-    for (int n = 0;; n++)
-    {
-        if (!ForwardDeclarations[n].CppType) break;
-        fprintf(hF, "typedef %s %s;\n", ForwardDeclarations[n].CppType, ForwardDeclarations[n].DelphiType);
-    }
-}
-//---------------------------------------------------------------------------
-bool __fastcall IsStandardForwardDeclaration(String name)
-{
-    bool bRes = false;
-    for (int n = 0;; n++)
-    {
-        if (!ForwardDeclarations[n].CppType) break;
-        if (SameText(name, ForwardDeclarations[n].DelphiType))
+        sscanf(sAdr.c_str(), "%lX", &gotoAdr);
+        if (IsValidCodeAdr(gotoAdr))
         {
-            bRes = true;
-            break;
-        }
-    }
-    return bRes;
-}
-//---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::OutputForwardDeclarationsHeader(FILE* hF)
-{
-    fprintf(hF, "//This file was created by IDR.\n");
-    fprintf(hF, "//It may require manually editing, because of arrays and order mismatching.\n");
-    fprintf(hF, "//It is not so hard.\n");
-    fprintf(hF, "//But You reach main goal - decompilation with IDA!\n\n");
-    fprintf(hF, "//Symbol | points to places in records that belongs to union.\n");
-    fprintf(hF, "//You can leave only one variant or try convert to union (question is why?).\n\n");
-
-    OutputStandardForwardDeclarations(hF);
-    fprintf(hF, "\n");
-    //Variant
-    fprintf(hF, "struct TVarData\n");
-    fprintf(hF, "{\n");
-    fprintf(hF, "WORD VType;\n");
-    fprintf(hF, "WORD Reserved1;\n");
-    fprintf(hF, "WORD Reserved2;\n");
-    fprintf(hF, "WORD Reserved3;\n");
-    fprintf(hF, "BYTE Data[8];\n");
-    fprintf(hF, "};\n");
-    fprintf(hF, "typedef TVarData Variant;\n\n");
-    fprintf(hF, "struct TVarRec\n");
-    fprintf(hF, "{\n");
-    fprintf(hF, "Integer Data;\n");
-    fprintf(hF, "Integer Type;\n");
-    fprintf(hF, "};\n\n");
-}
-//---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::OutputForwardDeclarationsOfKind(FILE* hF, BYTE kind)
-{
-    int         n, size, typeKind;
-    DWORD       adr;
-    PTypeRec    recT;
-    String      str, RTTIName;
-
-    for (n = 0; n < OwnTypeList->Count; n++)
-    {
-        recT = (PTypeRec)OwnTypeList->Items[n];
-        if (recT->kind == kind)
-        {
-            adr = recT->adr;
-            RTTIName = recT->name;
-            if (IsStandardForwardDeclaration(RTTIName))
-                continue;
-
-            RTTIName = SanitizeName(RTTIName);
-            switch (kind)
+            pos = Adr2Pos(gotoAdr);
+            //If immport- nothing to map
+            //Delete import check!!!
+            // if (IsFlagSet(cfImport, pos)) return;
+            //Search address
+            while (pos >= 0)
             {
-            case ikInteger:
-            case ikChar:
-            case ikWChar:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef %s %s;\n", str.c_str(), RTTIName.c_str());
-                break;
-            case ikEnumeration:
-                //shadow name
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Enum_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "enum %s : ", RTTIName.c_str());
-                if (size <= 255)
-                    fprintf(hF, "BYTE");
-                else
-                    fprintf(hF, "WORD");
-                fprintf(hF, "\n{\n%s\n};\n\n", str.c_str());
-                break;
-            case ikString:
-            case ikLString:
-                if (!SameText(RTTIName, "String") && !SameText(RTTIName, "AnsiString"))
-                    fprintf(hF, "typedef String %s;\n", RTTIName.c_str());
-                break;
-            case ikWString:
-                if (!SameText(RTTIName, "WideString"))
-                    fprintf(hF, "typedef WideString %s;\n", RTTIName.c_str());
-                break;
-            case ikUString:
-                if (!SameText(RTTIName, "UString") && !SameText(RTTIName, "String"))
-                    fprintf(hF, "typedef UString %s;\n", RTTIName.c_str());
-                break;
-            case ikSet:
-                //shadow name
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Set_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 1);
-                if (str != "")
+                //Find procedure start
+                if (IsFlagSet(cfProcStart, pos))
                 {
-                    fprintf(hF, "enum %s : ", RTTIName.c_str());
-                    if (size <= 8)
-                        fprintf(hF, "BYTE");
-                    else if (size <= 16)
-                        fprintf(hF, "WORD");
-                    else if (size <= 32)
-                        fprintf(hF, "DWORD");
-                    else if (size <= 64)
-                        fprintf(hF, "QWORD");
-                    else if (size <= 128)
-                        fprintf(hF, "__int128");
-                    else
-                        fprintf(hF, "__int256");
-                    fprintf(hF, "\n{\n%s\n};\n\n", str.c_str());
-                }
-                break;
-            case ikRecord:
-            case ikClass:
-                fprintf(hF, "struct %s;\n", RTTIName.c_str());
-                break;
-            case ikMethod:
-                fprintf(hF, "struct %s\n", RTTIName.c_str());
-                fprintf(hF, "{\n");
-                fprintf(hF, "void* p;\n");
-                fprintf(hF, "DWORD m;\n");
-                fprintf(hF, "};\n\n");
-                break;
-            case ikPointer:
-                break;
-            case ikDynArray:
-                break;
-            case ikArray:
-                break;
-            case ikProcedure:
-                break;
-            case ikInterface:
-                fprintf(hF, "struct %s_vt\n", RTTIName.c_str());
-                fprintf(hF, "{\n");
-                fprintf(hF, "void* QueryInterface;\n");
-                fprintf(hF, "void* AddRef;\n");
-                fprintf(hF, "void* Release;\n");
-                fprintf(hF, "};\n");
-                fprintf(hF, "typedef %s_vt *%s;\n\n", RTTIName.c_str(), RTTIName.c_str());
-                break;
-            case ikVariant:
-                fprintf(hF, "typedef Variant %s;\n", RTTIName.c_str());
-                break;
-            }
-        }
-    }
-}
-//---------------------------------------------------------------------------
-typedef struct _VMT_PROC
-{
-    DWORD   Adr;
-    int     CurIdx;
-    BYTE    Multiple;
-} VMT_PROC, *PVMT_PROC;
-//---------------------------------------------------------------------------
-PVMT_PROC __fastcall GetProcFromVmtList(TList* list, DWORD procAdr)
-{
-    PVMT_PROC   Result = 0;
-
-    for (int n = 0; n < list->Count; n++)
-    {
-        PVMT_PROC vmtProc = (PVMT_PROC)list->Items[n];
-        if (vmtProc->Adr == procAdr)
-        {
-            Result = vmtProc;
-            break;
-        }
-    }
-    return Result;
-}
-//---------------------------------------------------------------------------
-void __fastcall TFMain_11011981::CreateCppHeaderFile(FILE* hF)
-{
-    BYTE        len, RTTIKind;
-    int         n, m, k, id, adr, kind, pos, size, sort, virtNum, idx, intfNum, curOfs, nxtOfs, iAdr;
-    DWORD*      intfOfsets;
-    PUnitRec    recU;
-    PInfoRec    recN;
-    String      unitName, RTTIName, str, name, item;
-    PFIELDINFO  fInfo;
-    TList*      virtList;
-    TList*      vmtProcs;
-    TStringList*    intfList;
-    PMethodRec  recM;
-    PVMT_PROC   vmtProc;
-
-    //Save sort style
-    sort = RTTISortField;
-    OwnTypeList->Sort(SortRTTIsByAdr);
-    OutputForwardDeclarationsHeader(hF);
-    fprintf(hF, "//<Integer>\n");
-    OutputForwardDeclarationsOfKind(hF, ikInteger);
-    fprintf(hF, "//<Char>\n");
-    OutputForwardDeclarationsOfKind(hF, ikChar);
-    fprintf(hF, "//<WChar>\n");
-    OutputForwardDeclarationsOfKind(hF, ikWChar);
-    fprintf(hF, "//<String>\n");
-    OutputForwardDeclarationsOfKind(hF, ikString);
-    fprintf(hF, "//<LString>\n");
-    OutputForwardDeclarationsOfKind(hF, ikLString);
-    fprintf(hF, "//<WString>\n");
-    OutputForwardDeclarationsOfKind(hF, ikWString);
-    fprintf(hF, "//<UString>\n");
-    OutputForwardDeclarationsOfKind(hF, ikUString);
-    fprintf(hF, "//<Variant>\n");
-    OutputForwardDeclarationsOfKind(hF, ikVariant);
-    fprintf(hF, "//<Enumeration>\n");
-    OutputForwardDeclarationsOfKind(hF, ikEnumeration);
-    fprintf(hF, "//<Set>\n");
-    OutputForwardDeclarationsOfKind(hF, ikSet);
-    fprintf(hF, "//<Class>\n");
-    OutputForwardDeclarationsOfKind(hF, ikClass);
-    fprintf(hF, "//<Record>\n");
-    OutputForwardDeclarationsOfKind(hF, ikRecord);
-    fprintf(hF, "//<Method>\n");
-    OutputForwardDeclarationsOfKind(hF, ikMethod);
-    fprintf(hF, "//<Interface>\n");
-    OutputForwardDeclarationsOfKind(hF, ikInterface);
-    //Restore old sort style
-    RTTISortField = sort;
-    switch (RTTISortField)
-    {
-    case 0:
-        OwnTypeList->Sort(SortRTTIsByAdr);
-        break;
-    case 1:
-        OwnTypeList->Sort(SortRTTIsByKnd);
-        break;
-    case 2:
-        OwnTypeList->Sort(SortRTTIsByNam);
-        break;
-    }
-
-    for (int n = 0; n < UnitsNum; n++)
-    {
-        recU = (PUnitRec)Units->Items[n];
-        if (recU->trivial) continue;
-        unitName = GetUnitName(recU);
-        fprintf(hF, "//%s\n", unitName.c_str());
-
-        for (adr = recU->fromAdr; adr < recU->toAdr; adr++)
-        {
-            recN = GetInfoRec(adr);
-            if (!recN) continue;
-
-            kind = recN->kind;
-            if (kind != ikVMT)
-            {
-                pos = Adr2Pos(adr) + 4 + 1;
-                len = Code[pos]; pos++;
-                RTTIName = String((char*)(Code + pos), len);
-            }
-            else
-                RTTIName = recN->GetName();
-
-            if (IsStandardForwardDeclaration(RTTIName))
-                continue;
-
-            RTTIName = SanitizeName(RTTIName);
-            size = 0;
-            if (kind != ikVMT) continue;
-            switch (kind)
-            {
-            case ikInteger:
-            case ikChar:
-            case ikWChar:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef %s %s;\n\n", str.c_str(), RTTIName.c_str());
-                break;
-            case ikEnumeration:
-                break;
-            case ikSet:
-                break;
-            case ikProcedure:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef %s;\n", str.c_str());
-                break;            
-            case ikMethod:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef %s;\n", str.c_str());
-                fprintf(hF, "struct %s\n", RTTIName.c_str());
-                fprintf(hF, "{\n");
-                fprintf(hF, "P%s p;\n", RTTIName.c_str());
-                fprintf(hF, "DWORD m;\n");
-                fprintf(hF, "};\n\n");
-                break;
-            case ikArray:
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Array_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, str.c_str(), RTTIName.c_str());
-                break;
-            case ikRecord:
-                //These names already present
-                if (SameText(RTTIName, "TVarData")  ||
-                    SameText(RTTIName, "TVarRec"))
-                {
+                    rec.adr = CurProcAdr;
+                    rec.itemIdx = lbCode->ItemIndex;
+                    rec.xrefIdx = lbCXrefs->ItemIndex;
+                    rec.topIdx = lbCode->TopIndex;
+                    ShowCode(Pos2Adr(pos), gotoAdr, -1, -1);
+                    CodeHistoryPush(&rec);
                     break;
                 }
-                //shadow name
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "Record_" + Val2Str8(adr);//SHADOW + 4
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                if (size > 10000) fprintf(hF, "//Big size!\n");
-                fprintf(hF, "struct %s//size=0x%s\n", RTTIName.c_str(), Val2Str0(size));
-                fprintf(hF, "{\n");
-                fprintf(hF, "%s", str.c_str());
-                fprintf(hF, "};\n\n");
-                break;
-            case ikInt64:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef %s %s;\n\n", str.c_str(), RTTIName.c_str());
-                break;
-            case ikDynArray:
-                if (RTTIName.Pos(":") > 0)
-                    RTTIName = "DynArray_" + Val2Str8(adr);
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                kind = GetTypeKind(str, &size);
-                fprintf(hF, "typedef ");
-                if (kind == ikRecord || kind == ikVMT)
-                    fprintf(hF, "struct ");
-                fprintf(hF, "%s *", str.c_str());
-                if (kind == ikVMT)
-                    fprintf(hF, "*");
-                fprintf(hF, "%s;\n\n", RTTIName.c_str());
-                break;
-            case ikPointer:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                kind = GetTypeKind(str, &size);
-                fprintf(hF, "typedef ");
-                if (kind == ikRecord || kind == ikVMT)
-                    fprintf(hF, "struct ");
-                fprintf(hF, "%s *%s;\n", str.c_str(), RTTIName.c_str());
-                break;
-            case ikClassRef:
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "typedef struct %s *%s;\n\n", str.c_str(), RTTIName.c_str());
-                break;
-            case ikVMT:
-                //Output virtual functions
-                virtList = new TList;
-                virtNum = LoadVirtualTable(adr, virtList);
-                //Fill VMT_PROCS list
-                vmtProcs = new TList;
-                for (m = 0, id = 0; m < virtNum; m++)
+                //Fint Type start
+                if (IsFlagSet(cfRTTI, pos))
                 {
-                    recM = (PMethodRec)virtList->Items[m];
-                    if (recM->id >= 0)
-                    {
-                        vmtProc = GetProcFromVmtList(vmtProcs, recM->address);
-                        if (!vmtProc)
-                        {
-                            vmtProc = new VMT_PROC;
-                            vmtProc->Adr = recM->address;
-                            vmtProc->CurIdx = 0;
-                            vmtProc->Multiple = 0;
-                            vmtProcs->Add((void*)vmtProc);
-                        }
-                        else
-                        {
-                            vmtProc->Multiple = 1;
-                        }
-                    }
+                    FTypeInfo_11011981->ShowRTTI(Pos2Adr(pos));
+                    break;
                 }
-                //Output function prorotype declarations
-                for (m = 0, id = 0; m < virtNum; m++)
+                pos--;
+            }
+        }
+    }
+}
+// Example: Triggering export from a button or menu handler in Main.cpp
+void __fastcall TFMain_11011981::ExportFormsMenuClick(TObject* Sender)
+{
+    if (!ResInfo)
+    {
+        ShowMessage("No project or executable is loaded!");
+        return;
+    }
+
+    String dir = "C:\\ExportedForms";
+    if (SelectDirectory("Select folder to export forms:", "", dir))
+    {
+        ResInfo->ExportAllForms(dir);
+        ShowMessage("All forms exported successfully to: " + dir);
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::ExploreAdrMap(String cmdAdr)
+{
+    int         size;
+    DWORD       viewAdr;
+    String      text = "", sAdr;
+    PInfoRec    recN;
+
+    if (cmdAdr != "") lbCode->ItemIndex = 1;
+    if (lbCode->ItemIndex <= 0) return;
+
+    size = CodeGetTargetAdr(lbCode->Items->Strings[lbCode->ItemIndex], &viewAdr);
+    if (viewAdr) text = Val2Str8(viewAdr);
+    if (cmdAdr != "") sAdr = cmdAdr;
+    else
+     sAdr = InputDialogExec("Enter Address", "Address:", text);
+    if (sAdr != "")
+    {
+        sscanf(sAdr.c_str(), "%lX", &viewAdr);
+        if (IsValidImageAdr(viewAdr))
+        {
+            int pos = Adr2Pos(viewAdr);
+            if (pos == -2) return;
+            if (pos == -1)
+            {
+               // ShowMessage("BSS");
+                MessageDlg("BSS", mtWarning, TMsgDlgButtons() << mbOK, 0);
+                return;
+            }
+            FExplorer_11011981->tsCode->TabVisible = true;
+            FExplorer_11011981->ShowCode(viewAdr, 1024);
+            FExplorer_11011981->tsData->TabVisible = true;
+            FExplorer_11011981->ShowData(viewAdr, 1024);
+            FExplorer_11011981->tsString->TabVisible = true;
+            FExplorer_11011981->ShowString(viewAdr, 1024);
+            FExplorer_11011981->tsText->TabVisible = false;
+            FExplorer_11011981->pc1->ActivePage = FExplorer_11011981->tsCode;
+            FExplorer_11011981->WAlign = -4;
+            
+            FExplorer_11011981->btnDefCode->Enabled = true;
+            if (IsFlagSet(cfCode, pos)) FExplorer_11011981->btnDefCode->Enabled = false;
+            FExplorer_11011981->btnUndefCode->Enabled = false;
+            if (IsFlagSet(cfCode | cfData, pos)) FExplorer_11011981->btnUndefCode->Enabled = true;
+
+            if (FExplorer_11011981->ShowModal() == mrOk)
+            {
+                switch (FExplorer_11011981->DefineAs)
                 {
-                    recM = (PMethodRec)virtList->Items[m];
-                    if (recM->id >= 0)
-                    {
-                        fprintf(hF, "typedef ");
-                        recN = GetInfoRec(recM->address);
-                        if (recN)
-                        {
-                            str = recN->MakeCppPrototype(recM->address, RTTIName + "_m" + Val2Str0(id));
-                            fprintf(hF, "%s", str.c_str());
-                        }
-                        else
-                        {
-                            fprintf(hF, "DWORD (__usercall *P%s_m%d)@<eax>", RTTIName.c_str(), id);
-                        }
-                        fprintf(hF, ";\n");
-                        id += 4;
-                    }
+                case DEFINE_AS_CODE:
+                    //Delete any information at this address
+                    recN = GetInfoRec(viewAdr);
+                    if (recN) delete recN;
+                    //Create new info about proc
+                    recN = new InfoRec(pos, ikRefine);
+
+                    //AnalyzeProcInitial(viewAdr);
+                    AnalyzeProc1(viewAdr, 0, 0, 0, false);
+                    AnalyzeProc2(viewAdr, true, true);
+                    AnalyzeArguments(viewAdr);
+                    AnalyzeProc2(viewAdr, true, true);
+
+                    if (!ContainsUnexplored(GetUnit(viewAdr))) ShowUnits(true);
+                    ShowUnitItems(GetUnit(viewAdr), lbUnitItems->TopIndex, lbUnitItems->ItemIndex);
+                    ShowCode(viewAdr, 0, -1, -1);
+                    break;
+                case DEFINE_AS_STRING:
+                    break;
                 }
-
-                fprintf(hF, "struct %s_vmt\n", RTTIName.c_str());
-                fprintf(hF, "{\n");
-                for (m = 0, id = 0; m < virtNum; m++)
-                {
-                    recM = (PMethodRec)virtList->Items[m];
-                    if (recM->id >= 0)
-                    {
-                        name = recM->name;
-                        recN = GetInfoRec(recM->address);
-                        vmtProc = GetProcFromVmtList(vmtProcs, recM->address);
-                        idx = -1;
-                        if (vmtProc && vmtProc->Multiple)
-                        {
-                            idx = vmtProc->CurIdx;
-                            vmtProc->CurIdx++;
-                        }
-                        if (recN)
-                        {
-                            if (name == "")
-                                name = recN->GetName();
-                            fprintf(hF, "P%s_m%lX %s_sub_%08lX", RTTIName.c_str(), id, RTTIName.c_str(), recM->address);
-                            if (idx >= 0)
-                                fprintf(hF, "_%d", idx);
-                            fprintf(hF, ";");
-                            if (name != "")
-                                fprintf(hF, "//%s", name.c_str());
-                        }
-                        else
-                        {
-                            fprintf(hF, "P%s_m%lX %s_sub_%08lX", RTTIName.c_str(), id, RTTIName.c_str(), recM->address);
-                            if (idx >= 0)
-                                fprintf(hF, "_%d", idx);
-                            fprintf(hF, ";");
-                            if (name != "")
-                                fprintf(hF, "//%s", name.c_str());
-                        }
-                        fprintf(hF, "\n");
-                        id += 4;
-                    }
-                }
-                fprintf(hF, "};\n\n");
-                delete vmtProcs;
-                delete virtList;
-
-                //Output fields
-                str = FTypeInfo_11011981->GetCppTypeInfo(adr, &size, 0);
-                fprintf(hF, "struct %s//size = 0x%lX\n", RTTIName.c_str(), GetClassSize(adr));
-                fprintf(hF, "{\n");
-                fprintf(hF, "%s", str.c_str());
-                fprintf(hF, "};\n\n");
-
-                //Output Interfaces
-                intfList = new TStringList;
-                intfNum = FMain_11011981->LoadIntfTable(adr, intfList);
-                if (intfNum > 0)
-                {
-                    intfOfsets = new DWORD[intfNum];
-                    for (m = 0; m < intfNum; m++)
-                    {
-                        item = intfList->Strings[m];
-                        item = item.SubString(1, item.Pos(' ') - 1);
-                        //Offset of interface table
-                        intfOfsets[m] = StrToInt("$" + item);
-                    }
-                    if (intfNum > 1)
-                    {
-                        for (m = 0; m < intfNum - 1; m++)
-                        {
-                            curOfs = intfOfsets[m];
-                            nxtOfs = intfOfsets[m + 1];
-                            if (!curOfs || curOfs == nxtOfs)
-                                continue;
-
-                            fprintf(hF, "struct Interface_%08lX\n", curOfs);
-                            fprintf(hF, "{\n");
-                            fprintf(hF, "struct Interface_%08lX_vt* v;\n", curOfs);
-                            fprintf(hF, "};\n\n");
-
-                            fprintf(hF, "struct Interface_%08lX_vt\n", curOfs);
-                            fprintf(hF, "{\n");
-
-                            for (k = curOfs; k < nxtOfs; k += 4)
-                            {
-                                iAdr = *((DWORD*)(Code + Adr2Pos(k)));
-                                fprintf(hF, "void* sub_%08lX;\n", iAdr);
-                            }
-
-                            fprintf(hF, "};\n\n");
-                        }
-                    }
-                    curOfs = intfOfsets[intfNum - 1];
-                    fprintf(hF, "struct Interface_%08lX\n", curOfs);
-                    fprintf(hF, "{\n");
-                    fprintf(hF, "struct Interface_%08lX_vt* v;\n", curOfs);
-                    fprintf(hF, "};\n\n");
-                    
-                    fprintf(hF, "struct Interface_%08lX_vt\n", curOfs);
-                    fprintf(hF, "{\n");
-
-                    for (k = curOfs;; k += 4)
-                    {
-                        iAdr = *((DWORD*)(Code + Adr2Pos(k)));
-                        if (!IsValidCodeAdr(iAdr))
-                            break;
-
-                        fprintf(hF, "void* sub_%08lX;\n", iAdr);
-                    }
-
-                    fprintf(hF, "};\n\n");
-                    delete[] intfOfsets;
-                }
-                delete intfList;
-                break;
             }
         }
     }
 }
 //---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::MapGenerator()
+{
+    String  procName, moduleName;
+    tsMap->Enabled = miMapGenerator->Enabled;
+    lstMap->Enabled = miMapGenerator->Enabled;
+    lstMap->Clear();
+
+    for (int n = 0; n < CodeSize; n++)
+    {
+        if (IsFlagSet(cfProcStart, n) && !IsFlagSet(cfEmbedded, n))
+        {
+            int adr = Pos2Adr(n);
+            PInfoRec recN = GetInfoRec(adr);
+            if (recN)
+            {
+                if (adr == EP)
+                    lstMap->Items->Add(IntToHex(adr, 8) + ":Entry Point");
+                else
+                {
+                    PUnitRec recU = GetUnit(adr);
+                    if (recU)
+                    {
+                        moduleName = GetUnitName(recU);
+                        if (adr == recU->iniadr)
+                            procName = "Initialization";
+                        else if (adr == recU->finadr)
+                            procName = "Finalization";
+                        else
+                            procName = recN->MakeMapName(adr);
+                    }
+                    else
+                    {
+                        moduleName = "";
+                        procName = recN->MakeMapName(adr);
+                    }
+                    if (!IsFlagSet(cfImport, n))
+                        procName = recN->MakePrototype(adr, true, false, false, true, false);
+                    lstMap->Items->Add(IntToHex(adr, 8) + ":{" + moduleName + "}" + procName);
+                }
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::ExpGotoAddressMap(bool FlagGo)
+{
+    String  strhexs11 = "";
+    if (lstMap->ItemIndex < 0) return;
+    for (int d = 0; d < lstMap->Items->Count; d++)
+    {
+        if(lstMap->Selected[d])
+        {
+            strhexs11 = lstMap->Items->Strings[d];
+            if (TryStrToInt(("$" + strhexs11.SubString(1,8)), 0))
+            {
+                if (FlagGo)
+                {
+                    GoToAddressMap(strhexs11.SubString(1,8));
+                    CodeViewer1Click(this);
+                }
+                else
+                    ExploreAdrMap(strhexs11.SubString(1,8));
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniMap1Click(TObject *Sender)
+{
+    pcWorkArea->ActivePage = tsMap;
+    if (lstMap->CanFocus()) ActiveControl = lstMap;
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyAllToClipboardClick(
+      TObject *Sender)
+{
+    Copy2Clipboard(lstMap->Items, 0, false);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::lstMapDblClick(TObject *Sender)
+{
+    ExpGotoAddressMap(True);
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyLinesClick(TObject *Sender)
+{
+    String  strm11 = "";
+    if (lstMap->ItemIndex <= 0) return;
+    for(int i = 0; i < lstMap->Items->Count; i++)
+    {
+        if(lstMap->Selected[i])
+            strm11 += (lstMap->Items->Strings[i].Delete(1,1)+"\r"+"\n");
+    }
+    Clipboard()->Open();
+    Clipboard()->AsText = strm11;
+    Clipboard()->Close();
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::mniCopyLinesStrings1Click(TObject *Sender)
+{
+    String  strs11 = "";
+    if (lbStrings->ItemIndex <= 0) return;
+    for(int l = 0; l < lbStrings->Items->Count; l++)
+    {
+        if(lbStrings->Selected[l])
+            strs11 += (lbStrings->Items->Strings[l].Delete(1,1)+"\r"+"\n");
+    }
+    Clipboard()->Open();
+    Clipboard()->AsText = strs11;
+    Clipboard()->Close();
+}
+//My Code 26.07.26 Start 
+void __fastcall TFMain_11011981::miCopyUnitItemLineClick(TObject* Sender)
+{
+    int idx = lbUnitItems->ItemIndex;
+    if (idx < 0) return;
+
+    Clipboard()->Open();
+    Clipboard()->AsText = lbUnitItems->Items->Strings[idx];
+    Clipboard()->Close();
+}
+//---------------------------------------------------------------------------
+void __fastcall TFMain_11011981::miCopyAllUnitItemsClick(TObject* Sender)
+{
+    if (lbUnitItems->Items->Count <= 0) return;
+    Copy2Clipboard(lbUnitItems->Items, 0, false);
+}
+
+void __fastcall TFMain_11011981::ExportFormsPasClick(TObject* Sender)
+{
+    if (!ResInfo)
+    {
+        ShowMessage("No project or executable is loaded!");
+        return;
+    }
+
+    String dir = "C:\\ExportedForms";
+    if (SelectDirectory("Select folder to export Delphi forms:", "", dir))
+    {
+        ResInfo->ExportAllFormsEx(dir, 0); // 0 = Delphi / Pascal
+        ShowMessage("All forms exported successfully as Delphi units to: " + dir);
+    }
+}
+
+void __fastcall TFMain_11011981::ExportFormsCppClick(TObject* Sender)
+{
+    if (!ResInfo)
+    {
+        ShowMessage("No project or executable is loaded!");
+        return;
+    }
+
+    String dir = "C:\\ExportedForms";
+    if (SelectDirectory("Select folder to export C++Builder forms:", "", dir))
+    {
+        ResInfo->ExportAllFormsEx(dir, 1); // 1 = C++Builder
+        ShowMessage("All forms exported successfully as C++ units to: " + dir);
+    }
+}
+bool __fastcall TResourceInfo::ExportCppMainFile(String TargetDirectory, String ProjectName)
+{
+    TStringList* mainCpp = new TStringList;
+    try
+    {
+        mainCpp->Add("//---------------------------------------------------------------------------");
+        mainCpp->Add("#include <vcl.h>");
+        mainCpp->Add("#pragma hdrstop");
+        mainCpp->Add("#include <tchar.h>");
+        mainCpp->Add("//---------------------------------------------------------------------------");
+
+        int cnt = FormList->Count;
+        for (int i = 0; i < cnt; i++)
+        {
+            TDfm* dfm = (TDfm*)FormList->Items[i];
+            if (dfm)
+                mainCpp->Add("#include \"" + dfm->Name + ".h\"");
+        }
+
+        mainCpp->Add("//---------------------------------------------------------------------------");
+        mainCpp->Add("int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)");
+        mainCpp->Add("{");
+        mainCpp->Add("    try");
+        mainCpp->Add("    {");
+        mainCpp->Add("        Application->Initialize();");
+
+        for (int i = 0; i < cnt; i++)
+        {
+            TDfm* dfm = (TDfm*)FormList->Items[i];
+            if (dfm)
+                mainCpp->Add("        Application->CreateForm(__classid(" + dfm->ClassName + "), &" + dfm->Name + "Form);");
+        }
+
+        mainCpp->Add("        Application->Run();");
+        mainCpp->Add("    }");
+        mainCpp->Add("    catch (Exception &exception)");
+        mainCpp->Add("    {");
+        mainCpp->Add("        Application->ShowException(&exception);");
+        mainCpp->Add("    }");
+        mainCpp->Add("    catch (...)");
+        mainCpp->Add("    {");
+        mainCpp->Add("        try");
+        mainCpp->Add("        {");
+        mainCpp->Add("            throw Exception(\"\");");
+        mainCpp->Add("        }");
+        mainCpp->Add("        catch (Exception &exception)");
+        mainCpp->Add("        {");
+        mainCpp->Add("            Application->ShowException(&exception);");
+        mainCpp->Add("        }");
+        mainCpp->Add("    }");
+        mainCpp->Add("    return 0;");
+        mainCpp->Add("}");
+        mainCpp->Add("//---------------------------------------------------------------------------");
+
+        mainCpp->SaveToFile(TargetDirectory + "\\" + ProjectName + ".cpp");
+        return true;
+    }
+    __finally
+    {
+        delete mainCpp;
+    }
+}

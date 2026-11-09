@@ -12,8 +12,8 @@ extern  DWORD       CodeBase;
 extern  BYTE        *Code;
                                  String __fastcall TrimTypeName(const String& TypeName);
 //---------------------------------------------------------------------------
-#define cfCode          0x00000001  //Байт относится к коду
-#define cfData          0x00000002  //Байт относится к данным
+#define cfCode          0x00000001  //ГЃГ Г©ГІ Г®ГІГ­Г®Г±ГЁГІГ±Гї ГЄ ГЄГ®Г¤Гі
+#define cfData          0x00000002  //ГЃГ Г©ГІ Г®ГІГ­Г®Г±ГЁГІГ±Гї ГЄ Г¤Г Г­Г­Г»Г¬
 FIELDINFO::~FIELDINFO()
 {
     CleanupList<XrefRec>(xrefs);
@@ -1771,66 +1771,67 @@ WORD* __fastcall MKnowledgeBase::GetModuleUses(WORD ModuleID)
     return uses;
 }
 //---------------------------------------------------------------------------
+// Helper to check if ModID is already recorded
+bool AlreadyAdded(WORD ModID, const WORD* uses, int num) {
+    for (int i = 0; i < num; i++) {
+        if (uses[i] == ModID) return true;
+    }
+    return false;
+}
+
 int __fastcall MKnowledgeBase::GetProcUses(char* ProcName, WORD* uses)
 {
-	if (!Inited) return 0;
+    if (!Inited) return 0;
 
-    int     num = 0;
-
+    int num = 0;
     int L = 0, R = ProcCount - 1;
-    while (1)
+
+    while (L <= R)
     {
-        int M = (L + R)/2;
+        int M = (L + R) / 2;
         int ID = ProcOffsets[M].NamId;
         const BYTE* p = GetKBCachePtr(ProcOffsets[ID].Offset, ProcOffsets[ID].Size);
 
-        int res = stricmp(ProcName, p + 4);
+        int res = stricmp(ProcName, (const char*)(p + 4));
         if (res < 0)
             R = M - 1;
         else if (res > 0)
             L = M + 1;
         else
         {
-            WORD ModID = *((WORD*)p);
-            if (ModID != 0xFFFF)
-            {
-                uses[num] = ModID;
-                num++;
+            // Collect matching entries around M
+            int start = M, end = M;
+            while (start > 0) {
+                int prevID = ProcOffsets[start - 1].NamId;
+                const BYTE* prevP = GetKBCachePtr(ProcOffsets[prevID].Offset, ProcOffsets[prevID].Size);
+                if (stricmp(ProcName, (const char*)(prevP + 4)) != 0) break;
+                start--;
             }
-            //Take ModuleIDs in same name block (firstly from right to left)
-            for (int N = M - 1; N >= 0; N--)
+            while (end < ProcCount - 1) {
+                int nextID = ProcOffsets[end + 1].NamId;
+                const BYTE* nextP = GetKBCachePtr(ProcOffsets[nextID].Offset, ProcOffsets[nextID].Size);
+                if (stricmp(ProcName, (const char*)(nextP + 4)) != 0) break;
+                end++;
+            }
+
+            // Iterate through all matching procedure records safely
+            for (int N = start; N <= end; N++)
             {
+                if (num >= ModuleCount) break; // Buffer limit guard
+
                 ID = ProcOffsets[N].NamId;
                 p = GetKBCachePtr(ProcOffsets[ID].Offset, ProcOffsets[ID].Size);
-                res = stricmp(ProcName, p + 4);
-                if (res) break;
-                ModID = *((WORD*)p);
-                if (ModID != 0xFFFF && uses[num - 1] != ModID)
+                WORD ModID = *((WORD*)p);
+
+                if (ModID != 0xFFFF && !AlreadyAdded(ModID, uses, num))
                 {
-                    uses[num] = ModID;
-                    num++;
-                    assert(num < ModuleCount);
-                }
-            }
-            //From ltft to right
-            for (int N = M + 1; N < ProcCount; N++)
-            {
-                ID = ProcOffsets[N].NamId;
-                p = GetKBCachePtr(ProcOffsets[ID].Offset, ProcOffsets[ID].Size);
-                res = stricmp(ProcName, p + 4);
-                if (res) break;
-                ModID = *((WORD*)p);
-                if (ModID != 0xFFFF && uses[num - 1] != ModID)
-                {
-                    uses[num] = ModID;
-                    num++;
-                    assert(num < ModuleCount);
+                    uses[num++] = ModID;
                 }
             }
             return num;
         }
-        if (L > R) return 0;
     }
+    return 0;
 }
 //---------------------------------------------------------------------------
 WORD* __fastcall MKnowledgeBase::GetTypeUses(char* TypeName)

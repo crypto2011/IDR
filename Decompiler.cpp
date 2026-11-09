@@ -214,30 +214,35 @@ __fastcall TDecompileEnv::~TDecompileEnv()
     if (CmpStack) delete CmpStack;
     if (EmbeddedList) delete EmbeddedList;
 }
-//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------My Code
 String __fastcall TDecompileEnv::GetLvarName(int Ofs, String Type)
 {
     PLOCALINFO  locInfo;
     String  _defaultName = String("lvar_") + Val2Str0(LocBase - Ofs);
 
-    //Insert by ZGL
     PInfoRec _recN = GetInfoRec(StartAdr);
-    if (_recN && _recN->procInfo)
+    if (!_recN || !_recN->procInfo) return _defaultName;
+
+    if (_recN->procInfo->locals)
     {
-        if (_recN->procInfo->locals)
+        for (int n = 0; n < _recN->procInfo->locals->Count; n++)
         {
-            for (int n = 0; n < _recN->procInfo->locals->Count; n++)
-            {
-                locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
-                if (locInfo->Ofs == Ofs && locInfo->Name != "")//LocBase - Ofs
-                     return locInfo->Name;
-            }
+            locInfo = PLOCALINFO(_recN->procInfo->locals->Items[n]);
+            if (locInfo->Ofs != Ofs) continue;
+
+            if (locInfo->TypeDef == "" && Type != "")
+                locInfo->TypeDef = Type;
+
+            if (locInfo->Name != "") return locInfo->Name;
+            locInfo->Name = _defaultName;
+            return _defaultName;
         }
-        locInfo = _recN->procInfo->AddLocal(Ofs, 1, _defaultName, Type);
     }
-    ////////////////
+
+    _recN->procInfo->AddLocal(Ofs, 1, _defaultName, Type);
     return _defaultName;
 }
+
 //---------------------------------------------------------------------------
 PDCONTEXT __fastcall TDecompileEnv::GetContext(DWORD Adr)
 {
@@ -513,19 +518,72 @@ PITEM __fastcall TDecompiler::FPop()
     _TOP_ &= 7;
     return _item;
 }
-//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------My Code
 bool __fastcall TDecompiler::CheckPrototype(PInfoRec ARec)
 {
     int         n, _argsNum;
     PARGINFO    _argInfo;
+    String      _msg;
+    String      _name;
 
-    _argsNum = (ARec->procInfo->args) ? ARec->procInfo->args->Count : 0;
+    if (!ARec)
+    {
+        ShowMessage("CheckPrototype: ARec == NULL");
+        return false;
+    }
+
+    if (!ARec->procInfo)
+    {
+        _name = ARec->GetName();
+
+        _msg = String("CheckPrototype: procInfo == NULL\r\nFunction: ");
+        _msg = _msg + _name;
+
+        ShowMessage(_msg);
+        return false;
+    }
+
+    _argsNum = (ARec->procInfo->args) ?
+        ARec->procInfo->args->Count : 0;
+
     for (n = 0; n < _argsNum; n++)
     {
-        _argInfo = (PARGINFO)ARec->procInfo->args->Items[n];
-        if (_argInfo->TypeDef == "") return false;
+        _argInfo =
+            (PARGINFO)ARec->procInfo->args->Items[n];
+
+        if (_argInfo->TypeDef == "")
+        {
+            _argInfo->Name = "Sender";
+            _argInfo->TypeDef = "TObject";
+        }
     }
-    if (ARec->kind == ikFunc && ARec->type == "") return false;
+
+    /*
+       A Delphi constructor that has not been found in the
+       knowledge base can initially be classified as ikFunc
+       with an empty return type.
+
+       For the fastcall constructor pattern used here:
+           EAX = Self
+           EDX = constructor flag
+           ECX = first real argument
+
+       IDR has two arguments in the prototype, so classify
+       this as a constructor before the normal function test.
+    */
+    if (ARec->kind == ikFunc &&
+        ARec->type == "" &&
+        _argsNum == 2)
+    {
+        ARec->kind = ikConstructor;
+    }
+
+    /*
+       Normal functions still require a return type.
+    */
+    if (ARec->kind == ikFunc && ARec->type == "")
+        return false;
+
     return true;
 }
 //---------------------------------------------------------------------------
@@ -3009,27 +3067,57 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
         else
         {
             _name = recM->name;
-            _res = (int)KnowledgeBase.GetProcInfo(recM->name.c_str(), INFO_DUMP | INFO_ARGS, &_pInfo, &_idx);
+            String dbg;
+
+            dbg = String("GetProcInfo\r\nName: ");
+            dbg = dbg + recM->name;
+
+            ShowMessage(dbg);
+
+            _res = (int)KnowledgeBase.GetProcInfo(
+                recM->name.c_str(),
+                INFO_DUMP | INFO_ARGS,
+                &_pInfo,
+                &_idx);
+
             if (_res && _res != -1)
             {
                 _callKind = _pInfo.CallKind;
+
                 switch (_pInfo.MethodKind)
                 {
                 case 'C':
                     _methodKind = ikConstructor;
                     break;
+
                 case 'D':
                     _methodKind = ikDestructor;
                     break;
+
                 case 'F':
                     _methodKind = ikFunc;
                     break;
+
                 case 'P':
                     _methodKind = ikProc;
                     break;
                 }
+
                 _argsNum = (_pInfo.Args) ? _pInfo.ArgsNum : 0;
+
                 _retType = _pInfo.TypeDef;
+
+                /*
+                   ShowModal is known by the KB as a function, but some
+                   KB entries have no TypeDef.  ShowModal returns TModalResult,
+                   which is an integer-sized value.
+                */
+                if (_retType == "" &&
+                    SameText(recM->name.c_str(), "TCustomForm@ShowModal"))
+                {
+                    _retType = "Integer";
+                }
+
                 pp = _pInfo.Args;
                 _fromKB = true;
                 _retBytes = GetProcRetBytes(&_pInfo);
@@ -3039,7 +3127,8 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
                 _name = _recN->GetName();
                 _callKind = _recN->procInfo->flags & 7;
                 _methodKind = _recN->kind;
-                _argsNum = (_recN->procInfo->args) ? _recN->procInfo->args->Count : 0;
+                _argsNum = (_recN->procInfo->args) ?
+                    _recN->procInfo->args->Count : 0;
                 _retType = _recN->type;
                 _fromKB = false;
                 _retBytes = _recN->procInfo->retBytes;
@@ -3051,10 +3140,14 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             if (!CheckPrototype(_recN))
             {
                 Env->ErrAdr = curAdr;
+
                 if (_name != "")
                     throw Exception("Prototype of " + _name + " is not completed");
                 else
-                    throw Exception("Prototype of " + GetDefaultProcName(callAdr) + " is not completed");
+                    throw Exception(
+                        "Prototype of " +
+                        GetDefaultProcName(callAdr) +
+                        " is not completed");
             }
         }
         if (_name != "")
@@ -3644,54 +3737,91 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
             _item = Env->Stack[_ESP_ + DisInfo.Offset];
             _line = Env->GetLvarName(_ESP_ + DisInfo.Offset, "") + "(...);";
             Env->AddToBody(_line);
-            _value = ManualInput(CurProcAdr, curAdr, "Input return bytes number (in hex) of procedure at " + Val2Str8(curAdr), "Bytes:");
+
+            _value = ManualInput(
+                CurProcAdr,
+                curAdr,
+                "Input return bytes number (in hex) of procedure at " +
+                Val2Str8(curAdr),
+                "Bytes:");
+
             if (_value == "")
             {
                 Env->ErrAdr = curAdr;
                 throw Exception("Bye!");
             }
+
             sscanf(_value.c_str(), "%lX", &_retBytes);
             _ESP_ += _retBytes;
             return false;
         }
 
         GetRegItem(DisInfo.BaseReg, &_item);
+
+        // Delphi cleanup/destructor uses CALL [reg-4].
+        // This is NOT a virtual method slot.
+        if (DisInfo.Offset < 0)
+            return false;
+
         _classAdr = 0;
-        //if (SameText(_item.Value, "Self"))
-        //{
-        //    Env->ErrAdr = curAdr;
-        //    throw Exception("Under construction");
-        //}
+
         if (_item.Type != "")
             _classAdr = GetClassAdr(_item.Type);
+
         if (_item.Flags & IF_VMT_ADR)
             _classAdr = _item.IntValue;
+
         if (IsValidImageAdr(_classAdr))
         {
             //Interface
             if (_item.Flags & IF_INTERFACE)
             {
-                Env->AddToBody(_item.Value + ".I" + String(DisInfo.Offset) + "(...);");
-                _value = ManualInput(CurProcAdr, curAdr, "Input return bytes number (in hex) of procedure at " + Val2Str8(curAdr), "Bytes:");
+                Env->AddToBody(
+                    _item.Value +
+                    ".I" +
+                    String(DisInfo.Offset) +
+                    "(...);");
+
+                _value = ManualInput(
+                    CurProcAdr,
+                    curAdr,
+                    "Input return bytes number (in hex) of procedure at " +
+                    Val2Str8(curAdr),
+                    "Bytes:");
+
                 if (_value == "")
                 {
                     Env->ErrAdr = curAdr;
                     throw Exception("Bye!");
                 }
+
                 sscanf(_value.c_str(), "%lX", &_retBytes);
                 _ESP_ += _retBytes;
                 return false;
             }
+
             //Method
             _recM = FMain_11011981->GetMethodInfo(_classAdr, 'V', DisInfo.Offset);
             if (_recM)
             {
-                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
+                // VMT method may point outside the program image.
+                // This is normal for RTL/VCL methods such as TObject.Destroy
+                // and TCustomForm.ShowModal.
+
+                callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr)
+                    - cVmtSelfPtr + DisInfo.Offset));
+
                 if (_recM->abstract)
                 {
                     _classAdr = GetChildAdr(_classAdr);
-                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr) - cVmtSelfPtr + DisInfo.Offset));
+
+                    callAdr = *((DWORD*)(Code + Adr2Pos(_classAdr)
+                        - cVmtSelfPtr + DisInfo.Offset));
                 }
+
+                // We already know the method from the VMT/MethodInfo.
+                // Do not require the resolved implementation address
+                // to be inside the application image.
                 if (_recM->name != "")
                     return SimulateCall(curAdr, callAdr, instrLen, _recM, _classAdr);
                 else
@@ -3774,6 +3904,28 @@ bool __fastcall TDecompiler::SimulateCall(DWORD curAdr, DWORD callAdr, int instr
     //call [reg+N]
     if (DisInfo.OpNum == 1 && DisInfo.OpType[0] == otMEM)
     {
+        //Fixed negative VMT slots - register convention, no stack arguments
+        if (DisInfo.BaseReg != -1 && DisInfo.Offset < 0)
+        {
+            switch (DisInfo.Offset)
+            {
+            case  -4: _name = "Destroy";            break;
+            case  -8: _name = "FreeInstance";       break;
+            case -12: _name = "NewInstance";        break;
+            case -16: _name = "DefaultHandler";     break;
+            case -20: _name = "Dispatch";           break;
+            case -24: _name = "BeforeDestruction";  break;
+            case -28: _name = "AfterConstruction";  break;
+            case -32: _name = "SafeCallException";  break;
+            default:  _name = "";                   break;
+            }
+            if (_name != "")
+            {
+                Env->AddToBody(_name + ";");
+                return false;              //_ESP_ unchanged - zero stack args
+            }
+        }
+
         Env->AddToBody("call(");
         _value = ManualInput(CurProcAdr, curAdr, "Input stack arguments number of procedure at " + Val2Str8(curAdr), "ArgsNum:");
         if (_value == "")
@@ -9403,6 +9555,35 @@ void __fastcall TDecompiler::GetFloatItemFromStack(int Esp, PITEM Dst, int Float
     }
 }
 //---------------------------------------------------------------------------
+static bool __fastcall HasFsPrefix(DWORD Adr)
+{
+    int pos = Adr2Pos(Adr);
+    if (pos < 0) return false;
+
+    for (int n = 0; n < 4; n++)
+    {
+        BYTE b = Code[pos + n];
+        if (b == 0x64) return true;                     //FS override
+        if (b == 0x66 || b == 0x67 || b == 0xF0 ||      //other legacy prefixes
+            b == 0xF2 || b == 0xF3 || b == 0x2E ||
+            b == 0x36 || b == 0x3E || b == 0x26 || b == 0x65)
+            continue;
+        break;                                          //opcode reached
+    }
+    return false;
+}
+//---------------------------------------------------------------------------
+static String __fastcall DescribeAbsAdr(DWORD Adr, int Offset)
+{
+    if (HasFsPrefix(Adr))
+        return (Offset == 0) ? String("ExcFrame")
+        : String("TIB_") + Val2Str0(Offset);
+
+    if (Offset == 0)                    return "nil^";
+    if ((DWORD)Offset < ImageBase)      return String("unk_") + Val2Str8(Offset);
+    return String("dyn_") + Val2Str8(Offset);
+}
+//---------------------------------------------------------------------------
 void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
 {
     bool        _vmt;
@@ -9415,35 +9596,59 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
 
     InitItem(Dst);
     _offset = DisInfo.Offset;
+
     if (DisInfo.BaseReg == -1)
     {
         if (DisInfo.IndxReg == -1)
         {
             //[Offset]
-            if (IsValidImageAdr(_offset))
+            if (IsValidImageAdr((DWORD)_offset))
             {
                 Dst->Flags = IF_INTVAL;
                 Dst->IntValue = _offset;
                 return;
             }
+
+            //Not an image address: fs:[0] frame chain, nil deref, or a
+            //runtime-only pointer. Do not abort - hand back a named
+            //placeholder flagged as unresolved so the caller can comment
+            //the line out instead of emitting bogus Pascal.
             Env->ErrAdr = CurAdr;
-            throw Exception("Address is outside program image");
+            Dst->Value = DescribeAbsAdr((DWORD)CurAdr, _offset);
+            Dst->Flags = IF_UNRESOLVED;
+            Dst->Type = "";
+            return;
         }
+
         //[Offset + IndxReg*Scale]
-        if (IsValidImageAdr(_offset))
+        if (IsValidImageAdr((DWORD)_offset))
         {
             _recN = GetInfoRec(_offset);
+
             if (_recN && _recN->HasName())
                 _name = _recN->GetName();
             else
                 _name = GetGvarName(_offset);
-            Dst->Value = _name + "[" + GetDecompilerRegisterName(DisInfo.IndxReg) + "]";
+
+            Dst->Value =
+                _name + "[" +
+                GetDecompilerRegisterName(DisInfo.IndxReg) +
+                "]";
             return;
         }
+
         Env->ErrAdr = CurAdr;
-        throw Exception("Address is outside program image");
+        Dst->Value =
+            DescribeAbsAdr((DWORD)CurAdr, _offset) + "[" +
+            GetDecompilerRegisterName(DisInfo.IndxReg) +
+            "]";
+        Dst->Flags = IF_UNRESOLVED;
+        Dst->Type = "";
+        return;
     }
+
     GetRegItem(DisInfo.BaseReg, &_itemBase);
+
     //[BaseReg + Offset]
     if (DisInfo.IndxReg == -1)
     {
@@ -9452,45 +9657,70 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
         {
             Dst->Flags = IF_STACK_PTR;
             Dst->IntValue = _ESP_ + _offset;
+
             _item = Env->Stack[_ESP_ + _offset];
+
             //Field
             if (_item.Flags & IF_FIELD)
             {
                 _foffset = _item.Offset;
                 _offset -= _foffset;
-                _fname = GetRecordFields(_foffset, Env->Stack[_ESP_ + _offset].Type);
+
+                _fname = GetRecordFields(
+                    _foffset,
+                    Env->Stack[_ESP_ + _offset].Type);
+
                 _typeName = ExtractType(_fname);
-                _name = Env->GetLvarName(_ESP_ + _offset, _typeName);
+                _name = Env->GetLvarName(
+                    _ESP_ + _offset,
+                    _typeName);
+
                 if (_fname.Pos(":"))
                 {
-                    Dst->Value = _name + "." + ExtractName(_fname);
+                    Dst->Value =
+                        _name + "." + ExtractName(_fname);
                     Dst->Type = _typeName;
                 }
                 else
                 {
-                    Dst->Value = _name + ".f" + Val2Str0(_foffset);
+                    Dst->Value =
+                        _name + ".f" + Val2Str0(_foffset);
                 }
+
                 Dst->Name = Dst->Value;
                 return;
             }
-            _value = Env->GetLvarName(_ESP_ + _offset, "");
-            if (_item.Value != "") _value += "{" + _item.Value + "}";
+
+            _value = Env->GetLvarName(
+                _ESP_ + _offset,
+                "");
+
+            if (_item.Value != "")
+                _value += "{" + _item.Value + "}";
+
             Dst->Value = _value;
             return;
         }
+
         //lea reg, [ebp + N], bpBased
-        if (Op == OP_LEA && DisInfo.BaseReg == 21 && DisInfo.IndxReg == -1 && Env->BpBased)
+        if (Op == OP_LEA &&
+            DisInfo.BaseReg == 21 &&
+            DisInfo.IndxReg == -1 &&
+            Env->BpBased)
         {
             Dst->Flags = IF_STACK_PTR;
             Dst->IntValue = _itemBase.IntValue + _offset;
             return;
         }
+
         //Embedded procedures
         if (Env->Embedded)
         {
             if (_itemBase.Flags & IF_STACK_PTR)
             {
-                _item = Env->Stack[_itemBase.IntValue + _offset];
+                _item = Env->Stack[
+                    _itemBase.IntValue + _offset];
+
                 //Set flag IF_EXTERN_VAR and exit
                 if (SameText(_item.Name, "extebp"))
                 {
@@ -9498,15 +9728,21 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     return;
                 }
             }
+
             if (_itemBase.Flags & IF_EXTERN_VAR)
             {
                 if (_offset < 0)
-                    Dst->Value = "extlvar_" + Val2Str0(-_offset);
+                    Dst->Value =
+                        "extlvar_" + Val2Str0(-_offset);
+
                 if (_offset > 0)
-                    Dst->Value = "extarg_" + Val2Str0(_offset);
+                    Dst->Value =
+                        "extarg_" + Val2Str0(_offset);
+
                 return;
             }
         }
+
         //[reg-N]
         if (_itemBase.Flags & IF_STACK_PTR)
         {
@@ -9514,84 +9750,125 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             if (Op == OP_XCHG)
             {
                 Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
+                Dst->IntValue =
+                    _itemBase.IntValue + _offset;
                 Dst->Value = _itemBase.Value;
                 Dst->Name = _itemBase.Name;
                 return;
             }
+
             if (_itemBase.Flags & IF_ARG)
             {
                 Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
+                Dst->IntValue =
+                    _itemBase.IntValue + _offset;
                 Dst->Value = _itemBase.Value;
                 Dst->Name = _itemBase.Name;
                 return;
             }
+
             if (_itemBase.Flags & IF_ARRAY_PTR)
             {
                 Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
-                if (_itemBase.Value != "") Dst->Value = _itemBase.Value + "[]";
-                if (_itemBase.Name != "") Dst->Name = _itemBase.Name + "[]";
+                Dst->IntValue =
+                    _itemBase.IntValue + _offset;
+
+                if (_itemBase.Value != "")
+                    Dst->Value = _itemBase.Value + "[]";
+
+                if (_itemBase.Name != "")
+                    Dst->Name = _itemBase.Name + "[]";
+
                 return;
             }
-            _item = Env->Stack[_itemBase.IntValue + _offset];
+
+            _item = Env->Stack[
+                _itemBase.IntValue + _offset];
+
             //Arg
             if (_item.Flags & IF_ARG)
             {
-                //Dst->Flags = IF_STACK_PTR;
-                //Dst->IntValue = _itemBase.IntValue + _offset;
                 AssignItem(Dst, &_item);
                 Dst->Flags &= ~IF_ARG;
-                //Dst->Value = _item.Name;
-                //Dst->Name = _item.Name;
                 return;
             }
+
             //Var
             if (_item.Flags & IF_VAR)
             {
                 _item.Flags &= ~IF_VAR;
                 _item.Type = "^" + _item.Type;
+
                 AssignItem(Dst, &_item);
-                Dst->Name = Env->GetLvarName(_itemBase.IntValue + _offset, "");
+
+                Dst->Name =
+                    Env->GetLvarName(
+                        _itemBase.IntValue + _offset,
+                        "");
+
                 return;
             }
+
             //Field
             if (_item.Flags & IF_FIELD)
             {
                 _foffset = _item.Offset;
                 _offset -= _foffset;
-                _fname = GetRecordFields(_foffset, Env->Stack[_itemBase.IntValue + _offset].Type);
+
+                _fname = GetRecordFields(
+                    _foffset,
+                    Env->Stack[
+                        _itemBase.IntValue + _offset].Type);
+
                 _typeName = ExtractType(_fname);
-                _name = Env->GetLvarName(_itemBase.IntValue + _offset, _typeName);
+
+                _name = Env->GetLvarName(
+                    _itemBase.IntValue + _offset,
+                    _typeName);
+
                 if (_fname.Pos(":"))
                 {
-                    Dst->Value = _name + "." + ExtractName(_fname);
+                    Dst->Value =
+                        _name + "." + ExtractName(_fname);
                     Dst->Type = _typeName;
                 }
                 else
                 {
-                    Dst->Value = _name + ".f" + Val2Str0(_foffset);
+                    Dst->Value =
+                        _name + ".f" + Val2Str0(_foffset);
                 }
+
                 Dst->Name = _name;
                 return;
             }
+
             //Not interface
-            if (_item.Type == "" || GetTypeKind(_item.Type, &_size) != ikInterface)
+            if (_item.Type == "" ||
+                GetTypeKind(_item.Type, &_size) != ikInterface)
             {
-                _lvarName = Env->GetLvarName(_itemBase.IntValue + _offset, "");
-                Env->Stack[_itemBase.IntValue + _offset].Name = _lvarName;
+                _lvarName =
+                    Env->GetLvarName(
+                        _itemBase.IntValue + _offset,
+                        "");
+
+                Env->Stack[
+                    _itemBase.IntValue + _offset].Name =
+                    _lvarName;
+
                 Dst->Flags = IF_STACK_PTR;
-                Dst->IntValue = _itemBase.IntValue + _offset;
+                Dst->IntValue =
+                    _itemBase.IntValue + _offset;
                 Dst->Value = _lvarName;
                 Dst->Name = Dst->Value;
                 return;
             }
         }
+
         //[BaseReg]
         if (!_offset)
         {
             _typeName = _itemBase.Type;
+
             if (_itemBase.Flags & IF_VAR)
             {
                 AssignItem(Dst, &_itemBase);
@@ -9599,12 +9876,18 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 Dst->Name = "";
                 return;
             }
+
             if (_itemBase.Flags & IF_RECORD_FOFS)
             {
                 _value = _itemBase.Value;
+
                 if (_itemBase.Flags & IF_ARRAY_PTR)
                     _value += "[]";
-                _text = GetRecordFields(_itemBase.Offset, _itemBase.Type);
+
+                _text = GetRecordFields(
+                    _itemBase.Offset,
+                    _itemBase.Type);
+
                 if (_text.Pos(":"))
                 {
                     _value += "." + ExtractName(_text);
@@ -9615,30 +9898,53 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     _value += ".f" + Val2Str0(_itemBase.Offset);
                     _typeName = _text;
                 }
+
                 Dst->Value = _value;
                 Dst->Type = _typeName;
                 Dst->Name = "";
                 return;
             }
+
             if (_itemBase.Flags & IF_ARRAY_PTR)
             {
-                Dst->Value = _itemBase.Value + "[]";
-                Dst->Type = GetArrayElementType(_typeName);
+                _value = _itemBase.Value + "[]";
+
+                _text = GetRecordFields(
+                    _itemBase.Offset,
+                    _itemBase.Type);
+
+                if (_text.Pos(":"))
+                {
+                    _value += "." + ExtractName(_text);
+                    _typeName = ExtractType(_text);
+                }
+                else
+                {
+                    _value += ".f" + Val2Str0(_itemBase.Offset);
+                    _typeName = _text;
+                }
+
+                Dst->Value = _value;
+                Dst->Type = _typeName;
                 Dst->Name = "";
                 return;
             }
+
             if (_itemBase.Flags & IF_STACK_PTR)
             {
                 _item = Env->Stack[_itemBase.IntValue];
                 AssignItem(Dst, &_item);
                 return;
             }
+
             if (_itemBase.Flags & IF_INTVAL)
             {
                 _adr = _itemBase.IntValue;
+
                 if (IsValidImageAdr(_adr))
                 {
                     _recN = GetInfoRec(_adr);
+
                     if (_recN)
                     {
                         Dst->Value = _recN->GetName();
@@ -9647,25 +9953,20 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                     }
                 }
             }
+
             if (_typeName == "")
-            {
                 _typeName = "Pointer";
-                //_name = GetDecompilerRegisterName(DisInfo.BaseReg);
-                //_typeName = ManualInput(CurProcAdr, CurAdr, "Define type of base register (" + _name + ")", "Type:");
-                //if (_typeName == "")
-                //{
-                //    Env->ErrAdr = CurAdr;
-                //    throw Exception("Bye!");
-                //}
-            }
-            if (_typeName[1] == '^')//Pointer to var
+
+            if (_typeName[1] == '^')
             {
                 _value = _itemBase.Value;
                 _typeName = GetTypeDeref(_typeName);
                 _kind = GetTypeKind(_typeName, &_size);
+
                 if (_kind == ikRecord)
                 {
                     _text = GetRecordFields(0, _typeName);
+
                     if (_text.Pos(":"))
                     {
                         _value += "." + ExtractName(_text);
@@ -9677,73 +9978,107 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                         _typeName = _text;
                     }
                 }
+
                 if (_kind == ikArray)
-                {
                     _value += "[ofs=" + String(_offset) + "]";
-                }
+
                 Dst->Value = _value;
-                Dst->Name = GetDecompilerRegisterName(DisInfo.BaseReg);
+                Dst->Name =
+                    GetDecompilerRegisterName(
+                        DisInfo.BaseReg);
                 Dst->Type = _typeName;
                 return;
             }
+
             _kind = GetTypeKind(_typeName, &_size);
+
             if (_kind == ikEnumeration)
             {
-                Dst->Value = GetEnumerationString(_typeName, _itemBase.Value);
+                Dst->Value =
+                    GetEnumerationString(
+                        _typeName,
+                        _itemBase.Value);
                 Dst->Type = _typeName;
                 return;
             }
+
             if (_kind == ikLString || _kind == ikString)
             {
                 Dst->Value = _itemBase.Value + "[1]";
                 Dst->Type = "Char";
                 return;
             }
+
             if (_kind == ikRecord)
             {
-                _text = GetRecordFields(_offset, _typeName);
+                _text =
+                    GetRecordFields(
+                        _offset,
+                        _typeName);
+
                 if (_text.Pos(":"))
                 {
-                    _value = _itemBase.Value + "." + ExtractName(_text);
+                    _value =
+                        _itemBase.Value + "." +
+                        ExtractName(_text);
                     _typeName = ExtractType(_text);
                 }
                 else
                 {
-                    _value = _itemBase.Value + ".f" + Val2Str0(_offset);
+                    _value =
+                        _itemBase.Value + ".f" +
+                        Val2Str0(_offset);
                     _typeName = _text;
                 }
+
                 Dst->Value = _value;
                 Dst->Type = _typeName;
                 return;
             }
 
             Dst->Flags = IF_VMT_ADR;
+
             if (_itemBase.Flags & IF_INTERFACE)
             {
                 Dst->Flags |= IF_INTERFACE;
                 Dst->Value = _itemBase.Value;
             }
+
             Dst->IntValue = GetClassAdr(_typeName);
             Dst->Type = _typeName;
             return;
         }
+
         //[BaseReg+Offset]
         if (IsValidImageAdr(_offset))
         {
             _recN = GetInfoRec(_offset);
+
             if (_recN && _recN->HasName())
                 _name = _recN->GetName();
             else
                 _name = GetGvarName(_offset);
-            Dst->Value = _name + "[" + GetDecompilerRegisterName(DisInfo.BaseReg) + "]";
+
+            Dst->Value =
+                _name + "[" +
+                GetDecompilerRegisterName(
+                    DisInfo.BaseReg) +
+                "]";
+
             return;
         }
+
         if (_itemBase.Flags & IF_RECORD_FOFS)
         {
             _value = _itemBase.Value;
+
             if (_itemBase.Flags & IF_ARRAY_PTR)
                 _value += "[]";
-            _text = GetRecordFields(_itemBase.Offset + _offset, _itemBase.Type);
+
+            _text = GetRecordFields(
+                _itemBase.Offset + _offset,
+                _itemBase.Type);
+
             if (_text.Pos(":"))
             {
                 _value += "." + ExtractName(_text);
@@ -9751,52 +10086,70 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             }
             else
             {
-                _value += ".f" + Val2Str0(_itemBase.Offset + _offset);
+                _value += ".f" +
+                    Val2Str0(_itemBase.Offset + _offset);
                 _typeName = _text;
             }
+
             Dst->Value = _value;
             Dst->Type = _typeName;
             Dst->Name = "";
             return;
         }
+
         if (_itemBase.Flags & IF_ARRAY_PTR)
         {
-            if ((_itemBase.Flags & IF_STACK_PTR) && Env->Stack[_itemBase.IntValue].Value != "")
-                Dst->Value = Env->Stack[_itemBase.IntValue].Value + "[";
+            if ((_itemBase.Flags & IF_STACK_PTR) &&
+                Env->Stack[_itemBase.IntValue].Value != "")
+            {
+                Dst->Value =
+                    Env->Stack[_itemBase.IntValue].Value + "[";
+            }
             else
-                Dst->Value = GetDecompilerRegisterName(DisInfo.BaseReg) + "[";
+            {
+                Dst->Value =
+                    GetDecompilerRegisterName(
+                        DisInfo.BaseReg) + "[";
+            }
+
             if (_offset > 0)
                 Dst->Value += " + " + String(_offset);
             else if (_offset < 0)
                 Dst->Value += " - " + String(-_offset);
+
             Dst->Value += "]";
             return;
         }
+
         _typeName = _itemBase.Type;
+
         if (_typeName == "")
-        {
             _typeName = "Pointer";
-            //_name = GetDecompilerRegisterName(DisInfo.BaseReg);
-            //_typeName = ManualInput(CurProcAdr, CurAdr, "Define type of base register (" + _name + ")", "Type:");
-            //if (_typeName == "")
-            //{
-            //    Env->ErrAdr = CurAdr;
-            //    throw Exception("Bye!");
-            //}
-        }
-        if (_typeName[1] == '^') _typeName = GetTypeDeref(_typeName);
+
+        if (_typeName[1] == '^')
+            _typeName = GetTypeDeref(_typeName);
 
         _itemBase.Flags = 0;
+
         if (_itemBase.Value == "")
-            _itemBase.Value = GetDecompilerRegisterName(DisInfo.BaseReg);
+            _itemBase.Value =
+                GetDecompilerRegisterName(
+                    DisInfo.BaseReg);
+
         _itemBase.Type = _typeName;
-        SetRegItem(DisInfo.BaseReg, &_itemBase);
+
+        SetRegItem(
+            DisInfo.BaseReg,
+            &_itemBase);
 
         _iname = _itemBase.Value;
         _kind = GetTypeKind(_typeName, &_size);
+
         if (_kind == ikLString || _kind == ikString)
         {
-            _value = _iname + "[" + String(_offset + 1) + "]";
+            _value =
+                _iname + "[" +
+                String(_offset + 1) + "]";
             _typeName = "Char";
         }
         else if (_kind == ikRecord)
@@ -9804,8 +10157,11 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             if (_itemBase.Value != "")
                 _value = _itemBase.Value;
             else
-                _value = GetDecompilerRegisterName(DisInfo.BaseReg);
-            if (Op == OP_LEA)//address of field with ofs=_offset in structure _typeName
+                _value =
+                    GetDecompilerRegisterName(
+                        DisInfo.BaseReg);
+
+            if (Op == OP_LEA)
             {
                 Dst->Flags = IF_RECORD_FOFS;
                 Dst->Value = _value;
@@ -9813,7 +10169,12 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 Dst->Offset = _offset;
                 return;
             }
-            _text = GetRecordFields(_offset, _typeName);
+
+            _text =
+                GetRecordFields(
+                    _offset,
+                    _typeName);
+
             if (_text.Pos(":"))
             {
                 _value += "." + ExtractName(_text);
@@ -9827,47 +10188,80 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
         }
         else if (_kind == ikArray)
         {
-            _value = _iname + "[ofs=" + String(_offset) + "]";
+            _value =
+                _iname +
+                "[ofs=" +
+                String(_offset) +
+                "]";
         }
         else if (_kind == ikDynArray)
         {
             _typeName = GetArrayElementType(_typeName);
+
             if (_typeName == "")
             {
                 Env->ErrAdr = CurAdr;
-                throw Exception("Type of array elements not found");
+                throw Exception(
+                    "Type of array elements not found");
             }
+
             if (GetTypeKind(_typeName, &_size) == ikRecord)
             {
                 int _k = 0;
                 _size = GetRecordSize(_typeName);
+
                 if (_offset < 0)
                 {
                     while (1)
                     {
-                        _offset += _size; _k--;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset += _size;
+                        _k--;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
+
                 if (_offset >= _size)
                 {
                     while (1)
                     {
-                        _offset -= _size; _k++;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset -= _size;
+                        _k++;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
-                _text = GetRecordFields(_offset, _typeName);
+
+                _text =
+                    GetRecordFields(
+                        _offset,
+                        _typeName);
+
                 if (_text == "")
                 {
-                    _text = ManualInput(CurProcAdr, CurAdr, "Define [name:]type of field " + _typeName + ".f" + Val2Str0(_offset), "[Name]:Type:");
+                    _text = ManualInput(
+                        CurProcAdr,
+                        CurAdr,
+                        "Define [name:]type of field " +
+                        _typeName + ".f" +
+                        Val2Str0(_offset),
+                        "[Name]:Type:");
+
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
                         throw Exception("Bye!");
                     }
                 }
-                _value = _itemBase.Value + "[" + String(_k) + "]";
+
+                _value =
+                    _itemBase.Value +
+                    "[" + String(_k) + "]";
+
                 if (_text.Pos(":"))
                 {
                     _value += "." + ExtractName(_text);
@@ -9875,206 +10269,366 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 }
                 else
                 {
-                    _value += ".f" + Val2Str0(_offset);
+                    _value += ".f" +
+                        Val2Str0(_offset);
                     _typeName = _text;
                 }
             }
+
             Dst->Value = _value;
             Dst->Type = _typeName;
             return;
         }
         else if (_kind == ikVMT || _kind == ikClass)
         {
-            _fofs = GetField(_typeName, _offset, _name, _type);
+            _fofs = GetField(
+                _typeName,
+                _offset,
+                _name,
+                _type);
+
             if (_fofs < 0)
             {
-                _text = ManualInput(CurProcAdr, CurAdr, "Define correct type of field " + _typeName + ".f" + Val2Str0(_offset), "Type:");
+                _text = ManualInput(
+                    CurProcAdr,
+                    CurAdr,
+                    "Define correct type of field " +
+                    _typeName + ".f" +
+                    Val2Str0(_offset),
+                    "Type:");
+
                 if (_text == "")
                 {
                     Env->ErrAdr = CurAdr;
                     throw Exception("Bye!");
                 }
-                _recN1 = GetInfoRec(GetClassAdr(_typeName));
-                _recN1->vmtInfo->AddField(0, 0, FIELD_PUBLIC, _offset, -1, "", _text);
 
-                _fofs = GetField(_typeName, _offset, _name, _type);
+                _recN1 =
+                    GetInfoRec(
+                        GetClassAdr(_typeName));
+
+                _recN1->vmtInfo->AddField(
+                    0,
+                    0,
+                    FIELD_PUBLIC,
+                    _offset,
+                    -1,
+                    "",
+                    _text);
+
+                _fofs = GetField(
+                    _typeName,
+                    _offset,
+                    _name,
+                    _type);
+
                 if (_fofs < 0)
                 {
                     Env->ErrAdr = CurAdr;
-                    throw Exception("Field f" + Val2Str0(_offset) + " not found");
+                    throw Exception(
+                        "Field f" +
+                        Val2Str0(_offset) +
+                        " not found");
                 }
             }
+
             _value = _name;
             _typeName = _type;
             _foffset = _fofs;
 
-            //if (Op != OP_LEA)
-            //{
-                _kind = GetTypeKind(_typeName, &_size);
-                //Interface
-                if (_kind == ikInterface)
+            _kind = GetTypeKind(
+                _typeName,
+                &_size);
+
+            //Interface
+            if (_kind == ikInterface)
+            {
+                _typeName[1] = 'T';
+                Dst->Flags = IF_INTERFACE;
+                Dst->Value = _value;
+                Dst->Type = _typeName;
+                return;
+            }
+
+            //Record
+            if (_kind == ikRecord)
+            {
+                _text =
+                    GetRecordFields(
+                        _offset - _foffset,
+                        _typeName);
+
+                if (_text == "")
                 {
-                    _typeName[1] = 'T';
-                    Dst->Flags = IF_INTERFACE;
-                    Dst->Value = _value; 
-                    Dst->Type = _typeName;
-                    return;
-                }
-                //Record
-                if (_kind == ikRecord)
-                {
-                    _text = GetRecordFields(_offset - _foffset, _typeName);
+                    _text = ManualInput(
+                        CurProcAdr,
+                        CurAdr,
+                        "Define [name:]type of field " +
+                        _typeName +
+                        ".f" +
+                        Val2Str0(
+                            _offset - _fofs),
+                        "[Name]:Type:");
+
                     if (_text == "")
                     {
-                        _text = ManualInput(CurProcAdr, CurAdr, "Define [name:]type of field " + _typeName + ".f" + Val2Str0(_offset - _fofs), "[Name]:Type:");
-                        if (_text == "")
-                        {
-                            Env->ErrAdr = CurAdr;
-                            throw Exception("Bye!");
-                        }
-                    }
-                    if (_text.Pos(":"))
-                    {
-                        _value += "." + ExtractName(_text);
-                        _typeName = ExtractType(_text);
-                    }
-                    else
-                    {
-                        _value += ".f" + Val2Str0(_offset);
-                        _typeName = _text;
+                        Env->ErrAdr = CurAdr;
+                        throw Exception("Bye!");
                     }
                 }
-                //Array
-                if (_kind == ikArray)
+
+                if (_text.Pos(":"))
                 {
-                    _value += "[ofs=" + String(_offset - _foffset) + "]";
+                    _value += "." + ExtractName(_text);
+                    _typeName = ExtractType(_text);
                 }
-                if (!SameText(_iname, "Self")) _value = _iname + "." + _value;
-            //}
+                else
+                {
+                    _value += ".f" +
+                        Val2Str0(_offset);
+                    _typeName = _text;
+                }
+            }
+
+            //Array
+            if (_kind == ikArray)
+            {
+                _value +=
+                    "[ofs=" +
+                    String(_offset - _foffset) +
+                    "]";
+            }
+
+            if (!SameText(_iname, "Self"))
+                _value = _iname + "." + _value;
         }
+
         Dst->Value = _value;
         Dst->Type = _typeName;
         return;
     }
+
     //[BaseReg + IndxReg*Scale + Offset]
     else
     {
-        GetRegItem(DisInfo.IndxReg, &_itemIndx);
+        GetRegItem(
+            DisInfo.IndxReg,
+            &_itemIndx);
+
         if (Op == OP_LEA)
         {
-            if (_itemBase.Flags & IF_STACK_PTR) Dst->Flags |= IF_STACK_PTR;
-            Dst->Value = GetDecompilerRegisterName(DisInfo.BaseReg) + " + " + GetDecompilerRegisterName(DisInfo.IndxReg) + " * " + String(DisInfo.Scale);
+            if (_itemBase.Flags & IF_STACK_PTR)
+                Dst->Flags |= IF_STACK_PTR;
+
+            Dst->Value =
+                GetDecompilerRegisterName(
+                    DisInfo.BaseReg) +
+                " + " +
+                GetDecompilerRegisterName(
+                    DisInfo.IndxReg) +
+                " * " +
+                String(DisInfo.Scale);
+
             if (_offset > 0)
-                Dst->Value += " + " + String(_offset);
+                Dst->Value +=
+                    " + " + String(_offset);
             else if (_offset < 0)
-                Dst->Value += " - " + String(-_offset);
+                Dst->Value +=
+                    " - " + String(-_offset);
+
             return;
         }
+
         _typeName = _itemBase.Type;
+
         if (_typeName == "")
         {
             //esp
             if (DisInfo.BaseReg == 20)
             {
-                Dst->Value = Env->GetLvarName(_ESP_ + _offset + DisInfo.Scale, "") + "[" + _itemIndx.Value + "]";
+                Dst->Value =
+                    Env->GetLvarName(
+                        _ESP_ + _offset + DisInfo.Scale,
+                        "") +
+                    "[" + _itemIndx.Value + "]";
                 return;
             }
+
             //ebp
-            if (DisInfo.BaseReg == 21 && (_itemBase.Flags & IF_STACK_PTR))
+            if (DisInfo.BaseReg == 21 &&
+                (_itemBase.Flags & IF_STACK_PTR))
             {
-                Dst->Value = Env->GetLvarName(_itemBase.IntValue + _offset + DisInfo.Scale, "") + "[" + _itemIndx.Value + "]";
+                Dst->Value =
+                    Env->GetLvarName(
+                        _itemBase.IntValue +
+                        _offset +
+                        DisInfo.Scale,
+                        "") +
+                    "[" + _itemIndx.Value + "]";
                 return;
             }
+
             _kind = 0;
+
             //Lets try analyze _itemBase if it is address
             if (_itemBase.Flags & IF_INTVAL)
             {
                 _adr = _itemBase.IntValue;
+
                 if (IsValidImageAdr(_adr))
                 {
                     _recN = GetInfoRec(_adr);
+
                     if (_recN)
                     {
                         _kind = _recN->kind;
-                        if (_recN->type != "" && (_kind == ikUnknown || _kind == ikData))
-                            _kind = GetTypeKind(_recN->type, &_size);
+
+                        if (_recN->type != "" &&
+                            (_kind == ikUnknown ||
+                             _kind == ikData))
+                        {
+                            _kind =
+                                GetTypeKind(
+                                    _recN->type,
+                                    &_size);
+                        }
                     }
                 }
             }
+
             while (_kind == 0 || _kind == ikData)
             {
                 _text = "Pointer";
-                //_text = ManualInput(CurProcAdr, CurAdr, "Define type of base register", "Type:");
-                //if (_text == "")
-                //{
-                //    Env->ErrAdr = CurAdr;
-                //    throw Exception("Bye!");
-                //}
                 _typeName = _text;
-                _kind = GetTypeKind(_typeName, &_size);
+                _kind =
+                    GetTypeKind(
+                        _typeName,
+                        &_size);
             }
         }
         else
         {
-            if (_typeName[1] == '^') _typeName = GetTypeDeref(_typeName);
+            if (_typeName[1] == '^')
+                _typeName =
+                    GetTypeDeref(_typeName);
 
-            _kind = GetTypeKind(_typeName, &_size);
-            while (_kind != ikClass && _kind != ikVMT && _kind != ikLString &&
-                   _kind != ikCString && _kind != ikPointer && _kind != ikRecord &&
-                   _kind != ikArray && _kind != ikDynArray)
+            _kind =
+                GetTypeKind(
+                    _typeName,
+                    &_size);
+
+            while (_kind != ikClass &&
+                   _kind != ikVMT &&
+                   _kind != ikLString &&
+                   _kind != ikCString &&
+                   _kind != ikPointer &&
+                   _kind != ikRecord &&
+                   _kind != ikArray &&
+                   _kind != ikDynArray)
             {
                 _text = "Pointer";
-                //_text = ManualInput(CurProcAdr, CurAdr, "Define type of base register", "Type:");
-                //if (_text == "")
-                //{
-                //    Env->ErrAdr = CurAdr;
-                //    throw Exception("Bye!");
-                //}
                 _typeName = _text;
-                _kind = GetTypeKind(_typeName, &_size);
+                _kind =
+                    GetTypeKind(
+                        _typeName,
+                        &_size);
             }
         }
+
         if (_kind == ikClass || _kind == ikVMT)
         {
-            _fofs = GetArrayFieldOffset(_typeName, _offset, DisInfo.Scale, _name, _type);
+            _fofs =
+                GetArrayFieldOffset(
+                    _typeName,
+                    _offset,
+                    DisInfo.Scale,
+                    _name,
+                    _type);
+
             while (_fofs < 0)
             {
-                _text = ManualInput(CurProcAdr, CurAdr, "Define actual offset (in hex) of array field", "Offset:");
+                _text = ManualInput(
+                    CurProcAdr,
+                    CurAdr,
+                    "Define actual offset (in hex) of array field",
+                    "Offset:");
+
                 if (_text == "")
                 {
                     Env->ErrAdr = CurAdr;
                     throw Exception("Bye!");
                 }
-                sscanf(_text.c_str(), "%lX", &_offset);
-                _fofs = GetArrayFieldOffset(_typeName, _offset, DisInfo.Scale, _name, _type);
+
+                sscanf(
+                    _text.c_str(),
+                    "%lX",
+                    &_offset);
+
+                _fofs =
+                    GetArrayFieldOffset(
+                        _typeName,
+                        _offset,
+                        DisInfo.Scale,
+                        _name,
+                        _type);
             }
-            if (!SameText(_itemBase.Value, "Self")) _value = _itemBase.Value + ".";
+
+            if (!SameText(_itemBase.Value, "Self"))
+                _value = _itemBase.Value + ".";
+
             if (_name != "")
                 _value += _name;
             else
-                _value += "f" + Val2Str0(_fofs);
-            _value += "[" + GetDecompilerRegisterName(DisInfo.IndxReg) + "]";
+                _value +=
+                    "f" + Val2Str0(_fofs);
+
+            _value +=
+                "[" +
+                GetDecompilerRegisterName(
+                    DisInfo.IndxReg) +
+                "]";
 
             Dst->Value = _value;
-            Dst->Type = GetArrayElementType(_type);
+            Dst->Type =
+                GetArrayElementType(_type);
             return;
         }
-        if (_kind == ikLString || _kind == ikCString || _kind == ikPointer)
+
+        if (_kind == ikLString ||
+            _kind == ikCString ||
+            _kind == ikPointer)
         {
-            Dst->Value = GetDecompilerRegisterName(DisInfo.BaseReg) + "[" + GetDecompilerRegisterName(DisInfo.IndxReg);
-            if (_kind == ikLString) _offset++;
+            Dst->Value =
+                GetDecompilerRegisterName(
+                    DisInfo.BaseReg) +
+                "[" +
+                GetDecompilerRegisterName(
+                    DisInfo.IndxReg);
+
+            if (_kind == ikLString)
+                _offset++;
+
             if (_offset > 0)
-                Dst->Value += " + " + String(_offset);
+                Dst->Value +=
+                    " + " + String(_offset);
             else if (_offset < 0)
-                Dst->Value += " - " + String(-_offset);
+                Dst->Value +=
+                    " - " + String(-_offset);
+
             Dst->Value += "]";
             Dst->Type = "Char";
             return;
         }
+
         if (_kind == ikRecord)
         {
             _value = _itemBase.Value;
-            _text = GetRecordFields(_offset + DisInfo.Scale, _typeName);
+
+            _text =
+                GetRecordFields(
+                    _offset + DisInfo.Scale,
+                    _typeName);
+
             if (_text.Pos(":"))
             {
                 _value += "." + ExtractName(_text);
@@ -10082,75 +10636,123 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
             }
             else
             {
-                _value += ".f" + Val2Str0(_offset);
+                _value += ".f" +
+                    Val2Str0(_offset);
                 _typeName = _text;
             }
+
             if (GetTypeKind(_typeName, &_size) == ikArray)
             {
-                _value += "[" + GetDecompilerRegisterName(DisInfo.IndxReg) + "]";
-                _typeName = GetArrayElementType(_typeName);
+                _value +=
+                    "[" +
+                    GetDecompilerRegisterName(
+                        DisInfo.IndxReg) +
+                    "]";
+
+                _typeName =
+                    GetArrayElementType(
+                        _typeName);
             }
+
             Dst->Value = _value;
             Dst->Type = _typeName;
             return;
         }
+
         if (_kind == ikArray)
         {
             if (_itemBase.Flags & IF_INTVAL)
             {
                 _adr = _itemBase.IntValue;
                 _recN = GetInfoRec(_adr);
+
                 if (_recN && _recN->HasName())
                     _name = _recN->GetName();
                 else
                     _name = GetGvarName(_adr);
             }
+
             _name = _itemBase.Value;
-            _typeName = GetArrayElementType(_typeName);
+            _typeName =
+                GetArrayElementType(
+                    _typeName);
+
             if (_typeName == "")
             {
                 Env->ErrAdr = CurAdr;
-                throw Exception("Type of array elements not found");
+                throw Exception(
+                    "Type of array elements not found");
             }
+
             if (GetTypeKind(_typeName, &_size) == ikRecord)
             {
                 int _k = 0;
                 _size = GetRecordSize(_typeName);
+
                 if (_offset < 0)
                 {
                     while (1)
                     {
-                        _offset += _size; _k--;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset += _size;
+                        _k--;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
+
                 if (_offset > _size)
                 {
                     while (1)
                     {
-                        _offset -= _size; _k++;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset -= _size;
+                        _k++;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
-                _text = GetRecordFields(_offset, _typeName);
+
+                _text =
+                    GetRecordFields(
+                        _offset,
+                        _typeName);
+
                 if (_text == "")
                 {
-                    _text = ManualInput(CurProcAdr, CurAdr, "Define [name:]type of field " + _typeName + ".f" + Val2Str0(_offset), "[Name]:Type:");
+                    _text = ManualInput(
+                        CurProcAdr,
+                        CurAdr,
+                        "Define [name:]type of field " +
+                        _typeName +
+                        ".f" +
+                        Val2Str0(_offset),
+                        "[Name]:Type:");
+
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
                         throw Exception("Bye!");
                     }
                 }
+
                 _value = _name + "[";
+
                 if (_itemIndx.Value != "")
                     _value += _itemIndx.Value;
                 else
-                    _value += GetDecompilerRegisterName(DisInfo.IndxReg);
+                    _value +=
+                        GetDecompilerRegisterName(
+                            DisInfo.IndxReg);
+
                 if (_k < 0)
-                    _value += " - " + String(-_k) + "]";
+                    _value +=
+                        " - " + String(-_k) + "]";
                 else if (_k > 0)
-                    _value += " + " + String(_k) + "]";
+                    _value +=
+                        " + " + String(_k) + "]";
                 else
                     _value += "]";
 
@@ -10161,88 +10763,150 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 }
                 else
                 {
-                    _value += ".f" + Val2Str0(_offset);
+                    _value += ".f" +
+                        Val2Str0(_offset);
                     _typeName = _text;
                 }
+
                 Dst->Value = _value;
                 Dst->Type = _typeName;
                 return;
             }
 
-            if (!GetArrayIndexes(_itemBase.Type, 1, &_idx, &_idx1))
+            if (!GetArrayIndexes(
+                    _itemBase.Type,
+                    1,
+                    &_idx,
+                    &_idx1))
             {
                 Env->ErrAdr = CurAdr;
-                throw Exception("Incorrect array definition");
+                throw Exception(
+                    "Incorrect array definition");
             }
+
             _mod = _offset % DisInfo.Scale;
+
             if (_mod)
             {
                 Env->ErrAdr = CurAdr;
-                throw Exception("Array element is record");
+                throw Exception(
+                    "Array element is record");
             }
 
             if (_itemIndx.Value != "")
-                _value = _itemBase.Value + "[" + _itemIndx.Value + "]";
+                _value =
+                    _itemBase.Value +
+                    "[" + _itemIndx.Value + "]";
             else
-                _value = _itemBase.Value + "[" + GetDecompilerRegisterName(DisInfo.IndxReg) + "]";
+                _value =
+                    _itemBase.Value +
+                    "[" +
+                    GetDecompilerRegisterName(
+                        DisInfo.IndxReg) +
+                    "]";
+
             Dst->Value = _value;
-            Dst->Type = GetArrayElementType(_itemBase.Type);
+            Dst->Type =
+                GetArrayElementType(
+                    _itemBase.Type);
             return;
         }
+
         if (_kind == ikDynArray)
         {
-            _typeName = GetArrayElementType(_typeName);
+            _typeName =
+                GetArrayElementType(
+                    _typeName);
+
             if (_typeName == "")
             {
                 Env->ErrAdr = CurAdr;
-                throw Exception("Type of array elements not found");
+                throw Exception(
+                    "Type of array elements not found");
             }
-            _value = _itemBase.Value + "[";
+
+            _value =
+                _itemBase.Value + "[";
+
             if (_itemIndx.Value != "")
                 _value += _itemIndx.Value;
             else
-                _value += GetDecompilerRegisterName(DisInfo.IndxReg);
+                _value +=
+                    GetDecompilerRegisterName(
+                        DisInfo.IndxReg);
+
             _value += "]";
 
             if (GetTypeKind(_typeName, &_size) == ikRecord)
             {
                 int _k = 0;
                 _size = GetRecordSize(_typeName);
+
                 if (_offset < 0)
                 {
                     while (1)
                     {
-                        _offset += _size; _k--;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset += _size;
+                        _k--;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
+
                 if (_offset > _size)
                 {
                     while (1)
                     {
-                        _offset -= _size; _k++;
-                        if (_offset >= 0 && _offset < _size) break;
+                        _offset -= _size;
+                        _k++;
+
+                        if (_offset >= 0 &&
+                            _offset < _size)
+                            break;
                     }
                 }
-                _text = GetRecordFields(_offset, _typeName);
+
+                _text =
+                    GetRecordFields(
+                        _offset,
+                        _typeName);
+
                 if (_text == "")
                 {
-                    _text = ManualInput(CurProcAdr, CurAdr, "Define [name:]type of field " + _typeName + ".f" + Val2Str0(_offset), "[Name]:Type:");
+                    _text = ManualInput(
+                        CurProcAdr,
+                        CurAdr,
+                        "Define [name:]type of field " +
+                        _typeName +
+                        ".f" +
+                        Val2Str0(_offset),
+                        "[Name]:Type:");
+
                     if (_text == "")
                     {
                         Env->ErrAdr = CurAdr;
                         throw Exception("Bye!");
                     }
                 }
-                _value = _itemBase.Value + "[";
+
+                _value =
+                    _itemBase.Value + "[";
+
                 if (_itemIndx.Value != "")
                     _value += _itemIndx.Value;
                 else
-                    _value += GetDecompilerRegisterName(DisInfo.IndxReg);
+                    _value +=
+                        GetDecompilerRegisterName(
+                            DisInfo.IndxReg);
+
                 if (_k < 0)
-                    _value += " - " + String(-_k) + "]";
+                    _value +=
+                        " - " + String(-_k) + "]";
                 else if (_k > 0)
-                    _value += " + " + String(_k) + "]";
+                    _value +=
+                        " + " + String(_k) + "]";
                 else
                     _value += "]";
 
@@ -10253,14 +10917,17 @@ void __fastcall TDecompiler::GetMemItem(int CurAdr, PITEM Dst, BYTE Op)
                 }
                 else
                 {
-                    _value += ".f" + Val2Str0(_offset);
+                    _value += ".f" +
+                        Val2Str0(_offset);
                     _typeName = _text;
                 }
             }
+
             Dst->Value = _value;
             Dst->Type = _typeName;
             return;
         }
+
         Env->ErrAdr = CurAdr;
         throw Exception("Under construction");
     }

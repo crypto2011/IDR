@@ -570,7 +570,6 @@ void __fastcall TResourceInfo::ReopenAllForms()
 //---------------------------------------------------------------------------
 void __fastcall TResourceInfo::InitAliases()
 {
-    //return;
     int cnt = Aliases->Count;
     for (int n = 0; n < cnt; n++)
     {
@@ -1684,6 +1683,518 @@ bool __fastcall IdrDfmLoader::HasGlyph(String ClassName)
     }
     return false;
 }
+// My Code Start 01.08.26
+//---------------------------------------------------------------------------
+// Form Export Implementations
+//---------------------------------------------------------------------------
+bool __fastcall TResourceInfo::ExportDfmToFile(TDfm* Dfm, String FolderPath)
+{
+    if (!Dfm) return false;
+
+    TStringList* formText = new TStringList;
+    try
+    {
+        // Convert binary DFM stream to text representation using IDR's existing helper
+        GetFormAsText(Dfm, formText);
+
+        String fileName = FolderPath + "\\" + Dfm->Name + ".dfm";
+        formText->SaveToFile(fileName);
+        return true;
+    }
+    __finally
+    {
+        delete formText;
+    }
+}
+
+//---------------------------------------------------------------------------
+bool __fastcall TResourceInfo::ExportPasUnitToFile(TDfm* Dfm, String FolderPath)
+{
+    if (!Dfm) return false;
+
+    TStringList* pas = new TStringList;
+    try
+    {
+        String unitName = Dfm->Name;
+        String className = Dfm->ClassName;
+
+        pas->Add("unit " + unitName + ";");
+        pas->Add("");
+        pas->Add("interface");
+        pas->Add("");
+        pas->Add("uses");
+        pas->Add("  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Dialogs;");
+        pas->Add("");
+        pas->Add("type");
+        pas->Add("  " + className + " = class(TForm)");
+
+        // Add component fields
+        int compCnt = Dfm->Components->Count;
+        for (int i = 0; i < compCnt; i++)
+        {
+            PComponentInfo cInfo = (PComponentInfo)Dfm->Components->Items[i];
+            if (cInfo)
+            {
+                pas->Add("    " + cInfo->Name + ": " + cInfo->ClassName + ";");
+            }
+        }
+
+        // Add event declarations
+        int evCnt = Dfm->Events->Count;
+        for (int i = 0; i < evCnt; i++)
+        {
+            PEventInfo eInfo = (PEventInfo)Dfm->Events->Items[i];
+            if (eInfo)
+            {
+                pas->Add("    procedure " + eInfo->ProcName + "(Sender: TObject);");
+            }
+        }
+
+        pas->Add("  private");
+        pas->Add("    { Private declarations }");
+        pas->Add("  public");
+        pas->Add("    { Public declarations }");
+        pas->Add("  end;");
+        pas->Add("");
+        pas->Add("var");
+        pas->Add("  " + Dfm->Name + ": " + className + ";");
+        pas->Add("");
+        pas->Add("implementation");
+        pas->Add("");
+        pas->Add("{$R *.dfm}");
+        pas->Add("");
+
+        // Add event procedure implementations
+        for (int i = 0; i < evCnt; i++)
+        {
+            for (int i = 0; i < evCnt; i++)
+            {
+                PEventInfo eInfo = (PEventInfo)Dfm->Events->Items[i];
+                if (eInfo)
+                {
+                    pas->Add("procedure " + className + "." + eInfo->ProcName + "(Sender: TObject);");
+                    pas->Add("begin");
+                    pas->Add("end;");
+                    pas->Add("");
+                }
+            }
+            PEventInfo eInfoPtr = (PEventInfo)Dfm->Events->Items[i];
+            if (eInfoPtr)
+            {
+                pas->Add("procedure " + className + "." + eInfoPtr->ProcName + "(Sender: TObject);");
+                pas->Add("begin");
+                pas->Add("end;");
+                pas->Add("");
+            }
+        }
+
+        pas->Add("end.");
+
+        String fileName = FolderPath + "\\" + unitName + ".pas";
+        pas->SaveToFile(fileName);
+        return true;
+    }
+    __finally
+    {
+        delete pas;
+    }
+}
+
+//---------------------------------------------------------------------------
+void __fastcall TResourceInfo::ExportAllForms(String TargetDirectory)
+{
+    if (!DirectoryExists(TargetDirectory))
+        CreateDir(TargetDirectory);
+
+    int cnt = FormList->Count;
+    for (int n = 0; n < cnt; n++)
+    {
+        TDfm* dfm = (TDfm*)FormList->Items[n];
+        if (dfm)
+        {
+            ExportDfmToFile(dfm, TargetDirectory);
+            ExportPasUnitToFile(dfm, TargetDirectory);
+        }
+    }
+}
+
+//---------------------------------------------------------------------------
+// Helper: Clean mangled/internal procedure names to valid C++ identifiers
+//---------------------------------------------------------------------------
+String SanitizeProcName(String rawName)
+{
+    String name = rawName;
+    
+    // Remove class prefix if present (e.g., "TForm1.MenuItem1Click" -> "MenuItem1Click")
+    int dotPos = name.Pos(".");
+    if (dotPos > 0)
+        name = name.SubString(dotPos + 1, name.Length() - dotPos);
+
+    // Remove compiler decoration symbols (@, $, etc.)
+    int symPos = name.Pos("@");
+    if (symPos > 0) name = name.SubString(symPos + 1, name.Length());
+    
+    symPos = name.Pos("$");
+    if (symPos > 0) name = name.SubString(1, symPos - 1);
+
+    return name.Trim();
+}
+
+//---------------------------------------------------------------------------
+// Export C++Builder Unit (.cpp and .h) with Component & Event Binding
+//---------------------------------------------------------------------------
+bool __fastcall TResourceInfo::ExportCppUnitToFile(TDfm* Dfm, String FolderPath)
+{
+    if (!Dfm) return false;
+
+    String unitName = Dfm->Name; 
+    String className = Dfm->ClassName;
+    if (className.IsEmpty()) className = "T" + unitName;
+
+    // --- 1. Generate Header File (.h) ---
+    TStringList* header = new TStringList;
+    try
+    {
+        header->Add("#ifndef " + unitName + "H");
+        header->Add("#define " + unitName + "H");
+        header->Add("//---------------------------------------------------------------------------");
+        header->Add("#include <Classes.hpp>");
+        header->Add("#include <Controls.hpp>");
+        header->Add("#include <StdCtrls.hpp>");
+        header->Add("#include <Forms.hpp>");
+        header->Add("#include <Menus.hpp>");
+        header->Add("#include <ExtCtrls.hpp>");
+        header->Add("//---------------------------------------------------------------------------");
+        header->Add("class " + className + " : public TForm");
+        header->Add("{");
+        header->Add("__published:\t// IDE-managed Components and Events");
+
+        // Collect and declare all components (including nested controls / menu items)
+        int compCnt = Dfm->Components ? Dfm->Components->Count : 0;
+        for (int i = 0; i < compCnt; i++)
+        {
+            PComponentInfo cInfo = (PComponentInfo)Dfm->Components->Items[i];
+            if (cInfo && !cInfo->Name.IsEmpty() && !cInfo->ClassName.IsEmpty())
+            {
+                header->Add("    " + cInfo->ClassName + " *" + cInfo->Name + ";");
+            }
+        }
+
+        header->Add("");
+        header->Add("    // Event Handlers");
+
+        // Collect and declare all event handlers inside __published:
+        TStringList* declaredEvents = new TStringList;
+        declaredEvents->Duplicates = dupIgnore;
+        declaredEvents->Sorted = true;
+
+        try
+        {
+            // A. Collect from top-level Dfm->Events
+            int evCnt = Dfm->Events ? Dfm->Events->Count : 0;
+            for (int i = 0; i < evCnt; i++)
+            {
+                PEventInfo eInfo = (PEventInfo)Dfm->Events->Items[i];
+                if (eInfo && !eInfo->ProcName.IsEmpty())
+                {
+                    String cleanProc = SanitizeProcName(eInfo->ProcName);
+                    if (declaredEvents->IndexOf(cleanProc) == -1)
+                    {
+                        header->Add("    void __fastcall " + cleanProc + "(TObject *Sender);");
+                        declaredEvents->Add(cleanProc);
+                    }
+                }
+            }
+
+            // B. Collect from individual Component Event lists
+            for (int i = 0; i < compCnt; i++)
+            {
+                PComponentInfo cInfo = (PComponentInfo)Dfm->Components->Items[i];
+                if (cInfo && cInfo->Events)
+                {
+                    for (int j = 0; j < cInfo->Events->Count; j++)
+                    {
+                        PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[j];
+                        if (eInfo && !eInfo->ProcName.IsEmpty())
+                        {
+                            String cleanProc = SanitizeProcName(eInfo->ProcName);
+                            if (declaredEvents->IndexOf(cleanProc) == -1)
+                            {
+                                header->Add("    void __fastcall " + cleanProc + "(TObject *Sender);");
+                                declaredEvents->Add(cleanProc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        __finally
+        {
+            delete declaredEvents;
+        }
+
+        header->Add("private:\t// User declarations");
+        header->Add("public:\t\t// User declarations");
+        header->Add("    __fastcall " + className + "(TComponent* Owner);");
+        header->Add("};");
+        header->Add("//---------------------------------------------------------------------------");
+        header->Add("extern PACKAGE " + className + " *" + unitName + "Form;");
+        header->Add("//---------------------------------------------------------------------------");
+        header->Add("#endif");
+
+        header->SaveToFile(FolderPath + "\\" + unitName + ".h");
+    }
+    __finally
+    {
+        delete header;
+    }
+
+    // --- 2. Generate Source File (.cpp) ---
+    TStringList* cpp = new TStringList;
+    try
+    {
+        cpp->Add("//---------------------------------------------------------------------------");
+        cpp->Add("#include <vcl.h>");
+        cpp->Add("#pragma hdrstop");
+        cpp->Add("");
+        cpp->Add("#include \"" + unitName + ".h\"");
+        cpp->Add("//---------------------------------------------------------------------------");
+        cpp->Add("#pragma package(smart_init)");
+        cpp->Add("#pragma resource \"*.dfm\"");
+        cpp->Add(className + " *" + unitName + "Form;");
+        cpp->Add("//---------------------------------------------------------------------------");
+        cpp->Add("__fastcall " + className + "::" + className + "(TComponent* Owner)");
+        cpp->Add("    : TForm(Owner)");
+        cpp->Add("{");
+        cpp->Add("}");
+        cpp->Add("//---------------------------------------------------------------------------");
+
+        // Implement event handler stubs in .cpp
+        TStringList* implementedEvents = new TStringList;
+        implementedEvents->Duplicates = dupIgnore;
+        implementedEvents->Sorted = true;
+
+        try
+        {
+            // A. Stubs from top-level Dfm->Events
+            int evCnt = Dfm->Events ? Dfm->Events->Count : 0;
+            for (int i = 0; i < evCnt; i++)
+            {
+                PEventInfo eInfo = (PEventInfo)Dfm->Events->Items[i];
+                if (eInfo && !eInfo->ProcName.IsEmpty())
+                {
+                    String cleanProc = SanitizeProcName(eInfo->ProcName);
+                    if (implementedEvents->IndexOf(cleanProc) == -1)
+                    {
+                        cpp->Add("void __fastcall " + className + "::" + cleanProc + "(TObject *Sender)");
+                        cpp->Add("{");
+                        cpp->Add("    // TODO: Implement event handler");
+                        cpp->Add("}");
+                        cpp->Add("//---------------------------------------------------------------------------");
+                        implementedEvents->Add(cleanProc);
+                    }
+                }
+            }
+
+            // B. Stubs from individual Component Event lists
+            int compCnt = Dfm->Components ? Dfm->Components->Count : 0;
+            for (int i = 0; i < compCnt; i++)
+            {
+                PComponentInfo cInfo = (PComponentInfo)Dfm->Components->Items[i];
+                if (cInfo && cInfo->Events)
+                {
+                    for (int j = 0; j < cInfo->Events->Count; j++)
+                    {
+                        PEventInfo eInfo = (PEventInfo)cInfo->Events->Items[j];
+                        if (eInfo && !eInfo->ProcName.IsEmpty())
+                        {
+                            String cleanProc = SanitizeProcName(eInfo->ProcName);
+                            if (implementedEvents->IndexOf(cleanProc) == -1)
+                            {
+                                cpp->Add("void __fastcall " + className + "::" + cleanProc + "(TObject *Sender)");
+                                cpp->Add("{");
+                                cpp->Add("    // TODO: Implement event handler");
+                                cpp->Add("}");
+                                cpp->Add("//---------------------------------------------------------------------------");
+                                implementedEvents->Add(cleanProc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        __finally
+        {
+            delete implementedEvents;
+        }
+
+        cpp->SaveToFile(FolderPath + "\\" + unitName + ".cpp");
+        return true;
+    }
+    __finally
+    {
+        delete cpp;
+    }
+}
+//---------------------------------------------------------------------------
+// Updated Batch Export with Language Choice
+//---------------------------------------------------------------------------
+void __fastcall TResourceInfo::ExportAllFormsEx(String TargetDirectory, int LanguageMode)
+{
+    if (!DirectoryExists(TargetDirectory))
+        CreateDir(TargetDirectory);
+
+    int cnt = FormList->Count;
+    for (int n = 0; n < cnt; n++)
+    {
+        TDfm* dfm = (TDfm*)FormList->Items[n];
+        if (dfm)
+        {
+            ExportDfmToFile(dfm, TargetDirectory);
+
+            if (LanguageMode == 0)
+            {
+                ExportPasUnitToFile(dfm, TargetDirectory);
+            }
+            else if (LanguageMode == 1)
+            {
+                ExportCppUnitToFile(dfm, TargetDirectory);
+            }
+        }
+    }
+
+    // Generate project files
+    if (LanguageMode == 1)
+    {
+        ExportCppMainFile(TargetDirectory, "ExportedProject");
+        ExportCppProjectFile(TargetDirectory, "ExportedProject");
+    }
+}
+//---------------------------------------------------------------------------
+// Generate C++Builder Project File (.bpr)
+//---------------------------------------------------------------------------
+bool __fastcall TResourceInfo::ExportCppProjectFile(String TargetDirectory, String ProjectName)
+{
+    // --- 1. Create dummy .res file if it doesn't exist yet ---
+    String resPath = TargetDirectory + "\\" + ProjectName + ".res";
+    if (!FileExists(resPath))
+    {
+        TMemoryStream* ms = new TMemoryStream;
+        try
+        {
+            BYTE emptyResHeader[32] = {
+                0x00,0x00,0x00,0x00, 0x20,0x00,0x00,0x00, 0xFF,0xFF,0x00,0x00,
+                0xFF,0xFF,0x00,0x00, 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00,
+                0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00
+            };
+            ms->Write(emptyResHeader, 32);
+            ms->SaveToFile(resPath);
+        }
+        __finally
+        {
+            delete ms;
+        }
+    }
+
+    // --- 2. Generate the .bpr file ---
+    TStringList* bpr = new TStringList;
+    try
+    {
+        String fileList = "";
+        String objList = "";
+        String dfmList = "";
+
+        int cnt = FormList->Count;
+        for (int i = 0; i < cnt; i++)
+        {
+            TDfm* dfm = (TDfm*)FormList->Items[i];
+            if (dfm)
+            {
+                fileList += dfm->Name + ".cpp ";
+                objList += dfm->Name + ".obj ";
+                dfmList += dfm->Name + ".dfm ";
+            }
+        }
+
+        bpr->Add("<?xml version='1.0' encoding='utf-8' ?>");
+        bpr->Add("<!-- C++Builder XML Project File generated by IDR -->");
+        bpr->Add("<PROJECT>");
+        bpr->Add("  <MACROS>");
+        bpr->Add("    <VERSION value=\"BCB.06.00\"/>");
+        bpr->Add("    <PROJECT value=\"" + ProjectName + ".exe\"/>");
+        bpr->Add("    <OBJFILES value=\"" + objList + "\"/>");
+        bpr->Add("    <RESFILES value=\"" + ProjectName + ".res\"/>");
+        bpr->Add("    <IDLFILES value=\"\"/>");
+        bpr->Add("    <IDLGENFILES value=\"\"/>");
+        bpr->Add("    <DEFFILE value=\"\"/>");
+        bpr->Add("    <RESDEPEN value=\"$(RESFILES) " + dfmList + "\"/>");
+        bpr->Add("    <LIBFILES value=\"\"/>");
+        bpr->Add("    <LIBRARIES value=\"vcl.lib rtl.lib\"/>");
+        bpr->Add("    <SPARELIBS value=\"vcl.lib rtl.lib\"/>");
+        bpr->Add("    <PACKAGES value=\"vcl.bpi rtl.bpi\"/>");
+        bpr->Add("    <PATHCPP value=\".\"/>");
+        bpr->Add("    <PATHPAS value=\".\"/>");
+        bpr->Add("    <PATHRC value=\".\"/>");
+        bpr->Add("    <PATHASM value=\".\"/>");
+        bpr->Add("    <DEBUGLIBPATH value=\"$(BCB)\\lib\\debug\"/>");
+        bpr->Add("    <RELEASELIBPATH value=\"$(BCB)\\lib\\release\"/>");
+        bpr->Add("    <LINKER value=\"ilink32\"/>");
+        bpr->Add("    <USERDEFINES value=\"_DEBUG\"/>");
+        bpr->Add("    <SYSDEFINES value=\"NO_STRICT;_RTLDLL;USEPACKAGES\"/>");
+        bpr->Add("    <MAINSOURCE value=\"" + ProjectName + ".cpp\"/>");
+        bpr->Add("    <INCLUDEPATH value=\"$(BCB)\\include;$(BCB)\\include\\vcl\"/>");
+        bpr->Add("    <LIBPATH value=\"$(BCB)\\lib\\obj;$(BCB)\\lib\"/>");
+        bpr->Add("    <WARNINGS value=\"-w-par\"/>");
+        bpr->Add("    <OTHERFILES value=\"\"/>");
+        bpr->Add("  </MACROS>");
+        bpr->Add("  <OPTIONS>");
+        bpr->Add("    <IDLCFLAGS value=\"-I$(BCB)\\include\"/>");
+        bpr->Add("    <CFLAG1 value=\"-Od -H=$(BCB)\\lib\\vcl60.csm -Hc -Vx -Ve -X- -r0 -sub -v -vi- -c -tW -tWM\"/>");
+        bpr->Add("    <PFLAGS value=\"-$Y+ -$W -$O- -$A8 -v -JPHNE -M\"/>");
+        bpr->Add("    <RFLAGS value=\"\"/>");
+        bpr->Add("    <AFLAGS value=\"/mx /w2 /zd\"/>");
+        bpr->Add("    <LFLAGS value=\"-D&quot;&quot; -aa -Tpe -x -Gn -v\"/>");
+        bpr->Add("  </OPTIONS>");
+        bpr->Add("  <LINKER>");
+        bpr->Add("    <ALLOBJ value=\"c0w32.obj $(PACKAGES) memmgr.lib sysinit.obj $(OBJFILES)\"/>");
+        bpr->Add("    <ALLRES value=\"$(RESFILES)\"/>");
+        bpr->Add("    <ALLLIB value=\"$(LIBFILES) $(LIBRARIES) import32.lib cp32mti.lib\"/>");
+        bpr->Add("  </LINKER>");
+        bpr->Add("  <FILELIST>");
+
+        // 1. Main Project Entry Point
+        bpr->Add("      <FILE FILENAME=\"" + ProjectName + ".cpp\" FORMNAME=\"\" UNITNAME=\"" + ProjectName + "\" CONTAINERID=\"CCompiler\" DESIGNCLASS=\"\" LOCALCOMMAND=\"\"/>");
+
+        // 2. Resource File Entry
+        bpr->Add("      <FILE FILENAME=\"" + ProjectName + ".res\" FORMNAME=\"\" UNITNAME=\"" + ProjectName + ".res\" CONTAINERID=\"ResTool\" DESIGNCLASS=\"\" LOCALCOMMAND=\"\"/>");
+
+        // 3. Form Unit Entries
+        for (int i = 0; i < cnt; i++)
+        {
+            TDfm* dfm = (TDfm*)FormList->Items[i];
+            if (dfm)
+            {
+                String formName = dfm->ClassName.IsEmpty() ? dfm->Name : dfm->ClassName;
+                bpr->Add("      <FILE FILENAME=\"" + dfm->Name + ".cpp\" FORMNAME=\"" + formName + "\" UNITNAME=\"" + dfm->Name + "\" CONTAINERID=\"CCompiler\" DESIGNCLASS=\"\" LOCALCOMMAND=\"\"/>");
+            }
+        }
+
+        bpr->Add("  </FILELIST>");
+        bpr->Add("  <BUILDTOOLS>");
+        bpr->Add("  </BUILDTOOLS>");
+        bpr->Add("  <PROJECTSETTINGS>");
+        bpr->Add("  </PROJECTSETTINGS>");
+        bpr->Add("</PROJECT>");
+
+        bpr->SaveToFile(TargetDirectory + "\\" + ProjectName + ".bpr");
+        return true;
+    }
+    __finally
+    {
+        delete bpr;
+    }
+}
+// My Code End 01.08.26
 //---------------------------------------------------------------------------
 //IdrDfmDefaultControl
 //---------------------------------------------------------------------------

@@ -388,12 +388,35 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             BYTE len = Code[i + 5];
             if (!IsValidName(len, i + 6)) continue;
 
+            String TypeName = GetTypeName(adr);
+            UpdateStatusBar(TypeName);
+            /*
+            //Names that begins with '.'
+            if (TypeName[1] == '.')
+            {
+                String prefix;
+                switch (typeKind)
+                {
+                case ikEnumeration:
+                    prefix = "_Enumeration_";
+                    break;
+                case ikArray:
+                    prefix = "_Array_";
+                    break;
+                case ikDynArray:
+                    prefix = "_DynArray_";
+                    break;
+                default:
+                    prefix = form->GetUnitName(recU);
+                    break;
+                }
+                TypeName = prefix + Val2Str0(recU->iniOrder) + "_" + TypeName.SubString(2, len);
+            }
+            */
+
             n = i + 6 + len;
             SetFlag(cfRTTI, i);
             unitName = "";
-
-            String TypeName = GetTypeName(adr);
-            UpdateStatusBar(TypeName);
 
             switch (typeKind)
             {
@@ -962,7 +985,7 @@ void __fastcall TAnalyzeThread::FindRTTIs()
             PTypeRec recT = new TypeRec;
             recT->kind = typeKind;
             recT->adr = typeAdr;
-            //if (unitName != "") TypeName += " (" + unitName + ")";
+            if (unitName != "") TypeName += " (" + unitName + ")";
             recT->name = TypeName;
             OwnTypeList->Add(recT);
         }
@@ -1910,6 +1933,7 @@ void __fastcall TAnalyzeThread::FindPrototypes()
                             PInfoRec recN1 = GetInfoRec(recM->address);
                             if (recN1)
                             {
+                                //my code
                                 String clsname = className;
                                 while (1)
                                 {
@@ -1918,12 +1942,28 @@ void __fastcall TAnalyzeThread::FindPrototypes()
                                         recN1->kind = ikProc;
                                         recN1->procInfo->flags |= PF_EVENT;
                                         recN1->procInfo->DeleteArgs();
+
                                         //eax always Self
                                         recN1->procInfo->AddArg(0x21, 0, 4, "Self", className);
-                                        //transform declaration to arguments
-                                        recN1->procInfo->AddArgsFromDeclaration(tInfo->Decl.c_str(), 1, 0);
+
+                                        String _msg;
+
+                                        _msg = String("Event prototype information\r\n");
+                                        _msg = _msg + "Component: ";
+                                        _msg = _msg + cInfo->ClassName;
+                                        _msg = _msg + "\r\nEvent: ";
+                                        _msg = _msg + eInfo->EventName;
+                                        _msg = _msg + "\r\nProcedure: ";
+                                        _msg = _msg + eInfo->ProcName;
+                                        _msg = _msg + "\r\nDeclaration: ";
+                                        _msg = _msg + tInfo->Decl;
+
+                                        ShowMessage(_msg);
+
+                                        recN1->procInfo->AddArgsFromDeclaration(
+                                            tInfo->Decl.c_str(), 1, 0);
                                         break;
-                                    }
+                                    }   
                                     clsname = GetParentName(clsname);
                                     if (clsname == "") break;
                                 }
